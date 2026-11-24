@@ -1,6 +1,7 @@
 package com.indiehost.runtimes
 
 import android.app.Activity
+import android.content.Context
 import com.indiehost.detect.Engine
 import com.indiehost.detect.EngineDetector
 import com.indiehost.detect.GameMakerWad
@@ -14,13 +15,14 @@ import java.io.File
  * The runner we target is Butterscotch's Android build, which is AGPL-3.0.
  * To keep our launcher's licence clean we do NOT link the native runner into
  * our APK: Butterscotch is an app the user installs (Play Store), and we only
- * open it. Its `GameActivity` is `exported="false"`, so there is currently no
- * way to hand it a specific game over an Intent — that is why [launch] opens
- * Butterscotch itself and [prepare] only validates and reports.
+ * open it or ask the system to start one of its shortcuts.
  *
- * Closing that gap is Milestone 1 work: either a small upstream patch that
- * accepts a content:// Uri, or a fork of ButterscotchAndroid (AGPL obligations
- * apply to the fork).
+ * Its `GameActivity` is `exported="false"` and there is no import Intent, so a
+ * game cannot be handed over directly. What does work without touching their
+ * code: the user pins a game inside Butterscotch, and Android lets the current
+ * home app list and start that pinned shortcut. [shortcuts] and
+ * [launchShortcut] use exactly that; [launch] stays as the fallback for when
+ * IndieHost is not the home app.
  */
 class GameMakerRuntimeAdapter(
     private val detector: EngineDetector = EngineDetector(),
@@ -59,6 +61,29 @@ class GameMakerRuntimeAdapter(
         activity.startActivity(intent)
         return LaunchOutcome.Launched(BUTTERSCOTCH_PACKAGE)
     }
+
+    /**
+     * Games the user has already pinned inside Butterscotch. Empty when
+     * IndieHost is not the home app, when nothing is pinned, or on Android
+     * versions without launcher shortcut support.
+     */
+    fun shortcuts(context: Context): List<RunnerShortcut> =
+        ButterscotchShortcuts(context.applicationContext).list()
+
+    /** True while this app is the current home app, i.e. allowed to read shortcuts. */
+    fun canListShortcuts(context: Context): Boolean =
+        ButterscotchShortcuts(context.applicationContext).canRead()
+
+    /** Starts one pinned game directly; nothing is copied and nothing is linked. */
+    fun launchShortcut(activity: Activity, shortcut: RunnerShortcut): LaunchOutcome =
+        if (ButterscotchShortcuts(activity.applicationContext).start(shortcut)) {
+            LaunchOutcome.Launched(shortcut.packageName)
+        } else {
+            LaunchOutcome.Blocked(
+                "Butterscotch did not accept the launch request for ${shortcut.title}. " +
+                    "Set IndieHost as your home app, then try again."
+            )
+        }
 
     /** GameMaker's own `save.ini` style saves work; Butterscotch stores them per game. */
     override fun supportsSaves(): Boolean = true
