@@ -1,0 +1,35 @@
+# ---------------------------------------------------------------------------
+# Game data. These are copyrighted files supplied by the user and must NEVER be
+# committed, packaged into an APK or uploaded anywhere.
+# ---------------------------------------------------------------------------
+games/
+*.win
+*.droid
+*.unx
+*.ios
+*.love
+*.rpy
+*.rpyc
+*.rpa
+*.scummvm
+*.ogg
+*.exe
+
+# Nothing under these paths is source.
+/library/coverart/imported/
+
+# ---------------------------------------------------------------------------
+# Build / tooling
+# ---------------------------------------------------------------------------
+.gradle/
+build/
+local.properties
+*.keystore
+*.jks
+.idea/
+*.iml
+.DS_Store
+captures/
+
+# Built APKs are artifacts, not source. The copy in dist/ is for sideloading.
+dist/*.apk
