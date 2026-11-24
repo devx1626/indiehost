@@ -133,7 +133,7 @@ private fun HomeScreen(
             if (shortcuts.isEmpty()) {
                 Text(
                     "No games pinned yet.\n\n" +
-                        "In Butterscotch, long-press a game and pin it to your home screen. " +
+                        "In Butterscotch, open a game's settings and tap \"Add Shortcut to Home Screen\". " +
                         "It will show up here."
                 )
             } else {
