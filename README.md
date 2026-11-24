@@ -37,12 +37,16 @@ user imports the game inside the runner once. Closing that gap is Milestone 1.
 
 ## Build
 
+Requires JDK 17 and Android SDK 34.
+
 ```bash
-./gradlew :app:assembleDebug        # app/build/outputs/apk/debug/app-debug.apk
-./gradlew :detect:test              # engine detection tests
+gradle wrapper --gradle-version 8.7   # once: regenerates gradle/wrapper/gradle-wrapper.jar
+./gradlew :app:assembleDebug          # app/build/outputs/apk/debug/app-debug.apk
+./gradlew :detect:test                # engine detection tests
 ```
 
-Requires JDK 17 and Android SDK 34.
+The Gradle wrapper's binary jar is not committed; Android Studio regenerates it when the
+project is opened, otherwise the first command above does it.
 
 ## Game files
 
