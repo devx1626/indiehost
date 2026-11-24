@@ -31,5 +31,21 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <!-- Answers "Add Shortcut to Home Screen" requests from Butterscotch.
+             Android only allows pinning when the current home app declares this
+             action, and a pin is recorded against the accepting launcher, so
+             this is what makes a pinned game show up in our list. -->
+        <activity
+            android:name=".PinShortcutActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.content.pm.action.CONFIRM_PIN_SHORTCUT" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>
