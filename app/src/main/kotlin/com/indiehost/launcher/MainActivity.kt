@@ -1,222 +1,186 @@
 package com.indiehost.launcher
 
-import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import com.indiehost.detect.Engine
-import com.indiehost.detect.EngineDetector
 import com.indiehost.library.Game
 import com.indiehost.runtimes.GameMakerRuntimeAdapter
 import com.indiehost.runtimes.LaunchOutcome
 import com.indiehost.runtimes.RunnerShortcut
-import java.io.File
 
 /**
- * Two jobs, in this order:
+ * The home app.
  *
- * 1. Show the games the user has already imported into Butterscotch and start
- *    one with a tap. That works by launching Butterscotch's pinned game
- *    shortcut, which is possible while IndieHost is the home app.
- * 2. Everything else: open Butterscotch itself, and read a data.win's bytecode
- *    version before the user spends time importing it.
+ * Two screens: [HomeScreen] with recents and the pinned games, and [AppDrawer]
+ * with everything installed. Both are built from system data - [InstalledApps]
+ * and Butterscotch's pinned shortcuts - so the launcher holds no state of its
+ * own beyond which of the two screens is showing.
  */
 class MainActivity : ComponentActivity() {
 
     private val runtime = GameMakerRuntimeAdapter()
 
-    private var shortcuts by mutableStateOf<List<RunnerShortcut>>(emptyList())
-    private var canListShortcuts by mutableStateOf(false)
+    private var games by mutableStateOf<List<RunnerShortcut>>(emptyList())
+    private var canListGames by mutableStateOf(false)
+
+    private var apps by mutableStateOf<List<LauncherApp>>(emptyList())
+    private var recents by mutableStateOf<List<LauncherApp>>(emptyList())
+    private var usageAccess by mutableStateOf(false)
+    private var loadingApps by mutableStateOf(true)
+
+    private var drawerOpen by mutableStateOf(false)
+    private var status by mutableStateOf("")
+
+    @Volatile
+    private var appsLoaded = false
+
+    @Volatile
+    private var loading = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        refreshShortcuts()
+        refreshGames()
+        loadApps()
+
         setContent {
             MaterialTheme {
-                Surface { HomeScreen(shortcuts, canListShortcuts, runtime) }
+                Surface(Modifier.fillMaxSize()) {
+                    // Back closes the drawer; on the home screen there is nowhere
+                    // to go, which is what a home screen should do.
+                    BackHandler(enabled = drawerOpen) { drawerOpen = false }
+
+                    if (drawerOpen) {
+                        AppDrawer(
+                            apps = apps,
+                            loading = loadingApps,
+                            onClose = { drawerOpen = false },
+                            onLaunch = ::launchApp,
+                            onAppInfo = ::openAppInfo,
+                        )
+                    } else {
+                        HomeScreen(
+                            games = games,
+                            canListGames = canListGames,
+                            recents = recents,
+                            loadingApps = loadingApps,
+                            usageAccess = usageAccess,
+                            status = status,
+                            onOpenDrawer = { drawerOpen = true },
+                            onLaunchGame = ::launchGame,
+                            onLaunchApp = ::launchApp,
+                            onOpenRunner = ::openRunner,
+                            onChooseHomeApp = ::openHomeSettings,
+                            onAllowUsage = ::openUsageSettings,
+                        )
+                    }
+                }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        // Pressing Home while already here returns to the home screen.
+        drawerOpen = false
     }
 
     override fun onResume() {
         super.onResume()
-        // Shortcuts are pinned inside another app, so the list can change while
-        // we are in the background.
-        refreshShortcuts()
+        // Games are pinned in another app and usage access can be granted from
+        // Settings, so both lists can change while we sit in the background.
+        refreshGames()
+        if (appsLoaded) refreshRecents() else loadApps()
     }
 
-    private fun refreshShortcuts() {
-        canListShortcuts = runtime.canListShortcuts(this)
-        shortcuts = if (canListShortcuts) runtime.shortcuts(this) else emptyList()
+    private fun refreshGames() {
+        canListGames = runtime.canListShortcuts(this)
+        games = if (canListGames) runtime.shortcuts(this) else emptyList()
     }
-}
 
-@Composable
-private fun HomeScreen(
-    shortcuts: List<RunnerShortcut>,
-    canListShortcuts: Boolean,
-    runtime: GameMakerRuntimeAdapter,
-) {
-    val context = LocalContext.current
-    val activity = context as? Activity
+    /** Reads the drawer list off the main thread; labels and icons are expensive. */
+    private fun loadApps() {
+        if (loading || appsLoaded) return
+        loading = true
+        loadingApps = true
+        Thread {
+            val loaded = InstalledApps.load(this)
+            val access = Recents.hasUsageAccess(this)
+            apps = loaded
+            usageAccess = access
+            recents = Recents.pick(this, loaded, access)
+            loadingApps = false
+            appsLoaded = true
+            loading = false
+        }.start()
+    }
 
-    var status by remember { mutableStateOf("") }
-    var report by remember { mutableStateOf("No game loaded yet") }
-    var game by remember { mutableStateOf<Game?>(null) }
+    private fun refreshRecents() {
+        val loaded = apps
+        if (loaded.isEmpty()) return
+        Thread {
+            val access = Recents.hasUsageAccess(this)
+            recents = Recents.pick(this, loaded, access)
+            usageAccess = access
+        }.start()
+    }
 
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        // Game data stays in the app's private cache. It is never bundled,
-        // uploaded or committed.
-        val importDir = File(context.cacheDir, "import").apply {
-            deleteRecursively()
-            mkdirs()
-        }
-        val target = File(importDir, "data.win")
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            target.outputStream().use { output -> input.copyTo(output) }
-        }
-
-        val detection = EngineDetector().detect(importDir)
-        game = Game(
-            id = "import",
-            title = target.parentFile?.name ?: "imported",
-            folderPath = importDir.absolutePath,
-            engine = detection.engine,
-            wadVersion = detection.wadVersion,
-        )
-        report = buildString {
-            appendLine("Engine: ${detection.engine.displayName}")
-            appendLine("Runnable: ${if (detection.runnable) "yes" else "no"}")
-            detection.wadVersion?.let { appendLine("WAD / bytecode version: $it") }
-            detection.blocker?.let { appendLine("Blocker: $it") }
-            detection.notes.forEach { appendLine("- $it") }
+    private fun launchGame(shortcut: RunnerShortcut) {
+        status = when (val outcome = runtime.launchShortcut(this, shortcut)) {
+            is LaunchOutcome.Launched -> ""
+            is LaunchOutcome.RuntimeNotInstalled ->
+                "Butterscotch is not installed\n${outcome.installUrl}"
+            is LaunchOutcome.Blocked -> outcome.reason
         }
     }
 
-    Column(
-        Modifier
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp)
-    ) {
-        Text("IndieHost", style = MaterialTheme.typography.headlineSmall)
-        Spacer(Modifier.height(16.dp))
-
-        if (canListShortcuts) {
-            if (shortcuts.isEmpty()) {
-                Text(
-                    "No games pinned yet.\n\n" +
-                        "In Butterscotch, open a game's settings and tap \"Add Shortcut to Home Screen\". " +
-                        "It will show up here."
-                )
-            } else {
-                Text("Your games", style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(8.dp))
-                shortcuts.forEach { shortcut ->
-                    Card(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp)
-                            .clickable {
-                                val host = activity ?: return@clickable
-                                status = when (val outcome = runtime.launchShortcut(host, shortcut)) {
-                                    is LaunchOutcome.Launched -> "Opening ${shortcut.title}"
-                                    is LaunchOutcome.RuntimeNotInstalled ->
-                                        "Butterscotch is not installed\n${outcome.installUrl}"
-                                    is LaunchOutcome.Blocked -> outcome.reason
-                                }
-                            }
-                    ) {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                shortcut.title,
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Text("Tap to play", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                }
-            }
+    private fun launchApp(app: LauncherApp) {
+        Recents.record(this, app.packageName)
+        status = if (InstalledApps.launch(this, app)) {
+            drawerOpen = false
+            ""
         } else {
-            Text(
-                "To list the games you have in Butterscotch, set IndieHost as your home app."
-            )
-            Spacer(Modifier.height(12.dp))
-            Button(
-                onClick = {
-                    runCatching { context.startActivity(Intent(Settings.ACTION_HOME_SETTINGS)) }
-                        .onFailure { status = "Open Settings and set IndieHost as your home app." }
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Choose home app")
-            }
+            "Could not open ${app.label}."
         }
+    }
 
-        if (status.isNotEmpty()) {
-            Spacer(Modifier.height(12.dp))
-            Text(status, style = MaterialTheme.typography.bodyMedium)
+    private fun openAppInfo(app: LauncherApp) {
+        val intent = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", app.packageName, null),
+        )
+        runCatching { startActivity(intent) }
+    }
+
+    private fun openRunner() {
+        status = when (val outcome = runtime.launch(this, runnerOnlyGame())) {
+            is LaunchOutcome.Launched -> "Opened Butterscotch"
+            is LaunchOutcome.RuntimeNotInstalled ->
+                "Butterscotch is not installed\n${outcome.installUrl}"
+            is LaunchOutcome.Blocked -> outcome.reason
         }
+    }
 
-        Spacer(Modifier.height(20.dp))
-        Button(
-            onClick = {
-                val host = activity ?: return@Button
-                status = when (val outcome = runtime.launch(host, game ?: runnerOnlyGame())) {
-                    is LaunchOutcome.Launched -> "Opened Butterscotch"
-                    is LaunchOutcome.RuntimeNotInstalled ->
-                        "Butterscotch is not installed\n${outcome.installUrl}"
-                    is LaunchOutcome.Blocked -> outcome.reason
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Open Butterscotch")
-        }
+    private fun openHomeSettings() {
+        runCatching { startActivity(Intent(Settings.ACTION_HOME_SETTINGS)) }
+            .onFailure { status = "Open Settings and set IndieHost as your home app." }
+    }
 
-        Spacer(Modifier.height(8.dp))
-        Button(
-            onClick = { picker.launch(arrayOf("*/*")) },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Check a data.win")
-        }
-
-        Spacer(Modifier.height(16.dp))
-        Text(report, style = MaterialTheme.typography.bodyMedium)
+    private fun openUsageSettings() {
+        runCatching { startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
+            .onFailure { status = "Open Settings, Apps, Special access, Usage access." }
     }
 }
 
