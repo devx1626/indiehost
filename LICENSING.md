@@ -94,9 +94,30 @@ user-supplied folder without that, it is out of scope.
 | JUnit 4 | EPL-1.0 | Host tests |
 | Python Pillow | HPND | Icon generation only (not shipped) |
 | Butterscotch | AGPL-3.0 | Separate app; not linked or shipped |
+| Agent skills (`.opencode/skills/`) | MIT / Apache-2.0 | Development-time instructions; not shipped |
 
 If a dependency is added, record it here with its licence. Do not add a dependency whose
 licence is incompatible with the launcher's chosen licence.
+
+### 4.1 Agent skills
+
+The repository vendors a project-local agent skill set in `.opencode/skills/`. These are
+Markdown instructions and small helper scripts for development tools, not code that is
+compiled into or shipped with the APK. Every skill directory keeps its upstream licence.
+
+| Source | Licence | Skills |
+| --- | --- | --- |
+| [obra/superpowers](https://github.com/obra/superpowers) | MIT | 13 workflow skills |
+| [Drjacky/claude-android-ninja](https://github.com/Drjacky/claude-android-ninja) | Apache-2.0 | `android-ninja` + references |
+| [Trystan-SA/product-engineer-skills](https://github.com/Trystan-SA/product-engineer-skills) | MIT | 15 UX/product skills |
+| [anthropics/skills](https://github.com/anthropics/skills) | Apache-2.0 | `frontend-design`, `skill-creator` |
+| [bergside/awesome-design-skills](https://github.com/bergside/awesome-design-skills) | MIT | `material`, `design-styles` catalog |
+| [mxyhi/ok-skills](https://github.com/mxyhi/ok-skills) | Apache-2.0 / MIT | 9 architecture and research skills |
+
+The full provenance, commit pins and update procedure are in
+[.opencode/SKILLS.md](.opencode/SKILLS.md). Only skills with a clear upstream licence were
+vendored. The skills are advice, not project policy; [AGENTS.md](AGENTS.md) and
+[spec.md](spec.md) take precedence.
 
 ---
 

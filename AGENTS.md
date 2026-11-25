@@ -19,6 +19,10 @@ easy to violate and expensive to undo.
 If a request conflicts with `spec.md`, say so and propose a spec change; do not silently
 implement it.
 
+Project-local agent skills live in `.opencode/skills/` and are indexed by
+[.opencode/SKILLS.md](.opencode/SKILLS.md). Load one when its description matches the
+task; this file and `spec.md` override any third-party advice.
+
 ---
 
 ## 2. Hard rules
@@ -73,6 +77,7 @@ Android Studio.
 | Game model / repository | `library/src/main/kotlin/com/indiehost/library/` |
 | Manifest | `app/src/main/AndroidManifest.xml` |
 | Versions | `app/build.gradle.kts`, `build.gradle.kts` |
+| Agent skills | `.opencode/skills/`, indexed by `.opencode/SKILLS.md` |
 
 ---
 

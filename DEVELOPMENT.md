@@ -73,6 +73,21 @@ add one, update this file and [ROADMAP](ROADMAP.md).
 - New user-visible strings should go into `strings.xml` (the existing hardcoded copy is
   legacy; see backlog).
 
+### 3.4 Agent skills
+
+The repository carries a project-local skill set in `.opencode/skills/`, indexed by
+[.opencode/SKILLS.md](.opencode/SKILLS.md). It is a development aid, not an app
+dependency.
+
+- Load a skill when the task matches its description; do not load the whole set.
+- `AGENTS.md` and `spec.md` override any third-party advice.
+- Do not apply the newer Android stack suggested by `android-ninja` (Hilt, Room 3, AGP 9,
+  Kotlin 2.x, `targetSdk 37`) without an explicit decision.
+- Keep the upstream licence file when updating a skill. The source pins and sync command
+  are in `.opencode/SKILLS.md`.
+- Do not add a root-level `*.md` file inside `.opencode/skills/`; OpenCode treats it as a
+  skill.
+
 ---
 
 ## 4. Change workflow
@@ -243,5 +258,6 @@ Useful manual checks:
 | [LICENSING](LICENSING.md) | Maintainers | Policy |
 | [SECURITY](SECURITY.md) | Maintainers | Policy |
 | [AGENTS.md](AGENTS.md) | AI agents | Operating rules |
+| [.opencode/SKILLS.md](.opencode/SKILLS.md) | AI agents/contributors | Project-local skill manifest |
 | [MILESTONE-0](MILESTONE-0.md) | Everyone | Historical |
 | [docs/adr](docs/adr/README.md) | Contributors | Decision record |

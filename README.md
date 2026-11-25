@@ -46,6 +46,7 @@ game client:
 | [LICENSING.md](LICENSING.md) | AGPL boundary, game-data policy, third-party licences |
 | [SECURITY.md](SECURITY.md) | Permissions, exported components, threat model |
 | [AGENTS.md](AGENTS.md) | Operating rules for AI coding agents |
+| [.opencode/SKILLS.md](.opencode/SKILLS.md) | Project-local agent skill set and provenance |
 | [docs/adr](docs/adr/README.md) | Architecture decision records |
 
 ## How a game is started
