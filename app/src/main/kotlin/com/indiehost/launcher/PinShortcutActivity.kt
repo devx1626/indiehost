@@ -5,6 +5,8 @@ import android.content.pm.LauncherApps
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import com.indiehost.runtimes.ButterscotchShortcuts
+import com.indiehost.runtimes.GameMakerRuntimeAdapter
 
 /**
  * Launchers receive pin requests ("Add Shortcut to Home Screen") here.
@@ -18,6 +20,10 @@ import android.util.Log
  * screen is built from [LauncherApps]'s list of pinned shortcuts, so accepting
  * the request and finishing is exactly enough. The pin is recorded by the
  * system against IndieHost and shows up the next time we refresh.
+ *
+ * Only Butterscotch's per-game shortcuts (`game-`) are accepted. Any other app
+ * that asks IndieHost to pin something is declined by finishing without
+ * calling [LauncherApps.PinItemRequest.accept].
  */
 class PinShortcutActivity : Activity() {
 
@@ -39,10 +45,22 @@ class PinShortcutActivity : Activity() {
         }
 
         val shortcut = request.getShortcutInfo()
-        if (request.accept()) {
-            Log.i(TAG, "Pinned ${shortcut?.id}")
+        val packageName = shortcut?.`package`
+        val shortcutId = shortcut?.id
+        if (packageName != GameMakerRuntimeAdapter.BUTTERSCOTCH_PACKAGE ||
+            shortcutId?.startsWith(ButterscotchShortcuts.GAME_SHORTCUT_PREFIX) != true
+        ) {
+            // Finishing without accept() refuses the request. A launcher should
+            // not silently adopt shortcuts it cannot launch as games.
+            Log.w(TAG, "Ignored pin request from $packageName/$shortcutId")
+            finish()
+            return
+        }
+
+        if (runCatching { request.accept() }.getOrDefault(false)) {
+            Log.i(TAG, "Pinned $shortcutId")
         } else {
-            Log.w(TAG, "Could not pin ${shortcut?.id}")
+            Log.w(TAG, "Could not pin $shortcutId")
         }
         finish()
     }
