@@ -7,13 +7,33 @@ android {
     namespace = "com.indiehost.launcher"
     compileSdk = 34
 
+    // Release signing is opt-in: the keystore is never in this repository, and
+    // CI (which has no key) still builds the debug APK. The four variables are
+    // supplied by the local signing environment before a release build.
+    val keystorePath = System.getenv("INDIEHOST_KEYSTORE")
+    val storePassword = System.getenv("INDIEHOST_STORE_PASSWORD")
+    val keyPassword = System.getenv("INDIEHOST_KEY_PASSWORD")
+    val keyAlias = System.getenv("INDIEHOST_KEY_ALIAS") ?: "indiehost"
+    val hasReleaseKey = keystorePath != null && storePassword != null && keyPassword != null
+
+    signingConfigs {
+        if (hasReleaseKey) {
+            create("release") {
+                storeFile = file(keystorePath!!)
+                this.storePassword = storePassword!!
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword!!
+            }
+        }
+    }
+
     defaultConfig {
         // Placeholder id: rename once the product has a name.
         applicationId = "com.indiehost.launcher"
         minSdk = 24
         targetSdk = 34
         versionCode = 3
-        versionName = "0.3.0-steam"
+        versionName = "0.3.0"
     }
 
     buildFeatures {
@@ -31,8 +51,14 @@ android {
     }
     buildTypes {
         getByName("debug") {
-            // Debug only for now: this is what gets sideloaded over adb.
+            // Debug is still what CI builds and what gets sideloaded over adb.
             applicationIdSuffix = ""
+        }
+        getByName("release") {
+            isMinifyEnabled = false
+            if (hasReleaseKey) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }
