@@ -33,7 +33,8 @@ shortcut handoff that lets a launcher start a pinned Butterscotch game without a
 - [x] `:detect:test` and `:app:assembleDebug` are wired into
   [.github/workflows/android.yml](.github/workflows/android.yml).
 - [ ] The workflow is green on GitHub (first push pending).
-- [ ] Hardening: `strings.xml`, ≥ 48 dp touch targets.
+- [x] Hardening: off-main-thread `data.win` check, Butterscotch-only pins, shortcut icons,
+  `strings.xml`, ≥ 48 dp touch targets.
 
 **Exit criteria:** the workflow is green on `main`, the remaining hardening items are
 closed, and `:detect:test` plus the APK build stay green.
@@ -224,8 +225,6 @@ area.
 | Priority | Item | Why | Where |
 | --- | --- | --- | --- |
 | P2 | Add `mipmap-xxxhdpi` legacy icons | Pre-26 xxxhdpi devices upscale | `res/mipmap-xxxhdpi` |
-| P2 | Move UI copy into `strings.xml` | Localisation (NFR-11) | `HomeUi.kt` |
-| P2 | Raise touch targets to ≥ 48 dp | Accessibility (NFR-10) | `HomeUi.kt` |
 | P2 | Add predictive-back opt-in for target 34 | Future-proof back handling | `AndroidManifest.xml` |
 | P2 | Replace deprecated `PackageManager` icon/label calls | Future API removal | `InstalledApps.kt` |
 | P2 | Introduce a ViewModel + coroutines for loading | Testability, lifecycle safety | `MainActivity.kt` |

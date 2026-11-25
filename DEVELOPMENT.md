@@ -72,8 +72,8 @@ pull requests. The workflow has not run on GitHub yet; the first push verifies i
 - Short, direct, sentence case for body text; uppercase for labels.
 - Say what happened and what to do next.
 - Do not expose engine jargon in primary UI; put it in the checker report.
-- New user-visible strings should go into `strings.xml` (the existing hardcoded copy is
-  legacy; see backlog).
+- User-visible launcher copy lives in `strings.xml`; add new strings there. Detector
+  blockers and notes come from pure-Kotlin `:detect` and stay in English.
 
 ### 3.4 Agent skills
 

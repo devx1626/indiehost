@@ -192,8 +192,8 @@ Status values: **Implemented**, **Partial**, **Planned**, **Not started**.
 | NFR-07 | **Privacy.** Usage data and game paths stay on the device. No analytics, accounts or telemetry. | Implemented |
 | NFR-08 | **Permission resilience.** Revoking usage access, changing the home app, uninstalling Butterscotch or a stale shortcut must produce a clear message, never a crash. | Partial |
 | NFR-09 | **API range.** `minSdk 24`, `targetSdk 34`, `compileSdk 34`. Shortcut features degrade cleanly below API 25/26. | Implemented |
-| NFR-10 | **Accessibility.** Icons have content descriptions; text contrast is readable; touch targets should be ≥ 48 dp. | Partial — several buttons are 36–38 dp |
-| NFR-11 | **Localisation.** User-visible strings live in resources. | Not started — most copy is hardcoded in Compose |
+| NFR-10 | **Accessibility.** Icons have content descriptions; text contrast is readable; touch targets should be ≥ 48 dp. | Implemented — primary buttons are 48 dp |
+| NFR-11 | **Localisation.** User-visible strings live in resources. | Partial — launcher UI is in `strings.xml`; detector notes stay in pure-Kotlin `:detect` |
 | NFR-12 | **Testability.** `:detect` is pure JVM and covered by host tests; Android integration is manually tested on device. | Partial — 12 JVM tests, no instrumented tests |
 
 ---
@@ -283,8 +283,7 @@ Top to bottom, inside a `LazyColumn`:
 
 ### 7.8 Known UX gaps
 
-- Most strings are hardcoded, so the app is English-only.
-- Several buttons are below the 48 dp touch-target guideline.
+- Detector blockers and notes come from the pure-Kotlin `:detect` module and are not localised.
 
 These are tracked in [ROADMAP.md](ROADMAP.md#backlog).
 
