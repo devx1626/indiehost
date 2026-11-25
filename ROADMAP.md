@@ -33,7 +33,7 @@ shortcut handoff that lets a launcher start a pinned Butterscotch game without a
 - [x] `:detect:test` and `:app:assembleDebug` are wired into
   [.github/workflows/android.yml](.github/workflows/android.yml).
 - [ ] The workflow is green on GitHub (first push pending).
-- [ ] Hardening: shortcut icons, `strings.xml`, ≥ 48 dp touch targets.
+- [ ] Hardening: `strings.xml`, ≥ 48 dp touch targets.
 
 **Exit criteria:** the workflow is green on `main`, the remaining hardening items are
 closed, and `:detect:test` plus the APK build stay green.
@@ -223,7 +223,6 @@ area.
 
 | Priority | Item | Why | Where |
 | --- | --- | --- | --- |
-| P1 | Show pinned-shortcut icons in the library | The real art is already available | `HomeUi.GameRow`, `RunnerShortcut` |
 | P2 | Add `mipmap-xxxhdpi` legacy icons | Pre-26 xxxhdpi devices upscale | `res/mipmap-xxxhdpi` |
 | P2 | Move UI copy into `strings.xml` | Localisation (NFR-11) | `HomeUi.kt` |
 | P2 | Raise touch targets to ≥ 48 dp | Accessibility (NFR-10) | `HomeUi.kt` |

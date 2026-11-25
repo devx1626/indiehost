@@ -117,7 +117,7 @@ Status values: **Implemented**, **Partial**, **Planned**, **Not started**.
 | ID | Requirement | Status | Where |
 | --- | --- | --- | --- |
 | FR-01 | IndieHost declares `CATEGORY_HOME` and can be selected as the device home app. Pressing Home returns to it without reloading. | Implemented | `AndroidManifest.xml`, `MainActivity` |
-| FR-02 | When IndieHost is the home app, it lists Butterscotch's pinned shortcuts whose id starts with `game-`, sorted by title. | Implemented | `ButterscotchShortcuts` |
+| FR-02 | When IndieHost is the home app, it lists Butterscotch's pinned shortcuts whose id starts with `game-`, sorted by title, and draws their icons. | Implemented | `ButterscotchShortcuts`, `HomeScreen` |
 | FR-03 | Tapping a library tile starts the pinned game through `LauncherApps.startShortcut`; the game runs in Butterscotch's own process. | Implemented | `GameMakerRuntimeAdapter.launchShortcut` |
 | FR-04 | When IndieHost is not the home app, the library shows a setup panel and a button that opens the home-app settings. | Implemented | `HomeScreen`, `MainActivity.openHomeSettings` |
 | FR-05 | With no pinned games, the library shows a short explanation of Butterscotch's "Add Shortcut to Home Screen" flow. | Implemented | `HomeScreen` |
@@ -283,10 +283,8 @@ Top to bottom, inside a `LazyColumn`:
 
 ### 7.8 Known UX gaps
 
-- Pinned-shortcut icons are available but the library draws a letter tile instead.
 - Most strings are hardcoded, so the app is English-only.
 - Several buttons are below the 48 dp touch-target guideline.
-- The `data.win` check blocks the UI while copying and fingerprinting.
 
 These are tracked in [ROADMAP.md](ROADMAP.md#backlog).
 

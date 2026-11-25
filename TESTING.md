@@ -89,7 +89,8 @@ panel (or pinned games); pressing Home again returns without a reload.
 **Precondition:** Butterscotch installed; a VM game imported; IndieHost is home.
 **Steps:** In Butterscotch, open the game's settings → Add Shortcut to Home Screen → accept.
 **Expected:** The translucent pin activity flashes and finishes; the game appears in
-IndieHost's library after returning; `adb logcat -s IndieHostPin` shows `Pinned game-…`.
+IndieHost's library after returning with its shortcut icon (or a letter tile if the system
+supplies none); `adb logcat -s IndieHostPin` shows `Pinned game-…`.
 **Failure hints:** If the pin belongs to another launcher, re-pin with IndieHost active.
 
 ### MT-05 — Launch a game

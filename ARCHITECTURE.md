@@ -398,7 +398,6 @@ Keep Android APIs in `:runtimes`/`:app`; detection stays pure.
 | --- | --- | --- | --- |
 | No adapter registry | `runtimes/RuntimeAdapter.kt` comment | Extension friction; second adapter will force it | M2 |
 | `GameRepository` / `canRun` / `prepare` / `supportsSaves` unused | `:library`, `:runtimes` | Misleading seam; dead code | M1 |
-| Pinned-shortcut icons not shown | `HomeUi.GameRow` | Letter tile instead of real art | Backlog |
 | Hardcoded UI strings | `HomeUi.kt` | No localisation (NFR-11) | Backlog |
 | 36–38 dp buttons | `HomeUi.kt` | Touch-target guideline (NFR-10) | Backlog |
 | Missing `mipmap-xxxhdpi` | `app/src/main/res` | Pre-26 icon upscaled on xxxhdpi | Backlog |
