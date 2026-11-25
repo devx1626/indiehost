@@ -1,4 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">IndieHost</string>
+
+    <!-- Shell and section labels -->
+    <string name="brand">INDIEHOST</string>
+    <string name="home">HOME</string>
+    <string name="all_apps">ALL APPS</string>
+    <string name="section_recent">RECENT</string>
+    <string name="section_library">YOUR LIBRARY</string>
+    <string name="section_tools">TOOLS</string>
+
+    <!-- Home screen -->
+    <string name="loading_apps">Reading your apps...</string>
+    <string name="usage_access_explanation">Apps you open from here will show up in this row. Allow usage access to also see everything you opened outside IndieHost.</string>
+    <string name="allow_usage">ALLOW USAGE ACCESS</string>
+    <string name="no_recent">Nothing opened recently.</string>
+    <string name="not_home">Set IndieHost as your home app to list the games you have in Butterscotch.</string>
+    <string name="choose_home">CHOOSE HOME APP</string>
+    <string name="no_games">No games pinned yet. In Butterscotch, open a game\'s settings and tap \"Add Shortcut to Home Screen\". It will show up here.</string>
+    <string name="runner_label">BUTTERSCOTCH</string>
+    <string name="runner_name">Butterscotch</string>
+    <string name="check_datawin">CHECK DATA.WIN</string>
+    <string name="checking">CHECKING...</string>
+    <string name="reading_datawin">Reading data.win...</string>
+
+    <!-- Hero and library rows -->
+    <string name="play_next">PLAY NEXT</string>
+    <string name="get_started">GET STARTED</string>
+    <string name="library_empty">Your library is empty</string>
+    <string name="make_home">Make it your home screen</string>
+    <string name="hero_runner">GameMaker - Butterscotch</string>
+    <string name="hint_pin">Pin a game in Butterscotch and it appears here.</string>
+    <string name="hint_home_access">Home access is what lets IndieHost list your games.</string>
+    <string name="play">PLAY</string>
+    <string name="game_installed">GameMaker - installed</string>
+
+    <!-- App drawer -->
+    <string name="search_apps">Search your library</string>
+    <string name="no_apps">No apps found.</string>
+    <string name="no_app_matches">No app matches \"%1$s\".</string>
+
+    <!-- data.win checker -->
+    <string name="check_open_failed">Could not open that file. Pick another copy.</string>
+    <string name="check_failed">Could not check that file. Pick another copy.</string>
+    <string name="check_engine">Engine: %1$s</string>
+    <string name="check_runnable">Runnable: %1$s</string>
+    <string name="check_wad">WAD / bytecode version: %1$s</string>
+    <string name="check_blocker">Blocker: %1$s</string>
+    <string name="check_note">- %1$s</string>
+    <string name="yes">yes</string>
+    <string name="no">no</string>
+
+    <!-- Status messages -->
+    <string name="runner_not_installed">Butterscotch is not installed\n%1$s</string>
+    <string name="opened_runner">Opened Butterscotch</string>
+    <string name="could_not_open">Could not open %1$s.</string>
+    <string name="home_settings_hint">Open Settings and set IndieHost as your home app.</string>
+    <string name="usage_settings_hint">Open Settings, Apps, Special access, Usage access.</string>
 </resources>

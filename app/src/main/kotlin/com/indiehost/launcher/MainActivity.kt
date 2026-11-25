@@ -140,7 +140,7 @@ class MainActivity : ComponentActivity() {
         status = when (val outcome = runtime.launchShortcut(this, shortcut)) {
             is LaunchOutcome.Launched -> ""
             is LaunchOutcome.RuntimeNotInstalled ->
-                "Butterscotch is not installed\n${outcome.installUrl}"
+                getString(R.string.runner_not_installed, outcome.installUrl)
             is LaunchOutcome.Blocked -> outcome.reason
         }
     }
@@ -151,7 +151,7 @@ class MainActivity : ComponentActivity() {
             drawerOpen = false
             ""
         } else {
-            "Could not open ${app.label}."
+            getString(R.string.could_not_open, app.label)
         }
     }
 
@@ -164,25 +164,25 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openRunner() {
-        status = when (val outcome = runtime.launch(this, runnerOnlyGame())) {
-            is LaunchOutcome.Launched -> "Opened Butterscotch"
+        status = when (val outcome = runtime.launch(this, runnerOnlyGame(getString(R.string.runner_name)))) {
+            is LaunchOutcome.Launched -> getString(R.string.opened_runner)
             is LaunchOutcome.RuntimeNotInstalled ->
-                "Butterscotch is not installed\n${outcome.installUrl}"
+                getString(R.string.runner_not_installed, outcome.installUrl)
             is LaunchOutcome.Blocked -> outcome.reason
         }
     }
 
     private fun openHomeSettings() {
         runCatching { startActivity(Intent(Settings.ACTION_HOME_SETTINGS)) }
-            .onFailure { status = "Open Settings and set IndieHost as your home app." }
+            .onFailure { status = getString(R.string.home_settings_hint) }
     }
 
     private fun openUsageSettings() {
         runCatching { startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
-            .onFailure { status = "Open Settings, Apps, Special access, Usage access." }
+            .onFailure { status = getString(R.string.usage_settings_hint) }
     }
 }
 
 /** [GameMakerRuntimeAdapter.launch] only needs the engine, never the game files. */
-private fun runnerOnlyGame(): Game =
-    Game(id = "open-runner", title = "Butterscotch", folderPath = "", engine = Engine.GAMEMAKER_VM)
+private fun runnerOnlyGame(title: String): Game =
+    Game(id = "open-runner", title = title, folderPath = "", engine = Engine.GAMEMAKER_VM)

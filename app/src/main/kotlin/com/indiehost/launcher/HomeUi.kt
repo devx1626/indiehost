@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -127,7 +128,7 @@ internal fun HomeScreen(
         }
 
         item {
-            SectionLabel("RECENT", Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp))
+            SectionLabel(stringResource(R.string.section_recent), Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp))
         }
         item {
             when {
@@ -146,22 +147,21 @@ internal fun HomeScreen(
                 ) {
                     CircularProgressIndicator(Modifier.size(16.dp), color = Steam.Accent, strokeWidth = 2.dp)
                     Spacer(Modifier.width(10.dp))
-                    Text("Reading your apps...", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.loading_apps), style = MaterialTheme.typography.bodySmall)
                 }
 
                 !usageAccess -> Column(Modifier.padding(horizontal = 20.dp)) {
                     Text(
-                        "Apps you open from here will show up in this row. Allow usage access " +
-                            "to also see everything you opened outside IndieHost.",
+                        stringResource(R.string.usage_access_explanation),
                         style = MaterialTheme.typography.bodySmall,
                     )
                     TextButton(onClick = onAllowUsage) {
-                        Text("ALLOW USAGE ACCESS", color = Steam.Accent, style = labelStyle())
+                        Text(stringResource(R.string.allow_usage), color = Steam.Accent, style = labelStyle())
                     }
                 }
 
                 else -> Text(
-                    "Nothing opened recently.",
+                    stringResource(R.string.no_recent),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(horizontal = 20.dp),
                 )
@@ -169,26 +169,25 @@ internal fun HomeScreen(
         }
 
         item {
-            SectionLabel("YOUR LIBRARY", Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp))
+            SectionLabel(stringResource(R.string.section_library), Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp))
         }
 
         when {
             !canListGames -> item {
                 Panel(Modifier.padding(horizontal = 20.dp)) {
                     Text(
-                        "Set IndieHost as your home app to list the games you have in Butterscotch.",
+                        stringResource(R.string.not_home),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(Modifier.height(12.dp))
-                    AccentButton("CHOOSE HOME APP", onChooseHomeApp, Modifier.fillMaxWidth())
+                    AccentButton(stringResource(R.string.choose_home), onChooseHomeApp, Modifier.fillMaxWidth())
                 }
             }
 
             games.isEmpty() -> item {
                 Panel(Modifier.padding(horizontal = 20.dp)) {
                     Text(
-                        "No games pinned yet. In Butterscotch, open a game's settings and tap " +
-                            "\"Add Shortcut to Home Screen\". It will show up here.",
+                        stringResource(R.string.no_games),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -213,16 +212,16 @@ internal fun HomeScreen(
         }
 
         item {
-            SectionLabel("TOOLS", Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp))
+            SectionLabel(stringResource(R.string.section_tools), Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp))
         }
         item {
             Row(
                 Modifier.padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                OutlineButton("BUTTERSCOTCH", onOpenRunner, Modifier.weight(1f))
+                OutlineButton(stringResource(R.string.runner_label), onOpenRunner, Modifier.weight(1f))
                 OutlineButton(
-                    if (checking) "CHECKING..." else "CHECK DATA.WIN",
+                    if (checking) stringResource(R.string.checking) else stringResource(R.string.check_datawin),
                     { picker.launch(arrayOf("*/*")) },
                     Modifier.weight(1f),
                     enabled = !checking,
@@ -240,7 +239,7 @@ internal fun HomeScreen(
                                 strokeWidth = 2.dp,
                             )
                             Spacer(Modifier.width(10.dp))
-                            Text("Reading data.win...", style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.reading_datawin), style = MaterialTheme.typography.bodySmall)
                         }
                     } else {
                         Text(report, style = MaterialTheme.typography.bodySmall)
@@ -264,20 +263,21 @@ private fun inspectDataWin(context: Context, uri: Uri): String {
         importDir.mkdirs()
         val target = File(importDir, "data.win")
         val input = context.contentResolver.openInputStream(uri)
-            ?: return "Could not open that file. Pick another copy."
+            ?: return context.getString(R.string.check_open_failed)
         input.use { source ->
             target.outputStream().use { sink -> source.copyTo(sink) }
         }
         val detection = EngineDetector().detect(importDir)
         buildString {
-            appendLine("Engine: ${detection.engine.displayName}")
-            appendLine("Runnable: ${if (detection.runnable) "yes" else "no"}")
-            detection.wadVersion?.let { appendLine("WAD / bytecode version: $it") }
-            detection.blocker?.let { appendLine("Blocker: $it") }
-            detection.notes.forEach { appendLine("- $it") }
+            appendLine(context.getString(R.string.check_engine, detection.engine.displayName))
+            val runnable = context.getString(if (detection.runnable) R.string.yes else R.string.no)
+            appendLine(context.getString(R.string.check_runnable, runnable))
+            detection.wadVersion?.let { appendLine(context.getString(R.string.check_wad, it)) }
+            detection.blocker?.let { appendLine(context.getString(R.string.check_blocker, it)) }
+            detection.notes.forEach { appendLine(context.getString(R.string.check_note, it)) }
         }.trimEnd()
     } catch (_: Exception) {
-        "Could not check that file. Pick another copy."
+        context.getString(R.string.check_failed)
     } finally {
         importDir.deleteRecursively()
     }
@@ -297,16 +297,16 @@ private fun ClientBar(onOpenDrawer: () -> Unit) {
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                "INDIEHOST",
+                stringResource(R.string.brand),
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp,
                 color = Steam.TextBright,
             )
-            Text("HOME", style = labelStyle(10.sp), color = Steam.TextMuted)
+            Text(stringResource(R.string.home), style = labelStyle(10.sp), color = Steam.TextMuted)
         }
         TextButton(onClick = onOpenDrawer) {
-            Text("ALL APPS", style = labelStyle(), color = Steam.Text)
+            Text(stringResource(R.string.all_apps), style = labelStyle(), color = Steam.Text)
         }
     }
 }
@@ -388,7 +388,7 @@ private fun HeroPanel(
         ) {
             Column {
                 Text(
-                    if (game != null) "PLAY NEXT" else "GET STARTED",
+                    if (game != null) stringResource(R.string.play_next) else stringResource(R.string.get_started),
                     style = labelStyle(10.sp),
                     color = Steam.Accent,
                 )
@@ -396,8 +396,8 @@ private fun HeroPanel(
                 Text(
                     when {
                         game != null -> game.title
-                        canListGames -> "Your library is empty"
-                        else -> "Make it your home screen"
+                        canListGames -> stringResource(R.string.library_empty)
+                        else -> stringResource(R.string.make_home)
                     },
                     style = MaterialTheme.typography.headlineSmall,
                     maxLines = 2,
@@ -406,9 +406,9 @@ private fun HeroPanel(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     when {
-                        game != null -> "GameMaker - Butterscotch"
-                        canListGames -> "Pin a game in Butterscotch and it appears here."
-                        else -> "Home access is what lets IndieHost list your games."
+                        game != null -> stringResource(R.string.hero_runner)
+                        canListGames -> stringResource(R.string.hint_pin)
+                        else -> stringResource(R.string.hint_home_access)
                     },
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -416,13 +416,13 @@ private fun HeroPanel(
 
             if (game != null) {
                 AccentButton(
-                    "PLAY",
+                    stringResource(R.string.play),
                     { onLaunchGame(game) },
                     Modifier.width(112.dp),
                 )
             } else if (!canListGames) {
                 AccentButton(
-                    "CHOOSE HOME APP",
+                    stringResource(R.string.choose_home),
                     onChooseHomeApp,
                     Modifier.width(190.dp),
                 )
@@ -510,10 +510,10 @@ private fun GameRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text("GameMaker - installed", style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.game_installed), style = MaterialTheme.typography.bodySmall)
         }
         Spacer(Modifier.width(8.dp))
-        AccentButton("PLAY", onClick, Modifier.width(80.dp))
+        AccentButton(stringResource(R.string.play), onClick, Modifier.width(80.dp))
     }
 }
 
@@ -521,7 +521,7 @@ private fun GameRow(
 private fun AccentButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Button(
         onClick = onClick,
-        modifier = modifier.height(36.dp),
+        modifier = modifier.height(48.dp),
         shape = PillShape,
         colors = ButtonDefaults.buttonColors(
             containerColor = Steam.Accent,
@@ -542,7 +542,7 @@ private fun OutlineButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.height(38.dp),
+        modifier = modifier.height(48.dp),
         enabled = enabled,
         shape = PillShape,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = Steam.Text),
@@ -611,7 +611,7 @@ internal fun AppDrawer(
             BrandMark(Modifier.size(22.dp))
             Spacer(Modifier.width(10.dp))
             Text(
-                "ALL APPS",
+                stringResource(R.string.all_apps),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.6.sp,
@@ -619,14 +619,14 @@ internal fun AppDrawer(
                 modifier = Modifier.weight(1f),
             )
             TextButton(onClick = onClose) {
-                Text("HOME", style = labelStyle(), color = Steam.Accent)
+                Text(stringResource(R.string.home), style = labelStyle(), color = Steam.Accent)
             }
         }
 
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
-            placeholder = { Text("Search your library", color = Steam.TextMuted) },
+            placeholder = { Text(stringResource(R.string.search_apps), color = Steam.TextMuted) },
             singleLine = true,
             shape = PillShape,
             colors = OutlinedTextFieldDefaults.colors(
@@ -650,7 +650,7 @@ internal fun AppDrawer(
 
             visible.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    if (apps.isEmpty()) "No apps found." else "No app matches \"$query\".",
+                    if (apps.isEmpty()) stringResource(R.string.no_apps) else stringResource(R.string.no_app_matches, query),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
