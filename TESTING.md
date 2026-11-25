@@ -151,18 +151,20 @@ still listed.
 ### MT-14 — Check a valid VM `data.win`
 
 **Steps:** `CHECK DATA.WIN` → pick a VM build (Undertale 1.08 / WAD 16).
-**Expected:** Report says GameMaker (VM), runnable yes, WAD 16, no blocker.
+**Expected:** The button reads `CHECKING...`, the UI stays responsive, then the report says
+GameMaker (VM), runnable yes, WAD 16, no blocker.
 
 ### MT-15 — Check a YYC/GMRT build
 
 **Steps:** Pick a build with no `CODE` chunk.
 **Expected:** Runnable no; blocker mentions the missing CODE chunk; no crash.
 
-### MT-16 — Large file (known issue)
+### MT-16 — Large file
 
 **Steps:** Pick a very large `data.win` (hundreds of MB).
-**Expected today:** The UI may freeze during the copy; it eventually reports or fails
-cleanly. **Target:** no freeze (backlog P1). Record the file size and freeze duration.
+**Expected:** The button reads `CHECKING...` and the screen still scrolls while the file is
+copied and checked; the report appears when done. No ANR, and `cacheDir/import` is empty
+afterwards. Record the file size and elapsed time.
 
 ### MT-17 — Another launcher takes home
 
@@ -175,11 +177,12 @@ back and confirm games return (re-pin if the system dropped them).
 **Steps:** Uninstall Butterscotch while a game tile exists; tap the tile.
 **Expected:** A clear status message; no crash. Reinstall and re-pin to recover.
 
-### MT-19 — Pin request from an unrelated app (known gap)
+### MT-19 — Pin request from an unrelated app
 
-**Steps:** Use a test app that pins a non-`game-` shortcut while IndieHost is home.
-**Expected today:** IndieHost may accept it silently; it will not appear in the library.
-**Target:** reject or ignore non-Butterscotch `game-` pins (backlog P1).
+**Steps:** Use a test app that pins a shortcut while IndieHost is home, and separately pin a
+non-`game-` shortcut from Butterscotch.
+**Expected:** The pin activity finishes without accepting; nothing is added to the library;
+`adb logcat -s IndieHostPin` shows `Ignored pin request from <package>/<id>`.
 
 ### MT-20 — Dark theme and system bars
 
@@ -325,5 +328,4 @@ copyrighted game data.** A synthetic fixture or a redacted log is enough.
   manually.
 - No automated fps measurement; screen-recording frame counts are approximate.
 - The emulator cannot validate Butterscotch performance or real shortcut ownership.
-- The `data.win` freeze (MT-16) is a known failure until the backlog item lands.
 - Work profiles and multi-user devices are untested.

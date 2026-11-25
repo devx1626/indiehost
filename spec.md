@@ -144,9 +144,9 @@ Status values: **Implemented**, **Partial**, **Planned**, **Not started**.
 
 | ID | Requirement | Status | Where |
 | --- | --- | --- | --- |
-| FR-14 | "CHECK DATA.WIN" lets the user pick a file, copies it to the cache, and reports engine, runnable status, WAD version and blocker. | Implemented | `HomeScreen`, `EngineDetector` |
+| FR-14 | "CHECK DATA.WIN" lets the user pick a file, copies it to the cache on a worker thread, and reports engine, runnable status, WAD version and blocker. | Implemented | `HomeScreen`, `EngineDetector` |
 | FR-15 | "BUTTERSCOTCH" opens the runner app, or explains how to install it when missing. | Implemented | `GameMakerRuntimeAdapter.launch` |
-| FR-16 | IndieHost accepts `CONFIRM_PIN_SHORTCUT` requests so a pin made while it is the home app is recorded against it. | Implemented | `PinShortcutActivity` |
+| FR-16 | IndieHost accepts `CONFIRM_PIN_SHORTCUT` requests from Butterscotch for `game-` shortcuts so a pin made while it is the home app is recorded against it. Other pin requests are declined. | Implemented | `PinShortcutActivity` |
 
 ### 4.5 Milestone 1 — real library
 
@@ -187,7 +187,7 @@ Status values: **Implemented**, **Partial**, **Planned**, **Not started**.
 | NFR-02 | **Warm resume** (Home key while already running): ≤ 300 ms to the home screen. | Target, unmeasured |
 | NFR-03 | **Drawer readiness** for ~100 apps: ≤ 1.5 s, loaded off the main thread. | Target, unmeasured |
 | NFR-04 | **Game performance** bar from Milestone 0: ≥ 30 fps sustained in Undertale's Ruins walk and a battle, with no audio crackle. | Acceptance bar, not yet measured |
-| NFR-05 | **No ANR.** No file copy, fingerprinting, package query or usage-log scan on the main thread. | **Partial** — the `data.win` checker violates this |
+| NFR-05 | **No ANR.** No file copy, fingerprinting, package query or usage-log scan on the main thread. | Implemented |
 | NFR-06 | **Offline by construction.** No `INTERNET` permission and no network calls in the launcher. | Implemented |
 | NFR-07 | **Privacy.** Usage data and game paths stay on the device. No analytics, accounts or telemetry. | Implemented |
 | NFR-08 | **Permission resilience.** Revoking usage access, changing the home app, uninstalling Butterscotch or a stale shortcut must produce a clear message, never a crash. | Partial |
@@ -391,10 +391,10 @@ Milestone 0 game bar. Measure with the protocol in [TESTING.md](TESTING.md).
 | Pin made while another launcher is active | Explain that pins belong to the accepting launcher and must be re-pinned | Partially documented; no in-app hint |
 | Game folder unreadable / file truncated | Detector returns a blocker, never throws | Implemented |
 | YYC/GMRT build | Blocked with a one-sentence explanation | Implemented |
-| Very large `data.win` | Must not freeze the UI | **Not met** — main-thread copy |
+| Very large `data.win` | Must not freeze the UI | Implemented — copied and checked on a worker thread |
 | App uninstalled between load and tap | Launch returns false and shows a message | Implemented |
 | Profile locked / shutting down | `LauncherApps` calls return empty, no crash | Implemented |
-| Pin request from a non-Butterscotch app | Reject or ignore, do not record | **Not met** — accepts any shortcut pin |
+| Pin request from a non-Butterscotch app | Reject or ignore, do not record | Implemented — declines shortcuts outside Butterscotch's `game-` namespace |
 
 ---
 

@@ -183,13 +183,15 @@ package names, capped at 12.
 
 ```
 OpenDocument picker
-  → copy content:// stream to cacheDir/import/data.win   [main thread today]
-  → EngineDetector.detect(importDir)                     [main thread today]
+  → worker thread: copy content:// stream to cacheDir/import/data.win
+  → worker thread: EngineDetector.detect(importDir)
   → report: engine, runnable, WAD version, blocker, notes
+  → delete cacheDir/import
 ```
 
-The copy and detection are synchronous in the `ActivityResult` callback. This is a known
-NFR-05 violation and a backlog item; see §10.
+The picker callback starts a plain worker `Thread`; the UI shows `CHECKING...` and stays
+interactive. The cache copy is deleted in a `finally`, so a failed check does not leave a
+large game file behind. Results are written to Compose state from the worker; see §6.2.
 
 ---
 
@@ -304,10 +306,10 @@ disappears. That is acceptable for a launcher, but it means `drawerOpen` is not 
 
 ### 6.2 Threading rules
 
-- **Main thread:** Compose, `refreshGames`, `startActivity`, `startShortcut`, the
-  `data.win` copy/detect (known violation).
+- **Main thread:** Compose, `refreshGames`, `startActivity`, `startShortcut`.
 - **Background `Thread`:** `InstalledApps.load`, `Recents.pick`,
-  `Recents.systemRecency`.
+  `Recents.systemRecency`, the `data.win` copy/detect. The checker writes its
+  result to Compose state from that thread; recomposition stays on the main thread.
 - **No coroutines, no `ExecutorService`, no WorkManager.** Keep it simple until a task
   actually needs cancellation or lifecycle awareness.
 
@@ -328,7 +330,7 @@ disappears. That is acceptable for a launcher, but it means `drawerOpen` is not 
 | Pinned games | Butterscotch + Android shortcut service | Owned by the system; read-only for us |
 | Game files / saves | Butterscotch's private storage | Owned by Butterscotch |
 | Recents (local) | `SharedPreferences("indiehost.recents")` | Survives process death; cleared on uninstall |
-| Checker cache | `cacheDir/import/data.win` | Deleted before each check |
+| Checker cache | `cacheDir/import/data.win` | Deleted before and after each check |
 | Game library | None today | `InMemoryGameRepository` is unused |
 
 `android:allowBackup="false"` keeps the prefs and cache out of cloud backup.
@@ -344,7 +346,7 @@ be relocated by us and must be documented as such.
 | Boundary | Current state |
 | --- | --- |
 | `MainActivity` | Exported, HOME + LAUNCHER filters, `singleTask`, `excludeFromRecents` — intended |
-| `PinShortcutActivity` | Exported, translucent, `noHistory`; accepts any shortcut pin request — gap |
+| `PinShortcutActivity` | Exported, translucent, `noHistory`; accepts only Butterscotch `game-` pins |
 | Permissions | `PACKAGE_USAGE_STATS` only (app-op); no `INTERNET`; no runtime permissions |
 | Package visibility | `<queries>` for Butterscotch and `MAIN`/`LAUNCHER` |
 | Game data | Never copied out of Butterscotch; checker cache is local and transient |
@@ -394,8 +396,6 @@ Keep Android APIs in `:runtimes`/`:app`; detection stays pure.
 
 | Item | Location | Impact | Tracked |
 | --- | --- | --- | --- |
-| `data.win` copy + detect on the main thread | `HomeUi.kt` picker callback | ANR/freeze on large files (NFR-05) | Backlog |
-| `PinShortcutActivity` accepts any shortcut pin | `PinShortcutActivity.kt` | Silent pins from unrelated apps | Backlog |
 | No adapter registry | `runtimes/RuntimeAdapter.kt` comment | Extension friction; second adapter will force it | M2 |
 | `GameRepository` / `canRun` / `prepare` / `supportsSaves` unused | `:library`, `:runtimes` | Misleading seam; dead code | M1 |
 | Pinned-shortcut icons not shown | `HomeUi.GameRow` | Letter tile instead of real art | Backlog |

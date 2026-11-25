@@ -33,8 +33,10 @@ The Gradle wrapper jar is not committed. If `./gradlew` fails with a missing
 `GradleWrapperMain`, run `gradle wrapper --gradle-version 8.7` once or open the project in
 Android Studio.
 
-There is no lint baseline, no ktlint/detekt configuration and no CI workflow yet. If you
-add one, update this file and [ROADMAP](ROADMAP.md).
+There is no lint baseline and no ktlint/detekt configuration yet. GitHub Actions is
+configured to run the host tests and the debug build from
+[.github/workflows/android.yml](.github/workflows/android.yml) on pushes to `main` and on
+pull requests. The workflow has not run on GitHub yet; the first push verifies it.
 
 ---
 

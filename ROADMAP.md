@@ -24,6 +24,22 @@ shortcut handoff that lets a launcher start a pinned Butterscotch game without a
 
 ---
 
+## Engineering baseline — **In progress**
+
+**Goal:** make every change verifiable before M1 adds persistence.
+
+- [x] JDK 17, Gradle 8.7 and SDK 34 build the debug APK; the aarch64 path is recorded in
+  [PREREQUISITES §1.3](PREREQUISITES.md#13-linux-on-arm64).
+- [x] `:detect:test` and `:app:assembleDebug` are wired into
+  [.github/workflows/android.yml](.github/workflows/android.yml).
+- [ ] The workflow is green on GitHub (first push pending).
+- [ ] Hardening: shortcut icons, `strings.xml`, ≥ 48 dp touch targets.
+
+**Exit criteria:** the workflow is green on `main`, the remaining hardening items are
+closed, and `:detect:test` plus the APK build stay green.
+
+---
+
 ## Milestone 1 — Real library — **Planned**
 
 **Goal:** IndieHost stops borrowing Butterscotch's pins as its only library and owns a
@@ -207,8 +223,6 @@ area.
 
 | Priority | Item | Why | Where |
 | --- | --- | --- | --- |
-| P1 | Move `data.win` copy + detect off the main thread | NFR-05; large files freeze the UI | `HomeUi.kt` picker |
-| P1 | Reject pin requests that are not Butterscotch `game-` shortcuts | Silent pins from unrelated apps; security | `PinShortcutActivity.kt` |
 | P1 | Show pinned-shortcut icons in the library | The real art is already available | `HomeUi.GameRow`, `RunnerShortcut` |
 | P2 | Add `mipmap-xxxhdpi` legacy icons | Pre-26 xxxhdpi devices upscale | `res/mipmap-xxxhdpi` |
 | P2 | Move UI copy into `strings.xml` | Localisation (NFR-11) | `HomeUi.kt` |

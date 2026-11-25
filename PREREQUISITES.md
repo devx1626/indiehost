@@ -62,6 +62,21 @@ sdk.dir=/home/you/Android/Sdk
 
 `local.properties` is ignored by Git; never commit it.
 
+### 1.3 Linux on ARM64
+
+Google's build-tools archives contain x86-64 binaries. On an ARM64 host the SDK's `aapt2`
+cannot run, but the rest of the build is JVM code. Install the distribution's `aapt2` (on
+Debian/Ubuntu: `apt install aapt`) and point Gradle at it:
+
+```bash
+gradle :app:assembleDebug \
+  -Pandroid.aapt2FromMavenOverride=/usr/bin/aapt2
+```
+
+The SDK must still contain Platform 34 and Build-Tools 34.0.0. This path was verified on
+aarch64 with Gradle 8.7: the debug APK built successfully. It does not replace the device
+tests.
+
 ---
 
 ## 2. First build
@@ -198,7 +213,6 @@ A synthetic `data.win` fixture for tests is built in code
 | Tapping a game shows "did not accept the launch request" | Stale shortcut, permission revoked, or Butterscotch uninstalled | Re-pin; confirm Butterscotch is installed |
 | Usage access toggle missing | OEM moved the setting | Settings → Apps → Special access → Usage access; search "usage access" |
 | `data.win` check says "No CODE chunk" | YYC or GMRT build | Use a VM build; no bytecode runner can run this file |
-| `data.win` check freezes for a moment | Known main-thread copy (NFR-05) | Wait; tracked in the backlog |
 | `adb devices` shows `unauthorized` | RSA prompt not accepted | Accept it on the phone, or revoke USB debugging authorisations and reconnect |
 | Butterscotch installs but games will not start | Wrong ABI or a non-VM game | Confirm ARM64/armeabi-v7a and a VM `data.win` |
 
@@ -206,11 +220,12 @@ A synthetic `data.win` fixture for tests is built in code
 
 ## 8. Sandbox / CI note
 
-Some sandboxed environments (including the container this repository was last reviewed
-in) have no JDK, no Android SDK and a broken `adb`. In that case you can still read code,
-run static checks and edit documentation, but **you cannot build the APK or run the device
-flow**. Do not report a build or a device test as passing unless it actually ran. See
-[AGENTS.md](AGENTS.md) for the rule agents must follow.
+Some sandboxed environments have no JDK, no Android SDK or a broken `adb`. The container
+this repository was last verified in now has JDK 17, Gradle 8.7 and SDK 34, and
+`:app:assembleDebug` succeeds there with the ARM64 `aapt2` override above. Its `adb` still
+cannot load its native library, so **no device test has run**. Do not report a build or a
+device test as passing unless it actually ran. See [AGENTS.md](AGENTS.md) for the rule
+agents must follow.
 
 ---
 

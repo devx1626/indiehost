@@ -55,7 +55,8 @@ Butterscotch's `GameActivity` is not exported, so a launcher cannot pass it a fo
 an Intent. That is not a dead end:
 
 1. IndieHost declares itself a home app, which grants it shortcut-host permission.
-2. It also answers `CONFIRM_PIN_SHORTCUT`, so it accepts pinned shortcuts.
+2. It also answers `CONFIRM_PIN_SHORTCUT` for Butterscotch's `game-` shortcuts; other pin
+   requests are declined.
 3. In Butterscotch, open a game's settings and tap **Add Shortcut to Home Screen**.
 4. The game appears in IndieHost's library; tapping it calls `startShortcut`, which runs
    Butterscotch's own activity in its own process.
