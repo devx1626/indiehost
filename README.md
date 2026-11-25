@@ -33,6 +33,21 @@ game client:
 - an **app drawer** with search, built from `LauncherApps`;
 - the Milestone 0 `data.win` check, kept as a tool.
 
+## Documentation
+
+| Document | What it covers |
+| --- | --- |
+| [spec.md](spec.md) | Normative product and technical specification |
+| [PREREQUISITES.md](PREREQUISITES.md) | Toolchain, device setup, game-data rules |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Modules, flows, contracts, technical debt |
+| [ROADMAP.md](ROADMAP.md) | Milestones and exit criteria |
+| [TESTING.md](TESTING.md) | Automated and manual test protocol |
+| [DEVELOPMENT.md](DEVELOPMENT.md) | Build, style, commit and release workflow |
+| [LICENSING.md](LICENSING.md) | AGPL boundary, game-data policy, third-party licences |
+| [SECURITY.md](SECURITY.md) | Permissions, exported components, threat model |
+| [AGENTS.md](AGENTS.md) | Operating rules for AI coding agents |
+| [docs/adr](docs/adr/README.md) | Architecture decision records |
+
 ## How a game is started
 
 Butterscotch's `GameActivity` is not exported, so a launcher cannot pass it a folder over
@@ -57,7 +72,8 @@ launcher was active must be re-pinned with IndieHost as home.
 
 ## Build
 
-Requires JDK 17 and Android SDK 34.
+Requires JDK 17 and Android SDK 34. Full setup, including the device flow, is in
+[PREREQUISITES.md](PREREQUISITES.md).
 
 ```bash
 gradle wrapper --gradle-version 8.7   # once: regenerates gradle/wrapper/gradle-wrapper.jar
