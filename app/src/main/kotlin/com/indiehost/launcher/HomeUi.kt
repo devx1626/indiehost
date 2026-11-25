@@ -1,6 +1,7 @@
 package com.indiehost.launcher
 
 import android.content.Context
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -53,6 +54,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -195,6 +197,7 @@ internal fun HomeScreen(
             else -> items(games, key = { it.id }) { shortcut ->
                 GameRow(
                     title = shortcut.title,
+                    icon = shortcut.icon,
                     onClick = { onLaunchGame(shortcut) },
                     modifier = Modifier.padding(horizontal = 20.dp),
                 )
@@ -453,7 +456,14 @@ private fun RecentTile(app: LauncherApp, onClick: () -> Unit) {
 
 /** A library entry: art block, title, runtime and the blue play pill. */
 @Composable
-private fun GameRow(title: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun GameRow(
+    title: String,
+    icon: Drawable?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Shortcut icons are small; convert once per icon, not on every recomposition.
+    val image = remember(icon) { icon?.toImageBitmap(128) }
     Row(
         modifier
             .fillMaxWidth()
@@ -475,12 +485,21 @@ private fun GameRow(title: String, onClick: () -> Unit, modifier: Modifier = Mod
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                title.take(1).uppercase(),
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold,
-                color = Steam.TextBright.copy(alpha = 0.85f),
-            )
+            if (image != null) {
+                Image(
+                    bitmap = image,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                Text(
+                    title.take(1).uppercase(),
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Steam.TextBright.copy(alpha = 0.85f),
+                )
+            }
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {

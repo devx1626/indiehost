@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.pm.LauncherApps
 import android.content.pm.ShortcutInfo
+import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Process
 
@@ -18,6 +19,7 @@ import android.os.Process
 class RunnerShortcut internal constructor(
     val id: String,
     val title: String,
+    val icon: Drawable?,
     internal val info: ShortcutInfo,
 ) {
     val packageName: String get() = info.`package` ?: GameMakerRuntimeAdapter.BUTTERSCOTCH_PACKAGE
@@ -68,7 +70,7 @@ class ButterscotchShortcuts(private val context: Context) {
         } ?: return emptyList()
 
         return shortcuts
-            .mapNotNull { it.toRunnerShortcut() }
+            .mapNotNull { it.toRunnerShortcut(apps) }
             .sortedBy { it.title.lowercase() }
     }
 
@@ -89,7 +91,7 @@ class ButterscotchShortcuts(private val context: Context) {
         }
     }
 
-    private fun ShortcutInfo.toRunnerShortcut(): RunnerShortcut? {
+    private fun ShortcutInfo.toRunnerShortcut(apps: LauncherApps): RunnerShortcut? {
         val shortcutId = id ?: return null
         // Only Butterscotch's per-game shortcuts ("game-<uuid>") are games;
         // anything else it may pin later is not ours to launch.
@@ -98,7 +100,13 @@ class ButterscotchShortcuts(private val context: Context) {
         val label = (shortLabel ?: longLabel)?.toString()?.takeIf { it.isNotBlank() }
             ?: shortcutId.removePrefix(GAME_SHORTCUT_PREFIX)
 
-        return RunnerShortcut(id = shortcutId, title = label, info = this)
+        // ShortcutInfo has no public icon getter; the launcher API does. A
+        // stale shortcut can fail to load its icon, in which case the UI falls
+        // back to a letter tile.
+        val density = context.resources.displayMetrics.densityDpi
+        val icon = runCatching { apps.getShortcutIconDrawable(this, density) }.getOrNull()
+
+        return RunnerShortcut(id = shortcutId, title = label, icon = icon, info = this)
     }
 
     companion object {
