@@ -1,5 +1,7 @@
 package com.indiehost.launcher
 
+import android.content.Context
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
@@ -89,26 +91,19 @@ internal fun HomeScreen(
     val context = LocalContext.current
 
     // Milestone 0's bytecode check stays: it is the fastest way to know whether
-    // a data.win will run before importing it into Butterscotch.
+    // a data.win will run before importing it into Butterscotch. A data.win can
+    // be hundreds of megabytes, so the copy and detection run on a worker thread.
     var report by remember { mutableStateOf("") }
+    var checking by remember { mutableStateOf(false) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        val importDir = File(context.cacheDir, "import").apply {
-            deleteRecursively()
-            mkdirs()
-        }
-        val target = File(importDir, "data.win")
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            target.outputStream().use { output -> input.copyTo(output) }
-        }
-        val detection = EngineDetector().detect(importDir)
-        report = buildString {
-            appendLine("Engine: ${detection.engine.displayName}")
-            appendLine("Runnable: ${if (detection.runnable) "yes" else "no"}")
-            detection.wadVersion?.let { appendLine("WAD / bytecode version: $it") }
-            detection.blocker?.let { appendLine("Blocker: $it") }
-            detection.notes.forEach { appendLine("- $it") }
-        }
+        checking = true
+        report = ""
+        Thread({
+            val result = inspectDataWin(context, uri)
+            report = result
+            checking = false
+        }, "data-win-check").start()
     }
 
     LazyColumn(
@@ -224,19 +219,64 @@ internal fun HomeScreen(
             ) {
                 OutlineButton("BUTTERSCOTCH", onOpenRunner, Modifier.weight(1f))
                 OutlineButton(
-                    "CHECK DATA.WIN",
+                    if (checking) "CHECKING..." else "CHECK DATA.WIN",
                     { picker.launch(arrayOf("*/*")) },
                     Modifier.weight(1f),
+                    enabled = !checking,
                 )
             }
         }
-        if (report.isNotEmpty()) {
+        if (checking || report.isNotEmpty()) {
             item {
                 Panel(Modifier.padding(horizontal = 20.dp)) {
-                    Text(report, style = MaterialTheme.typography.bodySmall)
+                    if (checking) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                Modifier.size(14.dp),
+                                color = Steam.Accent,
+                                strokeWidth = 2.dp,
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Text("Reading data.win...", style = MaterialTheme.typography.bodySmall)
+                        }
+                    } else {
+                        Text(report, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
         }
+    }
+}
+
+/**
+ * Copies the picked document into the cache and fingerprints it.
+ *
+ * Blocks: call from a worker thread. The copy is deleted afterwards, because a
+ * data.win can be hundreds of megabytes and it has no use once inspected.
+ */
+private fun inspectDataWin(context: Context, uri: Uri): String {
+    val importDir = File(context.cacheDir, "import")
+    return try {
+        importDir.deleteRecursively()
+        importDir.mkdirs()
+        val target = File(importDir, "data.win")
+        val input = context.contentResolver.openInputStream(uri)
+            ?: return "Could not open that file. Pick another copy."
+        input.use { source ->
+            target.outputStream().use { sink -> source.copyTo(sink) }
+        }
+        val detection = EngineDetector().detect(importDir)
+        buildString {
+            appendLine("Engine: ${detection.engine.displayName}")
+            appendLine("Runnable: ${if (detection.runnable) "yes" else "no"}")
+            detection.wadVersion?.let { appendLine("WAD / bytecode version: $it") }
+            detection.blocker?.let { appendLine("Blocker: $it") }
+            detection.notes.forEach { appendLine("- $it") }
+        }.trimEnd()
+    } catch (_: Exception) {
+        "Could not check that file. Pick another copy."
+    } finally {
+        importDir.deleteRecursively()
     }
 }
 
@@ -475,10 +515,16 @@ private fun AccentButton(text: String, onClick: () -> Unit, modifier: Modifier =
 }
 
 @Composable
-private fun OutlineButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun OutlineButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
     OutlinedButton(
         onClick = onClick,
         modifier = modifier.height(38.dp),
+        enabled = enabled,
         shape = PillShape,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = Steam.Text),
         border = androidx.compose.foundation.BorderStroke(1.dp, Steam.Edge),
