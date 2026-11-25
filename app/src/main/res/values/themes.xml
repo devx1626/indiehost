@@ -1,1 +1,12 @@
-PLACEHOLDER
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark from the very first frame: without this the window flashes white
+         before Compose draws the Steam-style dark background. -->
+    <style name="Theme.IndieHost" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#171a21</item>
+        <item name="android:colorBackground">#171a21</item>
+        <item name="android:statusBarColor">#171a21</item>
+        <item name="android:navigationBarColor">#171a21</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
