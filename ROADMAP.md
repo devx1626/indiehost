@@ -229,9 +229,9 @@ area.
 | P2 | Replace deprecated `PackageManager` icon/label calls | Future API removal | `InstalledApps.kt` |
 | P2 | Introduce a ViewModel + coroutines for loading | Testability, lifecycle safety | `MainActivity.kt` |
 | P3 | Instrumented tests for `LauncherApps`/pin flows | System integration is untested | `app/src/androidTest` |
-| P3 | Release signing + application-id rename | Required before any public build | Gradle + manifest |
+| P3 | Application-id rename | Placeholder id must change before broad distribution | manifest + repin |
 | P3 | Add a `LICENSE` file | Default copyright blocks reuse | root |
-| P3 | Rename `-steam` codename and `SteamTheme` | Trademark/branding (CON-07) | build + theme |
+| P3 | Rename internal `SteamTheme`/`Steam` identifiers | Version suffix is already clean; code names remain | build + theme |
 | P3 | Work-profile support | Out of scope until requested | `InstalledApps`/`Recents` |
 
 ---

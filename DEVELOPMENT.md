@@ -170,15 +170,20 @@ repository reconstruction; new commits should not imitate it.
 
 There is no automated release pipeline. A release is a manual, verified build.
 
-1. Update `versionCode` and `versionName` in `app/build.gradle.kts`.
+1. Set `versionName` in `app/build.gradle.kts`; do not change `versionCode` or
+   `applicationId` without a separate decision.
 2. Update the spec's "Applies to" line and the README status.
 3. Run the full regression checklist in [TESTING.md §6](TESTING.md#6-release-regression-checklist).
-4. Build: `./gradlew :app:assembleDebug`.
+4. Debug build: `./gradlew :app:assembleDebug`. Signed release: export the four
+   `INDIEHOST_*` variables (see [PREREQUISITES §6](PREREQUISITES.md#6-signing)) and run
+   `./gradlew :app:assembleRelease`. Verify with `apksigner verify --print-certs`.
 5. Copy the APK to `dist/` if you keep a local artifact; `dist/*.apk` is git-ignored.
-6. Tag the commit: `git tag -a v0.3.0 -m "0.3.0-steam"`.
-7. Record the device results (device, Android, fps, notes) in the release notes.
-8. **Do not publish** until signing, the application-id rename and the `-steam` rename are
-   resolved (see [ROADMAP](ROADMAP.md#backlog)).
+6. Tag the commit: `git tag -a v0.3.0 -m "0.3.0"`.
+7. Record the device results (device, Android, fps, notes) in the release notes. If no
+   device test ran, say so explicitly.
+8. **Do not publish without approval.** With approval, attach the signed APK with
+   `gh release create v0.3.0 app/build/outputs/apk/release/app-release.apk --title v0.3.0
+   --notes-file ...`.
 
 ---
 

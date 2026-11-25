@@ -129,14 +129,14 @@ fonts, and it does not talk to Steam.
 However:
 
 - "Steam" is a Valve trademark.
-- `versionName = "0.3.0-steam"`, `SteamTheme`, `Steam` (the palette object) and the
-  `steamColors`/`steamTypography` names are internal codenames.
-- Shipping a public build with "steam" in the version string or class names risks implying
-  affiliation.
+- The public version string is `0.3.0`: no Steam word appears in the APK metadata, UI or
+  artwork.
+- `SteamTheme`, `Steam` (the palette object) and the `steamColors`/`steamTypography` names
+  remain internal source identifiers. They are not shipped branding and are not visible
+  in the UI.
 
-**Before a public release:** rename the version suffix and the `Steam*` symbols (for
-example `ClientTheme` / `Client`), and keep the palette description generic. This is
-CON-07 in [spec.md](spec.md).
+The version suffix was renamed before the `v0.3.0` release (CON-07). Renaming the internal
+symbols is a follow-up refactor, not a release blocker; keep the palette description generic.
 
 ---
 

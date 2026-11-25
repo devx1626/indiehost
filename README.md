@@ -25,13 +25,19 @@ the test phone — a MediaTek Helio A22 with four Cortex-A53 cores and a PowerVR
 Findings, the device test procedure and what is still unmeasured are in
 [MILESTONE-0.md](MILESTONE-0.md).
 
-**Current build: `0.3.0-steam`.** IndieHost is a daily-usable home screen, styled like a
+**Current build: `0.3.0`.** IndieHost is a daily-usable home screen, styled like a
 game client:
 
 - a pinned-game **library** with a "play next" panel, one tap to start;
 - a **recents** row, from usage access when granted and from apps opened here otherwise;
 - an **app drawer** with search, built from `LauncherApps`;
 - the Milestone 0 `data.win` check, kept as a tool.
+
+## Downloads
+
+Signed release APKs are on the [Releases page](https://github.com/devx1626/indiehost/releases).
+Unsigned debug APKs from CI are attached to [Actions runs](https://github.com/devx1626/indiehost/actions/workflows/android.yml)
+as the `app-debug` artifact.
 
 ## Documentation
 

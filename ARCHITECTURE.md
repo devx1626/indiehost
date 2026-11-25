@@ -424,8 +424,9 @@ Keep Android APIs in `:runtimes`/`:app`; detection stays pure.
 
 - Single Gradle build, four modules, version catalog absent (versions are inline).
 - `applicationId = "com.indiehost.launcher"` (placeholder), `versionCode = 3`,
-  `versionName = "0.3.0-steam"`.
-- Debug build only; no release signing.
+  `versionName = "0.3.0"`.
+- Debug is built by CI; release signing is opt-in through four `INDIEHOST_*` environment
+  variables, and the keystore stays outside the repository.
 - The Gradle wrapper jar is not committed; see [PREREQUISITES](PREREQUISITES.md).
 - Launcher icons: adaptive XML for API 26+, generated PNGs for mdpi–xxhdpi. The generator
   also emits xxxhdpi, which is not committed yet.

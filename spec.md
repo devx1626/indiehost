@@ -1,7 +1,7 @@
 # IndieHost Specification
 
 > **Status:** Living document · **Version:** 1.0 · **Last updated:** 2026-11-25
-> **Applies to:** `0.3.0-steam` (versionCode 3)
+> **Applies to:** `0.3.0` (versionCode 3)
 > **Related:** [README](README.md) · [MILESTONE-0](MILESTONE-0.md) · [ARCHITECTURE](ARCHITECTURE.md) · [ROADMAP](ROADMAP.md) · [TESTING](TESTING.md) · [LICENSING](LICENSING.md) · [SECURITY](SECURITY.md)
 
 This document is normative. If the code and this document disagree, the code is wrong
@@ -40,7 +40,7 @@ recents and an app drawer, styled like a game client rather than a stock launche
 
 ## 2. Scope
 
-### 2.1 Current release — `0.3.0-steam`
+### 2.1 Current release — `0.3.0`
 
 Shipped and expected to work:
 
@@ -210,7 +210,7 @@ These are not trade-offs. A change that violates one is rejected.
 | CON-04 | **No emulation.** No Wine, no x86 translation, no Windows container, no proprietary runner redistribution. |
 | CON-05 | **GameMaker support is VM-only.** A build without a `CODE` chunk is reported as blocked, never attempted. |
 | CON-06 | **The launcher works with zero games.** A missing runtime, empty library or denied usage access must leave a usable home screen, not a setup wall. |
-| CON-07 | **No Steam artwork or trademarks in shipped branding.** The palette is inspired by a game-client look; the `-steam` suffix and `SteamTheme` class are internal codenames and must be renamed before a public release. |
+| CON-07 | **No Steam artwork or trademarks in shipped branding.** The palette is inspired by a game-client look. The public version string is `0.3.0`, with no Steam word; `SteamTheme` and `Steam` remain internal source identifiers and are not shipped branding. |
 
 ---
 
@@ -397,7 +397,7 @@ Milestone 0 game bar. Measure with the protocol in [TESTING.md](TESTING.md).
 
 ## 13. Acceptance criteria
 
-### 13.1 `0.3.0-steam`
+### 13.1 `0.3.0`
 
 - [ ] Installs and launches on API 24 through 34.
 - [ ] Can be selected as the home app; Home returns to it with `singleTask` behaviour.
@@ -453,8 +453,8 @@ Milestone 0 game bar. Measure with the protocol in [TESTING.md](TESTING.md).
 6. **Application id.** `com.indiehost.launcher` is explicitly a placeholder. Renaming
    changes shortcut ownership and installed-app identity; do it before a public release.
 7. **Launcher licence.** There is no `LICENSE` file. Choose one before publishing.
-8. **`-steam` codename.** Rename the version suffix, `SteamTheme`, and `Steam` palette
-   object before distribution (CON-07).
+8. **Internal `Steam*` identifiers.** `SteamTheme` and `Steam` remain in source; renaming
+   them is a follow-up refactor. The public version string is clean (CON-07).
 9. **Localisation.** Move Compose copy into `strings.xml`; decide whether M1 or backlog.
 10. **Work profiles.** `LauncherApps` is queried for `Process.myUserHandle()` only. Support
     for managed profiles is out of scope until requested.

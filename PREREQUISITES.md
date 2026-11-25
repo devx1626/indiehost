@@ -191,10 +191,12 @@ A synthetic `data.win` fixture for tests is built in code
 
 ## 6. Signing
 
-- Debug builds use the standard debug keystore; no setup needed.
-- **Release signing is not configured.** There is no keystore, no `signingConfigs` block
-  and no release build type. Do not publish a build until that is designed (see
-  [ROADMAP](ROADMAP.md#backlog)).
+- Debug builds use the standard debug keystore; no setup needed. CI builds these.
+- Release signing is opt-in and local only. Generate a keystore outside the repository,
+  export `INDIEHOST_KEYSTORE`, `INDIEHOST_KEY_ALIAS`, `INDIEHOST_STORE_PASSWORD` and
+  `INDIEHOST_KEY_PASSWORD`, then run `gradle :app:assembleRelease`. No key or password is
+  committed, and CI does not sign. **Back up the keystore**: losing it prevents future
+  updates signed with the same key.
 - The application id `com.indiehost.launcher` is a placeholder. Changing it changes the
   installed identity and invalidates existing pins; do it before a public release.
 
