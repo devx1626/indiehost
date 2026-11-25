@@ -32,7 +32,7 @@ shortcut handoff that lets a launcher start a pinned Butterscotch game without a
   [PREREQUISITES §1.3](PREREQUISITES.md#13-linux-on-arm64).
 - [x] `:detect:test` and `:app:assembleDebug` are wired into
   [.github/workflows/android.yml](.github/workflows/android.yml).
-- [ ] The workflow is green on GitHub (first push pending).
+- [x] The workflow is green on `main` (run 45705981692).
 - [x] Hardening: off-main-thread `data.win` check, Butterscotch-only pins, shortcut icons,
   `strings.xml`, ≥ 48 dp touch targets.
 

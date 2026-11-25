@@ -36,7 +36,8 @@ Android Studio.
 There is no lint baseline and no ktlint/detekt configuration yet. GitHub Actions is
 configured to run the host tests and the debug build from
 [.github/workflows/android.yml](.github/workflows/android.yml) on pushes to `main` and on
-pull requests. The workflow has not run on GitHub yet; the first push verifies it.
+pull requests. Its first run on `main` (2026-11-25) passed: 12 host tests, debug APK
+built and uploaded as an artifact.
 
 ---
 
