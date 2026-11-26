@@ -1,6 +1,7 @@
 package com.indiehost.launcher
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -53,6 +54,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -62,7 +64,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.indiehost.detect.Engine
 import com.indiehost.detect.EngineDetector
+import com.indiehost.library.Game
 import com.indiehost.runtimes.RunnerShortcut
 import java.io.File
 
@@ -84,6 +88,13 @@ internal fun HomeScreen(
     loadingApps: Boolean,
     usageAccess: Boolean,
     status: String,
+    scanned: List<Game>,
+    scanSkipped: List<ScanSkip>,
+    scanning: Boolean,
+    covers: Map<String, Bitmap>,
+    onScanFolder: () -> Unit,
+    onOpenGame: (Game) -> Unit,
+    onLaunchScanned: (Game) -> Unit,
     onOpenDrawer: () -> Unit,
     onLaunchGame: (RunnerShortcut) -> Unit,
     onLaunchApp: (LauncherApp) -> Unit,
@@ -184,7 +195,7 @@ internal fun HomeScreen(
                 }
             }
 
-            games.isEmpty() -> item {
+            games.isEmpty() && scanned.isEmpty() -> item {
                 Panel(Modifier.padding(horizontal = 20.dp)) {
                     Text(
                         stringResource(R.string.no_games),
@@ -193,13 +204,33 @@ internal fun HomeScreen(
                 }
             }
 
-            else -> items(games, key = { it.id }) { shortcut ->
-                GameRow(
-                    title = shortcut.title,
-                    icon = shortcut.icon,
-                    onClick = { onLaunchGame(shortcut) },
-                    modifier = Modifier.padding(horizontal = 20.dp),
-                )
+            else -> {
+                items(games, key = { "pin:${it.id}" }) { shortcut ->
+                    GameRow(
+                        title = shortcut.title,
+                        subtitle = stringResource(R.string.game_installed),
+                        icon = shortcut.icon,
+                        cover = null,
+                        actionLabel = stringResource(R.string.play),
+                        onClick = { onLaunchGame(shortcut) },
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                    )
+                }
+                // Scanned rows are listed, never dressed up as launchable: a
+                // GameMaker game only starts through a pin the user links.
+                items(scanned, key = { "scan:${it.id}" }) { game ->
+                    val linked = game.linkedShortcutId != null
+                    GameRow(
+                        title = game.title,
+                        subtitle = scannedSubtitle(game),
+                        icon = null,
+                        cover = covers[game.id],
+                        actionLabel = if (linked) stringResource(R.string.play) else null,
+                        onClick = { onOpenGame(game) },
+                        onAction = if (linked) { { onLaunchScanned(game) } } else null,
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                    )
+                }
             }
         }
 
@@ -226,6 +257,34 @@ internal fun HomeScreen(
                     Modifier.weight(1f),
                     enabled = !checking,
                 )
+            }
+        }
+        item {
+            OutlineButton(
+                if (scanning) stringResource(R.string.scanning_folder) else stringResource(R.string.scan_folder),
+                onScanFolder,
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                enabled = !scanning,
+            )
+        }
+        if (scanSkipped.isNotEmpty()) {
+            item {
+                Panel(Modifier.padding(horizontal = 20.dp)) {
+                    Text(
+                        stringResource(R.string.scan_skipped_title),
+                        style = labelStyle(10.sp),
+                        color = Steam.TextMuted,
+                    )
+                    scanSkipped.forEach { skip ->
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            if (skip.folder.isEmpty()) skip.reason else "${skip.folder} - ${skip.reason}",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
             }
         }
         if (checking || report.isNotEmpty()) {
@@ -280,6 +339,204 @@ private fun inspectDataWin(context: Context, uri: Uri): String {
         context.getString(R.string.check_failed)
     } finally {
         importDir.deleteRecursively()
+    }
+}
+
+/**
+ * One scanned game: what it is, the pin it launches through, its cover, and the
+ * way out of the library. Linking is explicit — two games can share a title and
+ * Butterscotch owns the shortcut id, so a title match would be a guess.
+ */
+@Composable
+internal fun GameDetailScreen(
+    game: Game,
+    cover: Bitmap?,
+    shortcuts: List<RunnerShortcut>,
+    onBack: () -> Unit,
+    onLaunch: () -> Unit,
+    onLink: (RunnerShortcut) -> Unit,
+    onUnlink: () -> Unit,
+    onChangeCover: () -> Unit,
+    onRemoveCover: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    val linked = shortcuts.firstOrNull { it.id == game.linkedShortcutId }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Steam.Base),
+        contentPadding = PaddingValues(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 12.dp, end = 20.dp, top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onBack) {
+                    Text(stringResource(R.string.back), style = labelStyle(), color = Steam.Accent)
+                }
+            }
+        }
+
+        item {
+            Panel(Modifier.padding(horizontal = 20.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    DetailCover(game.title, cover)
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            game.title,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = Steam.TextBright,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            stringResource(R.string.detail_engine, game.engine.displayName),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        game.wadVersion?.let {
+                            Text(
+                                stringResource(R.string.detail_wad, it),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    stringResource(R.string.detail_location, game.folderPath),
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+
+        item {
+            SectionLabel(
+                stringResource(R.string.detail_section_play),
+                Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp),
+            )
+        }
+        item {
+            Panel(Modifier.padding(horizontal = 20.dp)) {
+                if (linked != null) {
+                    Text(
+                        stringResource(R.string.detail_linked, linked.title),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        AccentButton(stringResource(R.string.play), onLaunch, Modifier.weight(1f))
+                        OutlineButton(stringResource(R.string.detail_unlink), onUnlink, Modifier.weight(1f))
+                    }
+                } else {
+                    Text(
+                        stringResource(R.string.detail_link_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    if (shortcuts.isEmpty()) {
+                        Text(
+                            stringResource(R.string.detail_no_pins),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    } else {
+                        shortcuts.take(12).forEach { shortcut ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    shortcut.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                TextButton(onClick = { onLink(shortcut) }) {
+                                    Text(
+                                        stringResource(R.string.detail_link),
+                                        style = labelStyle(),
+                                        color = Steam.Accent,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            SectionLabel(
+                stringResource(R.string.detail_section_cover),
+                Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp),
+            )
+        }
+        item {
+            Panel(Modifier.padding(horizontal = 20.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlineButton(
+                        stringResource(R.string.detail_change_cover),
+                        onChangeCover,
+                        Modifier.weight(1f),
+                    )
+                    OutlineButton(
+                        stringResource(R.string.detail_remove_cover),
+                        onRemoveCover,
+                        Modifier.weight(1f),
+                        enabled = game.coverPath != null,
+                    )
+                }
+            }
+        }
+
+        item {
+            Panel(Modifier.padding(horizontal = 20.dp)) {
+                Text(
+                    stringResource(R.string.detail_remove_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Spacer(Modifier.height(10.dp))
+                OutlineButton(stringResource(R.string.detail_remove), onRemove, Modifier.fillMaxWidth())
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailCover(title: String, cover: Bitmap?) {
+    Box(
+        Modifier
+            .size(96.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .background(Brush.linearGradient(listOf(Color(0xFF3C6E8F), Color(0xFF1B2838)))),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (cover != null) {
+            Image(
+                bitmap = cover.asImageBitmap(),
+                contentDescription = title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
+            Text(
+                title.take(1).uppercase(),
+                fontSize = 40.sp,
+                fontWeight = FontWeight.Bold,
+                color = Steam.TextBright.copy(alpha = 0.85f),
+            )
+        }
     }
 }
 
@@ -454,23 +711,31 @@ private fun RecentTile(app: LauncherApp, onClick: () -> Unit) {
     }
 }
 
-/** A library entry: art block, title, runtime and the blue play pill. */
+/**
+ * A library entry: art block, title, runtime line and either the blue play pill
+ * (pinned shortcut) or a quiet DETECTED tag (scanned, not launchable yet).
+ */
 @Composable
 private fun GameRow(
     title: String,
+    subtitle: String,
     icon: Drawable?,
-    onClick: () -> Unit,
+    cover: Bitmap?,
+    actionLabel: String?,
+    onClick: (() -> Unit)?,
+    onAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     // Shortcut icons are small; convert once per icon, not on every recomposition.
     val image = remember(icon) { icon?.toImageBitmap(128) }
+    val coverImage = remember(cover) { cover?.asImageBitmap() }
     Row(
         modifier
             .fillMaxWidth()
             .clip(PanelShape)
             .background(Steam.Card)
             .border(1.dp, Steam.Edge, PanelShape)
-            .clickable(onClick = onClick)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -485,9 +750,9 @@ private fun GameRow(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            if (image != null) {
+            if (coverImage != null || image != null) {
                 Image(
-                    bitmap = image,
+                    bitmap = coverImage ?: image!!,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
@@ -510,11 +775,29 @@ private fun GameRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(stringResource(R.string.game_installed), style = MaterialTheme.typography.bodySmall)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall)
         }
         Spacer(Modifier.width(8.dp))
-        AccentButton(stringResource(R.string.play), onClick, Modifier.width(80.dp))
+        if (actionLabel != null && (onAction != null || onClick != null)) {
+            AccentButton(actionLabel, onAction ?: onClick!!, Modifier.width(80.dp))
+        } else {
+            Text(stringResource(R.string.detected), style = labelStyle(9.sp), color = Steam.TextMuted)
+        }
     }
+}
+
+/**
+ * What a scanned row can honestly promise today: nothing for GameMaker until a
+ * shortcut is linked, and a later milestone for everything else.
+ */
+@Composable
+private fun scannedSubtitle(game: Game): String = when (game.engine) {
+    Engine.GAMEMAKER_VM -> game.wadVersion?.let {
+        stringResource(R.string.scanned_gamemaker_wad, game.engine.displayName, it)
+    } ?: stringResource(R.string.scanned_gamemaker, game.engine.displayName)
+
+    Engine.RPGMAKER_MV, Engine.RPGMAKER_MZ -> stringResource(R.string.scanned_mv_hint)
+    else -> stringResource(R.string.scanned_m3_hint)
 }
 
 @Composable
