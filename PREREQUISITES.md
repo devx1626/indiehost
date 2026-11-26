@@ -89,7 +89,7 @@ cd indiehost
 # Skip this if you opened the project in Android Studio first.
 gradle wrapper --gradle-version 8.7
 
-# Host-side engine detection tests (12 tests, no device needed).
+# Host-side engine detection tests (20 tests, no device needed).
 ./gradlew :detect:test
 
 # Debug APK for sideloading.
@@ -98,7 +98,7 @@ gradle wrapper --gradle-version 8.7
 
 Expected results:
 
-- `:detect:test` — **12 tests, 0 failures**.
+- `:detect:test` — **20 tests, 0 failures**.
 - `:app:assembleDebug` — `BUILD SUCCESSFUL`, APK at
   `app/build/outputs/apk/debug/app-debug.apk` (about 9–10 MB).
 
@@ -236,7 +236,7 @@ agents must follow.
 Before calling a checkout "ready":
 
 - [ ] `java -version` reports 17.
-- [ ] `./gradlew :detect:test` passes 12/12.
+- [ ] `./gradlew :detect:test` passes 20/20.
 - [ ] `./gradlew :app:assembleDebug` succeeds.
 - [ ] APK installs on the phone.
 - [ ] IndieHost can be set as home.
