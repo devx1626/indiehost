@@ -1,7 +1,7 @@
 package com.indiehost.detect
 
 import java.io.File
-import java.io.RandomAccessFile
+import java.io.InputStream
 
 /**
  * Reads the runtime ("WAD") version out of a GameMaker: Studio data file.
@@ -21,22 +21,20 @@ import java.io.RandomAccessFile
  * same reader UndertaleModTool shows the user on the PC. A version mismatch
  * between the data file and the runner is the most common reason these setups
  * fail, so this is read *before* anything is launched.
+ *
+ * Reading is sequential only: the stream overload works on a SAF
+ * `InputStream`, where seeking is not available.
  */
 object GameMakerWad {
 
     /** WAD versions Butterscotch advertises support for (8 through 17). */
     val SUPPORTED_WAD_VERSIONS = 8..17
 
-    private const val GEN8_ID_OFFSET = 8L
+    private const val GEN8_ID_OFFSET = 8
 
-    /**
-     * Offset of the first chunk header. A chunk header is 4 bytes of id followed
-     * by a u32 length that *includes* the header, so the walker must start at the
-     * GEN8 id at offset 8, not at its length field.
-     */
-    private const val FIRST_CHUNK_OFFSET = 8L
-    private const val VERSION_OFFSET = 17L
+    private const val VERSION_OFFSET = 17
     private const val MAX_CHUNKS = 512
+    private const val HEADER_BYTES = 20
 
     data class Header(
         /** Runtime / "WAD" / bytecode version, 8..17 for the versions we care about. */
@@ -53,20 +51,9 @@ object GameMakerWad {
 
     /** Returns null when the file is not a GameMaker data file at all. */
     fun read(file: File): Header? {
-        if (!file.isFile || file.length() < 20L) return null
+        if (!file.isFile || file.length() < HEADER_BYTES.toLong()) return null
         return try {
-            RandomAccessFile(file, "r").use { raf ->
-                val head = ByteArray(20)
-                raf.seek(0)
-                raf.readFully(head)
-                if (ascii(head, 0, 4) != "FORM") return null
-                if (ascii(head, GEN8_ID_OFFSET.toInt(), 4) != "GEN8") return null
-
-                val version = head[VERSION_OFFSET.toInt()].toInt() and 0xFF
-                if (version !in 1..30) return null
-
-                Header(wadVersion = version, hasCodeChunk = hasCodeChunk(raf, file.length()))
-            }
+            file.inputStream().use { read(it) }
         } catch (e: Exception) {
             // Truncated or unreadable file: treat as "not a GameMaker data file"
             // rather than pretending we know its version.
@@ -75,24 +62,74 @@ object GameMakerWad {
     }
 
     /**
+     * Stream overload for callers that cannot seek, such as a SAF document.
+     * The stream is not closed here.
+     */
+    fun read(input: InputStream): Header? {
+        return try {
+            val head = ByteArray(HEADER_BYTES)
+            if (!readFully(input, head)) return null
+            if (ascii(head, 0, 4) != "FORM") return null
+            if (ascii(head, GEN8_ID_OFFSET, 4) != "GEN8") return null
+
+            val version = head[VERSION_OFFSET].toInt() and 0xFF
+            if (version !in 1..30) return null
+
+            // The 20 byte header stops 4 bytes inside the GEN8 chunk, so finish
+            // that chunk before walking the rest of the top-level list.
+            val gen8Length = leU32(head, 12)
+            if (gen8Length < 12L) return null
+            if (!skipFully(input, align4(gen8Length) - 12L)) return null
+
+            Header(wadVersion = version, hasCodeChunk = hasCodeChunk(input))
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
      * Walks the top-level chunk list looking for CODE. Chunk lengths include the
      * 8 byte header and are padded to a 4 byte boundary.
      */
-    private fun hasCodeChunk(raf: RandomAccessFile, fileLength: Long): Boolean {
-        var pos = FIRST_CHUNK_OFFSET
+    private fun hasCodeChunk(input: InputStream): Boolean {
         var seen = 0
-        while (pos + 8 <= fileLength && seen < MAX_CHUNKS) {
-            raf.seek(pos)
+        while (seen < MAX_CHUNKS) {
             val header = ByteArray(8)
-            raf.readFully(header)
+            if (!readFully(input, header)) return false
             val id = ascii(header, 0, 4)
             val length = leU32(header, 4)
             if (length < 8L) return false
             if (id == "CODE") return true
-            pos += align4(length)
+            if (!skipFully(input, align4(length) - 8L)) return false
             seen++
         }
         return false
+    }
+
+    private fun readFully(input: InputStream, buffer: ByteArray): Boolean {
+        var offset = 0
+        while (offset < buffer.size) {
+            val read = input.read(buffer, offset, buffer.size - offset)
+            if (read < 0) return false
+            offset += read
+        }
+        return true
+    }
+
+    private fun skipFully(input: InputStream, count: Long): Boolean {
+        var remaining = count
+        val scratch = ByteArray(8 * 1024)
+        while (remaining > 0L) {
+            val skipped = input.skip(remaining)
+            if (skipped > 0L) {
+                remaining -= skipped
+                continue
+            }
+            val read = input.read(scratch, 0, minOf(scratch.size.toLong(), remaining).toInt())
+            if (read < 0) return false
+            remaining -= read.toLong()
+        }
+        return true
     }
 
     private fun align4(value: Long): Long = (value + 3L) / 4L * 4L
