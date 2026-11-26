@@ -237,7 +237,7 @@ area.
 | P3 | Application-id rename | Placeholder id must change before broad distribution | manifest + repin |
 | P3 | Add a `LICENSE` file | Default copyright blocks reuse | root |
 | P3 | Rename internal `SteamTheme`/`Steam` identifiers | Version suffix is already clean; code names remain | build + theme |
-| P3 | Work-profile support | Out of scope until requested | `app/src/androidTest` |
+| P3 | Work-profile support | Out of scope until requested | `InstalledApps`/`Recents` |
 
 ---
 
