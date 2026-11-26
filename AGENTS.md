@@ -48,7 +48,7 @@ task; this file and `spec.md` override any third-party advice.
 ## 3. Commands
 
 ```bash
-./gradlew :detect:test        # 12 host tests; the minimum gate
+./gradlew :detect:test        # 20 host tests; the minimum gate
 ./gradlew :app:assembleDebug  # debug APK
 ./gradlew test                # all host-testable modules
 python3 tools/make_icons.py   # regenerate legacy icons (needs Pillow)
@@ -87,13 +87,18 @@ Implemented:
 
 - Home role, pinned-shortcut library, one-tap launch, drawer + search, recents, `data.win`
   checker, pin acceptance.
-- 12 host tests in `:detect`.
+- 20 host tests in `:detect` (12 from Milestone 0, 8 for the M1 folder abstraction).
+- Room persistence in `:library` (`GameEntity`, `GameDao`, `IndieHostDatabase`,
+  `RoomGameRepository`) with 8 host tests, wired into the home screen.
+- SAF folder scan: `SafGameFolder`, `GameScanner`, persisted tree URI in
+  `SharedPreferences("indiehost.library")`, scanned rows listed beside pinned shortcuts.
+- Game detail panel: explicit link to a pinned shortcut, cover picker with 512 px
+  downsample into `filesDir/covers`, unlink, and remove-from-library.
 - Debug build only; no release signing.
 
 Not implemented (see roadmap):
 
-- Room/persistence; `GameRepository` is unused.
-- SAF folder scan, cover art, save management.
+- Save management (deferred to M2).
 - MV/MZ WebView, Ren'Py/LOVE/ScummVM adapters.
 - Adapter registry (the comment promises one; it does not exist).
 - Instrumented tests, ViewModel/coroutines, localisation.
@@ -134,7 +139,7 @@ and [ROADMAP backlog](ROADMAP.md#backlog). Do not "fix" them by weakening a hard
 ## 8. Definition of done
 
 - [ ] Behaviour matches the spec, or the spec is updated.
-- [ ] `:detect:test` passes (12/12).
+- [ ] `:detect:test` passes (20/20).
 - [ ] APK builds, if the environment allows it.
 - [ ] Relevant manual tests pass, or the limitation is stated.
 - [ ] No game data, secrets or local paths in the diff.
