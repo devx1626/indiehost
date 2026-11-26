@@ -46,6 +46,10 @@ closed, and `:detect:test` plus the APK build stay green.
 **Goal:** IndieHost stops borrowing Butterscotch's pins as its only library and owns a
 persistent, scannable game collection.
 
+**Progress (2026-11-26):** Room persistence, the SAF scan, scanned rows beside pinned
+shortcuts, the detail panel, explicit pin linking, the cover picker and remove-from-library
+are implemented and build. The device checks below are still open.
+
 ### Work
 
 1. **Room**
@@ -74,15 +78,16 @@ persistent, scannable game collection.
    - Downsample before storing; never store a full-resolution screenshot.
    - Do not extract or redistribute copyrighted art.
 
-5. **Saves**
-   - For engines IndieHost hosts (M2+), save to a shared, documented directory that
-     survives a launcher reinstall.
+5. **Saves — deferred to M2**
+   - M1 hosts no engine, so FR-20 is not implemented here; it moves to M2 with the first
+     hosted runtime.
    - For Butterscotch-hosted games, saves belong to Butterscotch; document the limitation
      and do not pretend to manage them.
 
 ### Exit criteria
 
-- [ ] Games survive process death and a launcher reinstall.
+- [ ] Games survive process death and app updates; after an uninstall, re-scanning the
+      folder restores the library.
 - [ ] A SAF folder scan imports at least GameMaker and MV/MZ folders.
 - [ ] Cover art survives restart and is downsampled.
 - [ ] Revoking the SAF permission produces a clear message, not a crash.
@@ -92,7 +97,7 @@ persistent, scannable game collection.
 ### Risks
 
 - SAF tree persistence across reboots/OEMs.
-- Scoped-storage rules for saves.
+- Scoped-storage rules for saves (M2).
 - Room adds KSP/kapt to the build; keep `:detect` untouched.
 - Library UI can become slow if icons/covers are decoded on the main thread.
 
@@ -232,7 +237,7 @@ area.
 | P3 | Application-id rename | Placeholder id must change before broad distribution | manifest + repin |
 | P3 | Add a `LICENSE` file | Default copyright blocks reuse | root |
 | P3 | Rename internal `SteamTheme`/`Steam` identifiers | Version suffix is already clean; code names remain | build + theme |
-| P3 | Work-profile support | Out of scope until requested | `InstalledApps`/`Recents` |
+| P3 | Work-profile support | Out of scope until requested | `app/src/androidTest` |
 
 ---
 
