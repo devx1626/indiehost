@@ -89,6 +89,9 @@ user-supplied folder without that, it is out of scope.
 | Component | Licence | Use |
 | --- | --- | --- |
 | AndroidX / Jetpack Compose / Material3 | Apache-2.0 | UI and activity plumbing |
+| Room (`androidx.room` runtime + compiler) | Apache-2.0 | Game library persistence (M1) |
+| KSP (Kotlin Symbol Processing) | Apache-2.0 | Room annotation processing at build time |
+| AndroidX DocumentFile | Apache-2.0 | SAF folder scanning (M1) |
 | Kotlin standard library | Apache-2.0 | Language/runtime |
 | Android Gradle Plugin, Gradle | Apache-2.0 | Build |
 | JUnit 4 | EPL-1.0 | Host tests |

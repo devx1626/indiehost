@@ -22,7 +22,7 @@ change.
 ## 2. Build and test
 
 ```bash
-./gradlew :detect:test        # 12 host tests, no device
+./gradlew :detect:test        # 20 host tests, no device
 ./gradlew :app:assembleDebug  # debug APK
 ./gradlew test                # all host-testable modules
 ```
@@ -36,7 +36,7 @@ Android Studio.
 There is no lint baseline and no ktlint/detekt configuration yet. GitHub Actions is
 configured to run the host tests and the debug build from
 [.github/workflows/android.yml](.github/workflows/android.yml) on pushes to `main` and on
-pull requests. Its first run on `main` (2026-11-25) passed: 12 host tests, debug APK
+pull requests. Its first run on `main` (2026-11-25) passed: 12 host tests (20 today), debug APK
 built and uploaded as an artifact.
 
 ---

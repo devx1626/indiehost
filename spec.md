@@ -56,7 +56,7 @@ Shipped and expected to work:
 
 | Release | Theme | Requirements |
 | --- | --- | --- |
-| M1 | Real library | FR-17, FR-18, FR-19, FR-20 |
+| M1 | Real library | FR-17, FR-18, FR-19 (FR-20 deferred to M2) |
 | M2 | RPG Maker MV/MZ WebView runtime | FR-21, FR-22, FR-23 |
 | M3 | Ren'Py, LOVE and ScummVM | FR-24 |
 | M4 | Compatibility matrix and performance | FR-25 |
@@ -152,10 +152,10 @@ Status values: **Implemented**, **Partial**, **Planned**, **Not started**.
 
 | ID | Requirement | Status |
 | --- | --- | --- |
-| FR-17 | Games are persisted across process death and reinstall of the launcher using Room, not an in-memory map. | Planned (M1) |
-| FR-18 | The user can point IndieHost at a games folder (SAF tree) and scan it for supported engines. | Planned (M1) |
-| FR-19 | Each game has user-visible title, engine, WAD version (when applicable) and optional cover art. | Planned (M1) |
-| FR-20 | For engines IndieHost hosts itself, saves live outside the app's private storage and survive a launcher reinstall. Butterscotch-owned saves remain Butterscotch's responsibility and are documented as such. | Planned (M1) |
+| FR-17 | Games are persisted across process death and app updates using Room, not an in-memory map. A full uninstall deletes the database and SAF grants; re-scanning the same folder restores the library, and the UI explains this. | Implemented — repository wired; device persistence test pending |
+| FR-18 | The user can point IndieHost at a games folder (SAF tree) and scan it for supported engines. | Implemented — scan, persisted grant and skip reasons; device test pending |
+| FR-19 | Each game has user-visible title, engine, WAD version (when applicable) and optional cover art. | Implemented — detail panel and cover picker; device test pending |
+| FR-20 | **Deferred to M2**, because M1 hosts no engine. When M2 hosts RPG Maker, its saves must live outside the app's private storage and survive a launcher reinstall. Butterscotch-owned saves remain Butterscotch's responsibility and are documented as such. | Deferred (M2) |
 
 ### 4.6 Milestone 2 — RPG Maker WebView
 
@@ -330,7 +330,7 @@ result. `ButterscotchShortcuts` is the only code that talks to the runner's shor
 
 | Type | Fields | Persistence |
 | --- | --- | --- |
-| `Game` | `id`, `title`, `folderPath`, `engine`, `wadVersion?` | In memory today; Room in M1 |
+| `Game` | `id`, `title`, `folderPath`, `engine`, `wadVersion?`, `coverPath?`, `addedAt`, `source`, `linkedShortcutId?` | Room `games` table (M1); not yet wired to the UI |
 | `RunnerShortcut` | `id`, `title`, `info` (internal `ShortcutInfo`), `packageName` | Owned by the system/Butterscotch |
 | `LauncherApp` | `packageName`, `activityName`, `label`, `icon` | Rebuilt from `LauncherApps` |
 | `Detection` | `engine`, `runnable`, `wadVersion?`, `blocker?`, `notes` | Computed, not stored |
@@ -411,11 +411,12 @@ Milestone 0 game bar. Measure with the protocol in [TESTING.md](TESTING.md).
 
 ### 13.2 Milestone 1
 
-- [ ] Room persists games across process death and launcher reinstall.
+- [ ] Room persists games across process death and app updates; after an uninstall,
+      re-scanning the folder restores the library.
 - [ ] A SAF-selected folder can be scanned and imported.
 - [ ] Cover art can be attached and survives restart.
-- [ ] Hosted-engine saves survive a launcher reinstall; the Butterscotch limitation is
-      documented in the UI or help text.
+- [ ] FR-20 is deferred to M2; the Butterscotch save limitation is documented in the UI or
+      help text.
 - [ ] DAO and detector tests pass; manual matrix updated.
 
 ### 13.3 Milestone 2
@@ -446,8 +447,9 @@ Milestone 0 game bar. Measure with the protocol in [TESTING.md](TESTING.md).
 3. **MV WebView loading.** `WebViewAssetLoader` over a SAF tree vs copying into app
    storage vs a localhost server. The first avoids duplication and the `INTERNET`
    permission; the second is simpler but doubles disk use.
-4. **Save location.** Which shared directory is both scoped-storage-safe and survives
-   uninstall? `Documents/IndieHost/<game>` vs app-specific external storage.
+4. **Save location (M2).** Which shared directory is both scoped-storage-safe and survives
+   uninstall? `Documents/IndieHost/<game>` vs app-specific external storage. Decided with
+   the first hosted engine.
 5. **Room schema and migration policy.** Version 1 schema, destructive migration allowed
    during M1 only.
 6. **Application id.** `com.indiehost.launcher` is explicitly a placeholder. Renaming

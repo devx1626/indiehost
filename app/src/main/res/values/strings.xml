@@ -17,12 +17,52 @@
     <string name="no_recent">Nothing opened recently.</string>
     <string name="not_home">Set IndieHost as your home app to list the games you have in Butterscotch.</string>
     <string name="choose_home">CHOOSE HOME APP</string>
-    <string name="no_games">No games pinned yet. In Butterscotch, open a game\'s settings and tap \"Add Shortcut to Home Screen\". It will show up here.</string>
+    <string name="no_games">No games yet. Pin one in Butterscotch, or scan a folder that holds your games.</string>
     <string name="runner_label">BUTTERSCOTCH</string>
     <string name="runner_name">Butterscotch</string>
     <string name="check_datawin">CHECK DATA.WIN</string>
     <string name="checking">CHECKING...</string>
     <string name="reading_datawin">Reading data.win...</string>
+
+    <!-- Folder scan -->
+    <string name="scan_folder">SCAN FOLDER</string>
+    <string name="scanning_folder">SCANNING FOLDER...</string>
+    <string name="scan_imported">Imported %1$d games from that folder.</string>
+    <string name="scan_imported_skipped">Imported %1$d games; %2$d folders skipped.</string>
+    <string name="scan_none">No supported games found in that folder.</string>
+    <string name="scan_failed">Could not scan that folder.</string>
+    <string name="scan_no_permission">IndieHost could not keep access to that folder.</string>
+    <string name="scan_permission_lost">The games folder is no longer accessible. Scan it again to restore the library.</string>
+    <string name="scan_skipped_title">SKIPPED</string>
+    <string name="detected">DETECTED</string>
+    <string name="scanned_gamemaker_wad">%1$s - WAD %2$d</string>
+    <string name="scanned_gamemaker">%1$s</string>
+    <string name="scanned_mv_hint">Detected. The WebView runtime arrives in Milestone 2.</string>
+    <string name="scanned_m3_hint">Detected. This runtime is undecided until Milestone 3.</string>
+
+    <!-- Game detail -->
+    <string name="back">BACK</string>
+    <string name="detail_section_play">PLAY</string>
+    <string name="detail_section_cover">COVER</string>
+    <string name="detail_engine">Engine: %1$s</string>
+    <string name="detail_wad">WAD / bytecode version: %1$d</string>
+    <string name="detail_location">Location: %1$s</string>
+    <string name="detail_link_hint">Pin this game in Butterscotch, then link the pin here. Only you can match the pin: titles can be duplicated.</string>
+    <string name="detail_link">LINK</string>
+    <string name="detail_no_pins">No pinned shortcuts yet. In Butterscotch, open the game\'s settings and tap \"Add Shortcut to Home Screen\", then come back.</string>
+    <string name="detail_linked">Linked to %1$s</string>
+    <string name="detail_linked_status">Linked %1$s</string>
+    <string name="detail_unlink">UNLINK</string>
+    <string name="detail_unlinked_status">Shortcut link removed</string>
+    <string name="detail_link_missing">That shortcut is gone. Link another pin.</string>
+    <string name="detail_change_cover">CHANGE COVER</string>
+    <string name="detail_remove_cover">REMOVE COVER</string>
+    <string name="detail_cover_saved">Cover updated</string>
+    <string name="detail_cover_failed">Could not read that image.</string>
+    <string name="detail_cover_removed">Cover removed</string>
+    <string name="detail_remove">REMOVE FROM LIBRARY</string>
+    <string name="detail_removed">Removed %1$s from the library</string>
+    <string name="detail_remove_hint">Removing deletes only this library entry and its cover. The game folder is not touched.</string>
 
     <!-- Hero and library rows -->
     <string name="play_next">PLAY NEXT</string>

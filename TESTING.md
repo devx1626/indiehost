@@ -13,7 +13,7 @@ APIs. There are no instrumented tests yet; do not pretend the manual matrix is a
 
 | Layer | Scope | Tool | Status |
 | --- | --- | --- | --- |
-| JVM unit tests | `GameMakerWad` parsing, `EngineDetector` fingerprints, blockers | JUnit 4 | **12 tests** (reported 12/12 in MILESTONE-0; re-run before release) |
+| JVM unit tests | `GameMakerWad` parsing, `EngineDetector` fingerprints, blockers, `GameFolder` parity | JUnit 4 | **20 tests** (12 in MILESTONE-0, 8 added for the M1 folder abstraction; re-run before release) |
 | Instrumented tests | Activities, `LauncherApps`, pin flow, Room DAO (M1) | AndroidX Test | **None** |
 | Manual device tests | Home role, pin, launch, recents, drawer, permissions | Human + adb | Required per release |
 | Performance | Startup, resume, drawer, fps, memory | adb + screen recording | Protocol below; not yet measured |
@@ -190,6 +190,58 @@ non-`game-` shortcut from Butterscotch.
 **Steps:** Cold start on a device with a light system theme.
 **Expected:** No white flash; status/navigation bars are `#171A21`; text remains readable.
 
+### MT-21 — Scan a games folder
+
+**Steps:** Put a VM GameMaker folder (e.g. `UNDERTALE/data.win`) and an RPG Maker MV folder
+inside one directory on internal storage. Tap `SCAN FOLDER` and pick that directory in the
+system picker. Grant access if asked.
+**Expected:** `SCANNING FOLDER...` shows, the UI keeps scrolling, then the status line reports
+the count. Both games appear under YOUR LIBRARY with their engine and WAD, marked
+`DETECTED`; the GameMaker row is not offered as a PLAY button. Kill and reopen the app: both
+rows are still there. Confirm nothing was copied: `adb shell run-as com.indiehost.launcher ls
+files` shows no game files and `cacheDir/import` stays empty.
+
+### MT-22 — Scan a folder with a blocked build
+
+**Steps:** Include a YYC folder (no `CODE` chunk) in the scanned directory.
+**Expected:** It is not imported as a playable row; the SKIPPED panel names the folder and
+mentions the missing CODE chunk, or WAD outside 8–17.
+
+### MT-23 — Revoke the folder grant
+
+**Steps:** After MT-21, revoke the grant (uninstall the app that owns the folder, or clear
+IndieHost's storage then reopen), or delete the scanned folder.
+**Expected:** On resume a status message says the folder is no longer accessible; no crash;
+already-imported rows remain listed. Re-scanning restores them.
+
+### MT-24 — Uninstall and re-scan (FR-17 wording)
+
+**Steps:** Scan a folder, then uninstall IndieHost, reinstall it and scan the same folder.
+**Expected:** The library is empty right after install (the database is app-private and
+backup is off), and the re-scan rebuilds the rows. Nothing was restored from a cloud backup.
+
+### MT-25 — Link a scanned game to a pin, then launch
+
+**Steps:** After MT-21, pin the same game in Butterscotch, reopen IndieHost, tap the scanned
+row, then tap `LINK` beside the matching pin.
+**Expected:** The panel says `Linked to <title>` and offers PLAY and UNLINK. PLAY starts the
+game in Butterscotch, exactly like the pinned row. Back on the home screen the row has a PLAY
+button. Then UNLINK: the button disappears and the row opens the panel again instead.
+
+### MT-26 — Cover art
+
+**Steps:** Open a scanned game and tap `CHANGE COVER`; pick a large photo (several thousand
+pixels). Repeat with a small image. Then `REMOVE COVER`.
+**Expected:** No crash or long pause; the cover replaces the letter tile in the panel and in
+the library row, survives a restart, and is stored at ≤ 512 px in
+`filesDir/covers/<hash>.webp`. Removing it restores the letter tile.
+
+### MT-27 — Remove from library
+
+**Steps:** Open a scanned game and tap `REMOVE FROM LIBRARY`.
+**Expected:** The panel closes, the row disappears, its cover file is gone, and the game's
+folder is untouched on disk. Re-scanning the folder brings the row back without a cover.
+
 ---
 
 ## 4. Performance protocol
@@ -278,12 +330,15 @@ files.
 
 Before tagging or sideloading a build:
 
-- [ ] `./gradlew :detect:test` — 12/12.
+- [ ] `./gradlew :detect:test` — 20/20.
 - [ ] `./gradlew :app:assembleDebug` — success.
 - [ ] MT-01 through MT-06 pass on the baseline.
 - [ ] MT-07 through MT-09 pass with usage access granted and revoked.
 - [ ] MT-10 through MT-13 pass.
 - [ ] MT-14 and MT-15 pass with a VM and a YYC file.
+- [ ] MT-21 through MT-27 pass (scan, blocked build, revoked grant, reinstall, link, cover,
+      remove).
+- [ ] `./gradlew :library:test` — 8/8.
 - [ ] Cold start and resume recorded (at least once).
 - [ ] No game data in `git status` or the APK.
 - [ ] README/spec version and claims match the build.

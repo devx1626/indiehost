@@ -1,6 +1,6 @@
 # ADR-0006: Room for the M1 library; preferences only for recents
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-11-26)
 - **Date:** 2026-11-25
 - **Deciders:** project maintainer
 - **Related:** [ROADMAP](../../ROADMAP.md) M1, [ARCHITECTURE](../../ARCHITECTURE.md) §7, [spec.md](../../spec.md) FR-17
@@ -58,7 +58,8 @@ package names and already work in `SharedPreferences`.
 
 ## Open questions
 
-- Exact save directory (`Documents/IndieHost/<game>` vs app-specific external storage).
+- Exact save directory (`Documents/IndieHost/<game>` vs app-specific external storage),
+  decided in M2 with the first hosted engine.
 - Whether cover art lives in the database (BLOB) or as a file with a path. This ADR assumes
   a file plus a path; revisit if backup/export needs a single artifact.
 - Whether `wadVersion` is nullable for non-GameMaker engines (it is in the model).

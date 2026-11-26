@@ -251,8 +251,9 @@ interface GameRepository {
 }
 ```
 
-`InMemoryGameRepository` is a placeholder. Nothing in `:app` uses it. M1 replaces it with a
-Room-backed implementation and wires it into the home screen.
+`RoomGameRepository` implements the seam over `GameDao`; `InMemoryGameRepository` stays for
+tests. `:app` loads it on a background thread and lists scanned games beside pinned
+shortcuts. Room types never leave `:library`.
 
 ### 5.4 `EngineDetector.Detection`
 
@@ -331,7 +332,8 @@ disappears. That is acceptable for a launcher, but it means `drawerOpen` is not 
 | Game files / saves | Butterscotch's private storage | Owned by Butterscotch |
 | Recents (local) | `SharedPreferences("indiehost.recents")` | Survives process death; cleared on uninstall |
 | Checker cache | `cacheDir/import/data.win` | Deleted before and after each check |
-| Game library | None today | `InMemoryGameRepository` is unused |
+| Game library | Room `indiehost.db` v1 (app-private) | Cleared on uninstall; restored by re-scanning |
+| Scanned folder | `SharedPreferences("indiehost.library")` tree URI + system grant | Revoked grant is reported, metadata kept |
 
 `android:allowBackup="false"` keeps the prefs and cache out of cloud backup.
 
@@ -377,11 +379,12 @@ Keep Android APIs in `:runtimes`/`:app`; detection stays pure.
 
 ### 9.2 Replace the repository
 
-1. Implement `GameRepository` with Room in `:library` (entities, DAO, database).
-2. Add KSP/kapt and the Room dependencies to `library/build.gradle.kts`.
-3. Add DAO tests under `library/src/test` or `androidTest` (Robolectric or instrumented).
-4. Wire `MainActivity` to the repository; remove `InMemoryGameRepository` once unused.
-5. Update the schema/migration policy in the spec.
+1. [x] Implement `GameRepository` with Room in `:library` (entities, DAO, database).
+2. [x] Add KSP and the Room dependencies to `library/build.gradle.kts`.
+3. [ ] Add DAO tests under `library/src/test` or `androidTest` (Robolectric or instrumented).
+   Mapping tests exist; DAO tests do not.
+4. [x] Wire `MainActivity` to the repository; `InMemoryGameRepository` kept for tests.
+5. [x] Update the schema/migration policy in the spec (version 1, destructive during M1).
 
 ### 9.3 Add a screen
 

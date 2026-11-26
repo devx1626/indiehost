@@ -5,6 +5,9 @@ import java.io.File
 /**
  * Fingerprints an imported game folder. Pure Kotlin, no Android APIs, so this
  * whole class is covered by host-side unit tests.
+ *
+ * Detection reads folder *contents* only through [GameFolder], so the same
+ * rules apply to a filesystem directory and to a SAF tree on the device.
  */
 class EngineDetector {
 
@@ -18,9 +21,13 @@ class EngineDetector {
         val notes: List<String> = emptyList(),
     )
 
+    /** Filesystem entry point. Kept for existing callers and tests. */
     fun detect(folder: File): Detection {
         if (!folder.isDirectory) return Detection(Engine.UNKNOWN, false, blocker = "Not a folder")
+        return detect(FileGameFolder(folder))
+    }
 
+    fun detect(folder: GameFolder): Detection {
         detectGameMaker(folder)?.let { return it }
         detectRpgMaker(folder)?.let { return it }
         detectRenPy(folder)?.let { return it }
@@ -32,20 +39,19 @@ class EngineDetector {
 
     // --- GameMaker ---------------------------------------------------------
 
-    private fun detectGameMaker(folder: File): Detection? {
-        val dataFile = listOf("data.win", "game.droid", "game.unx")
-            .map { File(folder, it) }
-            .firstOrNull { it.isFile }
+    private fun detectGameMaker(folder: GameFolder): Detection? {
+        val dataName = listOf("data.win", "game.droid", "game.unx")
+            .firstOrNull { folder.isFile(it) }
             ?: return null
 
-        val header = GameMakerWad.read(dataFile)
+        val header = folder.open(dataName)?.use { GameMakerWad.read(it) }
             ?: return Detection(
                 Engine.GAMEMAKER_VM,
                 runnable = false,
-                blocker = "${dataFile.name} is not a readable GameMaker data file",
+                blocker = "$dataName is not a readable GameMaker data file",
             )
 
-        val notes = mutableListOf("data file: ${dataFile.name}, WAD version ${header.wadVersion}")
+        val notes = mutableListOf("data file: $dataName, WAD version ${header.wadVersion}")
 
         if (!header.hasCodeChunk) {
             return Detection(
@@ -71,13 +77,13 @@ class EngineDetector {
 
     // --- RPG Maker ---------------------------------------------------------
 
-    private fun detectRpgMaker(folder: File): Detection? {
-        val roots = listOf(folder, File(folder, "www")).filter { it.isDirectory }
-        val js = roots.map { File(it, "js") }.firstOrNull { it.isDirectory } ?: return null
-        if (roots.none { File(it, "index.html").isFile }) return null
+    private fun detectRpgMaker(folder: GameFolder): Detection? {
+        val roots = listOfNotNull(folder, folder.child("www"))
+        val js = roots.firstOrNull { it.isDirectory("js") }?.child("js") ?: return null
+        if (roots.none { it.isFile("index.html") }) return null
 
-        val mz = File(js, "rmmz_core.js").isFile
-        val mv = File(js, "rpg_core.js").isFile
+        val mz = js.isFile("rmmz_core.js")
+        val mv = js.isFile("rpg_core.js")
         return when {
             mz -> Detection(Engine.RPGMAKER_MZ, runnable = true, notes = listOf("www/ HTML5 build"))
             mv -> Detection(Engine.RPGMAKER_MV, runnable = true, notes = listOf("www/ HTML5 build"))
@@ -91,28 +97,41 @@ class EngineDetector {
 
     // --- Ren'Py ------------------------------------------------------------
 
-    private fun detectRenPy(folder: File): Detection? {
-        val gameDir = File(folder, "game")
-        val hasScripts = gameDir.isDirectory &&
-            (gameDir.listFiles()?.any { it.extension == "rpy" || it.extension == "rpyc" } == true)
-        val hasRenpy = File(folder, "renpy").isDirectory
+    private fun detectRenPy(folder: GameFolder): Detection? {
+        val gameDir = folder.child("game")
+        val hasScripts = gameDir != null && gameDir.entries().any { entry ->
+            !entry.isDirectory && entry.name.extension().let { it == "rpy" || it == "rpyc" }
+        }
+        val hasRenpy = folder.child("renpy") != null
         if (!hasScripts && !hasRenpy) return null
         return Detection(Engine.RENPY, runnable = true, notes = listOf("game/ scripts found"))
     }
 
     // --- LOVE --------------------------------------------------------------
 
-    private fun detectLove(folder: File): Detection? {
-        val love = folder.listFiles()?.firstOrNull { it.extension == "love" } ?: return null
+    private fun detectLove(folder: GameFolder): Detection? {
+        val love = folder.entries().firstOrNull { !it.isDirectory && it.name.extension() == "love" }
+            ?: return null
         return Detection(Engine.LOVE, runnable = true, notes = listOf("package: ${love.name}"))
     }
 
     // --- ScummVM -----------------------------------------------------------
 
-    private fun detectScummVm(folder: File): Detection? {
-        val marker = folder.walkTopDown().maxDepth(2)
-            .firstOrNull { it.isFile && it.extension == "scummvm" }
-            ?: return null
-        return Detection(Engine.SCUMMVM, runnable = true, notes = listOf("marker: ${marker.name}"))
+    /** Looks for a `*.scummvm` marker at the root or up to two levels below it. */
+    private fun detectScummVm(folder: GameFolder): Detection? {
+        var level = listOf(folder)
+        repeat(3) {
+            for (dir in level) {
+                val marker = dir.entries()
+                    .firstOrNull { !it.isDirectory && it.name.extension() == "scummvm" }
+                if (marker != null) {
+                    return Detection(Engine.SCUMMVM, runnable = true, notes = listOf("marker: ${marker.name}"))
+                }
+            }
+            level = level.flatMap { dir ->
+                dir.entries().filter { it.isDirectory }.mapNotNull { dir.child(it.name) }
+            }
+        }
+        return null
     }
 }

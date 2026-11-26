@@ -11,7 +11,7 @@ supersede an old one with a new ADR instead.
 | [0003](0003-module-boundaries.md) | Four modules with a pure-Kotlin detector | Accepted |
 | [0004](0004-launcherapps-and-usage-access.md) | `LauncherApps` for apps/shortcuts; usage access optional | Accepted |
 | [0005](0005-compose-material3.md) | Compose + Material3 with a custom palette | Accepted |
-| [0006](0006-room-in-milestone-1.md) | Room for the M1 library; prefs only for recents | Proposed |
+| [0006](0006-room-in-milestone-1.md) | Room for the M1 library; prefs only for recents | Accepted |
 
 ## Adding an ADR
 
