@@ -1,8 +1,9 @@
-// Data layer. Milestone 0 only needs a Game record; Room, cover art and
-// persistence land in Milestone 1 (see MILESTONE-0.md).
+// Data layer. Room persistence lives here (M1); the module stays UI-free and
+// exposes only the Game model and the GameRepository seam.
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -24,4 +25,11 @@ android {
 
 dependencies {
     api(project(":detect"))
+
+    // `api`: :app constructs IndieHostDatabase, and RoomDatabase must be on its
+    // compile classpath for that to resolve.
+    api("androidx.room:room-runtime:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
+
+    testImplementation("junit:junit:4.13.2")
 }
