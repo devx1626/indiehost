@@ -32,8 +32,10 @@ android {
         applicationId = "com.indiehost.launcher"
         minSdk = 24
         targetSdk = 34
-        versionCode = 3
-        versionName = "0.3.0"
+        // M1 pre-release: a separate version so it can be told apart from the
+        // shipped 0.3.0 without changing the application id or signing key.
+        versionCode = 4
+        versionName = "0.3.1-M1"
     }
 
     buildFeatures {
@@ -74,4 +76,5 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.activity:activity-compose:1.9.2")
+    implementation("androidx.documentfile:documentfile:1.0.1")
 }
