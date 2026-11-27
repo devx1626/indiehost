@@ -103,6 +103,17 @@ class LibraryMergeTest {
     }
 
     @Test
+    fun `a row absent from the last scan is marked missing`() {
+        val item = mergeLibrary(
+            listOf(game(id = "scan-1", title = "Gone").copy(available = false)),
+            emptyList(),
+        ).single()
+
+        assertFalse(item.launchable)
+        assertEquals(LibraryReason.MISSING, item.reason)
+    }
+
+    @Test
     fun `a detector blocker wins over a linked pin`() {
         val item = mergeLibrary(
             listOf(

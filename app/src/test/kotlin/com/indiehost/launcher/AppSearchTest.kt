@@ -1,5 +1,6 @@
 package com.indiehost.launcher
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -26,5 +27,14 @@ class AppSearchTest {
     @Test
     fun `does not match unrelated apps`() {
         assertFalse(AppSearch.matches("Signal", "com.example.signal", "telegram"))
+    }
+
+    @Test
+    fun `ranks label prefix before substring before package`() {
+        assertTrue(AppSearch.rank("Signal", "com.example.other", "sig") <
+            AppSearch.rank("My Signal", "com.example.other", "sig"))
+        assertTrue(AppSearch.rank("My Signal", "com.example.other", "sig") <
+            AppSearch.rank("Other", "com.example.signal", "sig"))
+        assertEquals(AppSearch.NO_MATCH, AppSearch.rank("Other", "com.example.other", "sig"))
     }
 }

@@ -27,6 +27,7 @@ class GameScanner(private val detector: EngineDetector = EngineDetector()) {
         treeUri: String,
         existing: List<Game>,
         now: Long = System.currentTimeMillis(),
+        scanId: String = "",
     ): ScanResult {
         if (!root.isDirectory) {
             return ScanResult(emptyList(), emptyList(), "The selected location is not a folder")
@@ -72,6 +73,8 @@ class GameScanner(private val detector: EngineDetector = EngineDetector()) {
                     treeUri = treeUri,
                     runnable = detection.runnable,
                     blocker = detection.blocker,
+                    lastSeenScanId = scanId,
+                    available = true,
                 )
                 // A recognised game is a leaf: do not import its www/ or game/ internals.
                 return

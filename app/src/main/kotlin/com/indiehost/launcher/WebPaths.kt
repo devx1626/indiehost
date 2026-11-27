@@ -1,6 +1,7 @@
 package com.indiehost.launcher
 
 import java.net.URL
+import java.security.MessageDigest
 
 /**
  * The URLs WebView is allowed to use, and the path rules for resolving them
@@ -28,17 +29,32 @@ object WebPaths {
         "index.html" to "js/rpg_core.js",
     )
 
-    fun urlFor(indexPath: String): String = "https://$ORIGIN$PREFIX$indexPath"
+    /**
+     * Each game gets its own port on the reserved host. Origin = scheme + host +
+     * port, so two games cannot read each other's localStorage/IndexedDB even
+     * though all requests are intercepted locally.
+     */
+    fun portFor(gameId: String): Int {
+        val digest = MessageDigest.getInstance("SHA-256").digest(gameId.toByteArray(Charsets.UTF_8))
+        val value = ((digest[0].toInt() and 0xFF) shl 8) or (digest[1].toInt() and 0xFF)
+        return PORT_BASE + (value % PORT_RANGE)
+    }
 
-    /** True only for our HTTPS origin and a path under [PREFIX]. */
-    fun isLocal(url: String): Boolean {
+    fun urlFor(gameId: String, indexPath: String): String =
+        "https://$ORIGIN:${portFor(gameId)}$PREFIX$indexPath"
+
+    /** True only for this game's HTTPS origin and a path under [PREFIX]. */
+    fun isLocal(url: String, port: Int): Boolean {
         val parsed = runCatching { URL(url) }.getOrNull() ?: return false
         return parsed.protocol == "https" &&
             parsed.host == ORIGIN &&
-            parsed.port == -1 &&
+            parsed.port == port &&
             parsed.userInfo == null &&
             parsed.path.startsWith(PREFIX)
     }
+
+    private const val PORT_BASE = 20000
+    private const val PORT_RANGE = 40000
 
     /**
      * Returns decoded path segments, or null for anything that could escape the
@@ -65,7 +81,9 @@ object WebPaths {
         "jpg", "jpeg" -> "image/jpeg"
         "gif" -> "image/gif"
         "webp" -> "image/webp"
-        "svg" -> "image/svg+xml"
+        // SVG can carry scripts that run in the page origin; only hand it to
+        // WebView as an image once we have a sanitising policy.
+        "svg" -> "application/octet-stream"
         "mp3" -> "audio/mpeg"
         "ogg" -> "audio/ogg"
         "wav" -> "audio/wav"

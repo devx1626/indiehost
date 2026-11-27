@@ -35,7 +35,7 @@ class GameScannerTest {
             ),
         )
 
-        val result = scanner.scan(root, "content://tree", emptyList(), now = 42L)
+        val result = scanner.scan(root, "content://tree", emptyList(), now = 42L, scanId = "run-1")
 
         assertEquals(2, result.games.size)
         assertEquals(listOf("MV", "Undertale"), result.games.map { it.title })
@@ -44,6 +44,8 @@ class GameScannerTest {
         assertEquals(16, result.games[1].wadVersion)
         assertTrue(result.games.all { it.source == GameSource.SCANNED })
         assertTrue(result.games.all { it.addedAt == 42L })
+        assertTrue(result.games.all { it.lastSeenScanId == "run-1" })
+        assertTrue(result.games.all { it.available })
         assertTrue(result.skipped.isEmpty())
     }
 

@@ -49,6 +49,8 @@
     <string name="love_not_hosted">Detected - LÖVE\'s Android player can open this .love file; handoff is not wired up yet.</string>
     <string name="scummvm_not_hosted">Detected - open it in ScummVM after adding the folder there.</string>
     <string name="not_hosted_short">NOT HOSTED</string>
+    <string name="game_missing">Not found in the last scan. Re-pick the folder to restore it.</string>
+    <string name="missing_short">MISSING</string>
     <string name="blocked_short">BLOCKED</string>
     <string name="close">CLOSE</string>
     <string name="remove">REMOVE</string>

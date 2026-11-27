@@ -12,6 +12,7 @@ enum class LibraryReason {
     LOVE_M3,
     SCUMMVM_M3,
     DETECTOR_BLOCKED,
+    MISSING,
 }
 
 /**
@@ -45,6 +46,7 @@ fun mergeLibrary(games: List<Game>, pins: List<LibraryPin>): List<LibraryItem> {
     val scanned = games.map { game ->
         val linked = game.linkedShortcutId
         val reason = when {
+            !game.available -> LibraryReason.MISSING
             game.blocker != null -> LibraryReason.DETECTOR_BLOCKED
             game.engine == Engine.GAMEMAKER_VM && linked != null && linked in pinIds -> null
             game.engine == Engine.GAMEMAKER_VM -> LibraryReason.NEEDS_PIN

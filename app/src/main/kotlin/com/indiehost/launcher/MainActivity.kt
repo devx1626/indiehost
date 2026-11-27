@@ -18,12 +18,15 @@ import androidx.documentfile.provider.DocumentFile
 import com.indiehost.detect.Engine
 import com.indiehost.library.Game
 import com.indiehost.library.GameRepository
+import com.indiehost.library.GameSource
 import com.indiehost.library.RoomGameRepository
+import com.indiehost.library.ScanRun
 import com.indiehost.runtimes.GameMakerRuntimeAdapter
 import com.indiehost.runtimes.LaunchOutcome
 import com.indiehost.runtimes.RpgMakerRuntimeAdapter
 import com.indiehost.runtimes.RunnerShortcut
 import com.indiehost.runtimes.RuntimeRegistry
+import java.util.UUID
 
 /**
  * The home app.
@@ -191,6 +194,8 @@ class MainActivity : ComponentActivity() {
             val existing = runCatching { repository.all() }.getOrElse { emptyList() }
             val imported = mutableListOf<Game>()
             val skipped = mutableListOf<String>()
+            val scanId = "run-${UUID.randomUUID()}"
+            val startedAt = System.currentTimeMillis()
             var failure: String? = null
 
             for (tree in trees) {
@@ -207,14 +212,38 @@ class MainActivity : ComponentActivity() {
                     SafGameFolder(this, tree, document),
                     tree.toString(),
                     existing + imported,
+                    scanId = scanId,
                 )
                 imported += result.games
                 skipped += result.skipped
                 result.error?.let { skipped += it }
+
+                // A folder that this scan did not see is marked unavailable, not
+                // deleted. Its cover, pin link and added time stay intact.
+                val seenIds = result.games.map { it.id }.toSet()
+                existing
+                    .filter {
+                        it.source == GameSource.SCANNED &&
+                            it.treeUri == tree.toString() &&
+                            it.id !in seenIds
+                    }
+                    .forEach { runCatching { repository.setAvailable(it.id, false) } }
             }
 
             runCatching { imported.forEach { repository.add(it) } }
                 .onFailure { failure = getString(R.string.scan_failed) }
+            runCatching {
+                repository.recordScan(
+                    ScanRun(
+                        id = scanId,
+                        startedAt = startedAt,
+                        finishedAt = System.currentTimeMillis(),
+                        imported = imported.size,
+                        skipped = skipped.size,
+                        error = failure,
+                    ),
+                )
+            }
 
             reloadLibrary(existing + imported)
             scanning = false

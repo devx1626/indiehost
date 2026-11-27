@@ -111,7 +111,7 @@ class GameWebViewActivity : Activity() {
                 if (failure != null || loadedResolver == null || loadedPath == null) {
                     fail(failure ?: getString(R.string.web_missing_files))
                 } else {
-                    startGame(loadedResolver, loadedPath)
+                    startGame(loadedResolver, loadedPath, gameId)
                 }
             }
         }, "webgame-load").start()
@@ -187,7 +187,9 @@ class GameWebViewActivity : Activity() {
         }
     }
 
-    private fun startGame(resolver: SafTreeResolver, indexPath: String) {
+    private fun startGame(resolver: SafTreeResolver, indexPath: String, gameId: String) {
+        val expectedPort = WebPaths.portFor(gameId)
+
         webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
@@ -221,7 +223,7 @@ class GameWebViewActivity : Activity() {
             override fun shouldOverrideUrlLoading(
                 view: WebView?,
                 request: WebResourceRequest,
-            ): Boolean = blockIfRemote(request.url.toString())
+            ): Boolean = blockIfRemote(request.url.toString(), expectedPort)
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 hideOverlay()
@@ -231,7 +233,7 @@ class GameWebViewActivity : Activity() {
                 url: String?,
                 local: () -> WebResourceResponse?,
             ): WebResourceResponse {
-                if (!WebPaths.isLocal(url.orEmpty())) {
+                if (!WebPaths.isLocal(url.orEmpty(), expectedPort)) {
                     showBlocked()
                     return blockedResponse()
                 }
@@ -240,11 +242,11 @@ class GameWebViewActivity : Activity() {
         }
 
         showLoading(getString(R.string.web_loading))
-        webView.loadUrl(WebPaths.urlFor(indexPath))
+        webView.loadUrl(WebPaths.urlFor(gameId, indexPath))
     }
 
-    private fun blockIfRemote(url: String?): Boolean {
-        if (WebPaths.isLocal(url.orEmpty())) return false
+    private fun blockIfRemote(url: String?, port: Int): Boolean {
+        if (WebPaths.isLocal(url.orEmpty(), port)) return false
         showBlocked()
         return true
     }

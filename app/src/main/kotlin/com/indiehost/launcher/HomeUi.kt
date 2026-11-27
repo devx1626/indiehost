@@ -641,6 +641,7 @@ private fun librarySubtitle(item: LibraryItem): String = when (item.reason) {
     LibraryReason.DETECTOR_BLOCKED ->
         item.game?.blocker?.let { stringResource(R.string.detector_blocked, it) }
             ?: stringResource(R.string.runtime_m3)
+    LibraryReason.MISSING -> stringResource(R.string.game_missing)
 }
 
 @Composable
@@ -651,6 +652,7 @@ private fun statusLabel(reason: LibraryReason?): String = when (reason) {
     LibraryReason.RENPY_M3, LibraryReason.LOVE_M3, LibraryReason.SCUMMVM_M3 ->
         stringResource(R.string.not_hosted_short)
     LibraryReason.DETECTOR_BLOCKED -> stringResource(R.string.blocked_short)
+    LibraryReason.MISSING -> stringResource(R.string.missing_short)
     null -> ""
 }
 
@@ -956,6 +958,7 @@ internal fun AppDrawer(
 
     val visible = remember(apps, query) {
         apps.filter { AppSearch.matches(it.label, it.packageName, query) }
+            .sortedBy { AppSearch.rank(it.label, it.packageName, query) }
     }
 
     Column(
