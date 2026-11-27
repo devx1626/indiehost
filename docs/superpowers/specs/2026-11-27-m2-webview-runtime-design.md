@@ -44,9 +44,10 @@ second launchable engine, without adding a network permission or copying game fi
   `RunnerShortcut` so GameMaker keeps its pin handoff. Add `RpgMakerRuntimeAdapter` for MV
   and MZ; its `launch` starts `GameWebViewActivity` by a manifest action string with the
   game id as an extra — `:runtimes` must not depend on `:app`.
-- `:app`: `GameWebViewActivity` loads the game row from Room on a worker thread, resolves
-  `www/index.html` and `www/js/rpg_core.js` under the SAF tree, then loads
-  `https://appassets.androidplatform.net/game/www/index.html`.
+- `:app`: `GameWebViewActivity` loads the game row from Room on a worker thread, probes both
+  layouts the detector accepts (`www/index.html` + `www/js/rpg_core.js`, then root
+  `index.html` + `js/rpg_core.js`), and loads the matching
+  `https://appassets.androidplatform.net/game/<indexPath>` URL.
 - A custom `PathHandler` resolves path segments with `DocumentFile.findFile`, rejects
   traversal, and returns `WebResourceResponse` with a guessed MIME type. `WebViewClient`
   blocks every off-origin request and navigation.

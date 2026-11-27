@@ -26,6 +26,7 @@
 - A revoked SAF tree must show an error, not crash — `GameWebViewActivity` resolves documents inside a `runCatching` block and finishes with a visible message (MT-30).
 - An off-origin URL must never reach the network — `WebViewClient.shouldOverrideUrlLoading` and `shouldInterceptRequest` both reject every non-`appassets.androidplatform.net` host (unit test `WebPathsTest` + MT-31).
 - A crafted path such as `../../` or an absolute path must not escape the game folder — `WebPaths.segments()` rejects traversal and returns null (unit test).
+- A root-layout game (`index.html` beside `js/`) must launch as well as a `www/` layout — the Activity probes both pairs before choosing the URL (unit test for the candidate list + MT-29).
 - Back must leave a game only after confirmation — the Activity shows a dialog, never `goBack()` (MT-32).
 - A missing `index.html` or core JS must fail visibly before load — the Activity checks both files on a worker thread (MT-33).
 
@@ -82,11 +83,11 @@ git commit -m "runtimes: select engines through one adapter registry"
 
 **Interfaces:**
 - Consumes: `Game`, `RoomGameRepository`, SAF tree/document URIs, `RpgMakerRuntimeAdapter.EXTRA_GAME_ID`.
-- Produces: `object WebPaths` with `const val ORIGIN = "appassets.androidplatform.net"`, `const val PREFIX = "/game/"`, `fun urlFor(indexPath: String = "www/index.html"): String`, `fun isLocal(url: String): Boolean`, `fun segments(relative: String): List<String>?`, `fun mimeFor(name: String): String`; `class SafAssetPathHandler(context: Context, treeUri: Uri, folderUri: Uri) : WebViewAssetLoader.PathHandler`.
+- Produces: `object WebPaths` with `const val ORIGIN = "appassets.androidplatform.net"`, `const val PREFIX = "/game/"`, `val ENTRY_CANDIDATES: List<Pair<String, String>>` (`www/index.html` + `www/js/rpg_core.js`, then `index.html` + `js/rpg_core.js`), `fun urlFor(indexPath: String): String`, `fun isLocal(url: String): Boolean`, `fun segments(relative: String): List<String>?`, `fun mimeFor(name: String): String`; `class SafAssetPathHandler(context: Context, treeUri: Uri, folderUri: Uri) : WebViewAssetLoader.PathHandler`.
 
 - [ ] **Step 1: Write the failing pure path test**
 
-`WebPathsTest` asserts: `urlFor()` is `https://appassets.androidplatform.net/game/www/index.html`; `isLocal(urlFor())` is true and `isLocal("https://example.com/game/www/index.html")`, `isLocal("http://appassets.androidplatform.net/game/www/index.html")` and `isLocal("https://appassets.androidplatform.net/other")` are false; `segments("www/js/rpg_core.js")` returns the three segments; `segments("../secret")`, `segments("/etc/passwd")`, `segments("www/../../x")` and `segments("www//js")` return null; `mimeFor("a.js")` is `text/javascript`, `mimeFor("a.png")` is `image/png`, `mimeFor("a.rpgmvp")` is `application/octet-stream`.
+`WebPathsTest` asserts: `ENTRY_CANDIDATES` is exactly `("www/index.html" to "www/js/rpg_core.js")` followed by `("index.html" to "js/rpg_core.js")`; `urlFor("index.html")` is `https://appassets.androidplatform.net/game/index.html`; `isLocal(urlFor("www/index.html"))` is true and `isLocal("https://example.com/game/www/index.html")`, `isLocal("http://appassets.androidplatform.net/game/www/index.html")` and `isLocal("https://appassets.androidplatform.net/other")` are false; `segments("www/js/rpg_core.js")` returns the three segments; `segments("../secret")`, `segments("/etc/passwd")`, `segments("www/../../x")` and `segments("www//js")` return null; `mimeFor("a.js")` is `text/javascript`, `mimeFor("a.png")` is `image/png`, `mimeFor("a.rpgmvp")` is `application/octet-stream`.
 
 - [ ] **Step 2: Run it and confirm it fails**
 
@@ -103,7 +104,7 @@ It resolves `treeUri` with `DocumentFile.fromTreeUri`, walks the segments with `
 
 - [ ] **Step 5: Implement `GameWebViewActivity` and declare it**
 
-The Activity reads `EXTRA_GAME_ID`, loads the row from `RoomGameRepository` on a worker `Thread`, requires an MV/MZ engine and a non-blank `treeUri`, resolves `www/index.html` and `www/js/rpg_core.js` under the tree, then on the main thread configures a fullscreen WebView (JavaScript and DOM storage on; file/content access off; no JS bridge; `setKeepScreenOn(true)`), installs a `WebViewClient` that calls the loader and blocks off-origin requests/navigation, and loads `WebPaths.urlFor()`. Failures show an `AlertDialog` with a reason and finish. Use `OnBackPressedDispatcher` for a leave confirmation; never call `goBack()`. Pause WebView and abandon audio focus in `onPause`, restore in `onResume`. Manifest: exported=false, `configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"`, action `com.indiehost.launcher.GAME_WEBVIEW`, no new permission.
+The Activity reads `EXTRA_GAME_ID`, loads the row from `RoomGameRepository` on a worker `Thread`, requires an MV/MZ engine and a non-blank `treeUri`, probes `WebPaths.ENTRY_CANDIDATES` under the tree and picks the first pair whose index and core JS both exist, then on the main thread configures a fullscreen WebView (JavaScript and DOM storage on; file/content access off; no JS bridge; `setKeepScreenOn(true)`), installs a `WebViewClient` that calls the loader, blocks off-origin subresources, shows a visible message for off-origin navigation (FR-22), and loads `WebPaths.urlFor(indexPath)`. Failures show an `AlertDialog` with a reason and finish. Use `OnBackPressedDispatcher` for a leave confirmation; never call `goBack()`. Pause WebView and abandon audio focus in `onPause`, restore in `onResume`. Manifest: exported=false, `configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"`, action `com.indiehost.launcher.GAME_WEBVIEW`, no new permission.
 
 - [ ] **Step 6: Run the test and build**
 
