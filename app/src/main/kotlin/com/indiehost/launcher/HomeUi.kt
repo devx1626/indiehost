@@ -138,7 +138,7 @@ internal fun HomeScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Steam.Base),
+            .background(Indie.Base),
         contentPadding = PaddingValues(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -171,7 +171,7 @@ internal fun HomeScreen(
                     Modifier.padding(horizontal = 20.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    CircularProgressIndicator(Modifier.size(16.dp), color = Steam.Accent, strokeWidth = 2.dp)
+                    CircularProgressIndicator(Modifier.size(16.dp), color = Indie.Accent, strokeWidth = 2.dp)
                     Spacer(Modifier.width(10.dp))
                     Text(stringResource(R.string.loading_apps), style = MaterialTheme.typography.bodySmall)
                 }
@@ -182,7 +182,7 @@ internal fun HomeScreen(
                         style = MaterialTheme.typography.bodySmall,
                     )
                     TextButton(onClick = onAllowUsage) {
-                        Text(stringResource(R.string.allow_usage), color = Steam.Accent, style = labelStyle())
+                        Text(stringResource(R.string.allow_usage), color = Indie.Accent, style = labelStyle())
                     }
                 }
 
@@ -242,7 +242,7 @@ internal fun HomeScreen(
         if (status.isNotEmpty()) {
             item {
                 Panel(Modifier.padding(horizontal = 20.dp)) {
-                    Text(status, style = MaterialTheme.typography.bodySmall, color = Steam.Accent)
+                    Text(status, style = MaterialTheme.typography.bodySmall, color = Indie.Accent)
                 }
             }
         }
@@ -277,7 +277,7 @@ internal fun HomeScreen(
         if (scanMessage.isNotEmpty()) {
             item {
                 Panel(Modifier.padding(horizontal = 20.dp)) {
-                    Text(scanMessage, style = MaterialTheme.typography.bodySmall, color = Steam.Accent)
+                    Text(scanMessage, style = MaterialTheme.typography.bodySmall, color = Indie.Accent)
                 }
             }
         }
@@ -289,7 +289,7 @@ internal fun HomeScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(
                                 Modifier.size(14.dp),
-                                color = Steam.Accent,
+                                color = Indie.Accent,
                                 strokeWidth = 2.dp,
                             )
                             Spacer(Modifier.width(10.dp))
@@ -372,7 +372,7 @@ private fun ClientBar(onOpenDrawer: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(Steam.Base)
+            .background(Indie.Base)
             .padding(start = 20.dp, end = 8.dp, top = 14.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -384,12 +384,12 @@ private fun ClientBar(onOpenDrawer: () -> Unit) {
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp,
-                color = Steam.TextBright,
+                color = Indie.TextBright,
             )
-            Text(stringResource(R.string.home), style = labelStyle(10.sp), color = Steam.TextMuted)
+            Text(stringResource(R.string.home), style = labelStyle(10.sp), color = Indie.TextMuted)
         }
         TextButton(onClick = onOpenDrawer) {
-            Text(stringResource(R.string.all_apps), style = labelStyle(), color = Steam.Text)
+            Text(stringResource(R.string.all_apps), style = labelStyle(), color = Indie.Text)
         }
     }
 }
@@ -405,7 +405,7 @@ internal fun BrandMark(modifier: Modifier = Modifier) {
         val w = size.width
         val stroke = w * 0.11f
         drawCircle(
-            color = Steam.Accent,
+            color = Indie.Accent,
             radius = w * 0.38f,
             center = Offset(w * 0.5f, w * 0.55f),
             style = Stroke(width = stroke),
@@ -416,15 +416,15 @@ internal fun BrandMark(modifier: Modifier = Modifier) {
             lineTo(w * 0.43f, w * 0.73f)
             close()
         }
-        drawPath(play, color = Steam.TextBright)
+        drawPath(play, color = Indie.TextBright)
         // Two puffs of steam rising off the top of the mark.
         drawCircle(
-            color = Steam.Accent.copy(alpha = 0.55f),
+            color = Indie.Accent.copy(alpha = 0.55f),
             radius = w * 0.085f,
             center = Offset(w * 0.74f, w * 0.17f),
         )
         drawCircle(
-            color = Steam.Accent.copy(alpha = 0.3f),
+            color = Indie.Accent.copy(alpha = 0.3f),
             radius = w * 0.06f,
             center = Offset(w * 0.88f, w * 0.07f),
         )
@@ -449,8 +449,8 @@ private fun HeroPanel(
             .padding(horizontal = 20.dp)
             .height(168.dp)
             .clip(PanelShape)
-            .background(Steam.HeroGradient)
-            .border(1.dp, Steam.Edge, PanelShape),
+            .background(Indie.HeroGradient)
+            .border(1.dp, Indie.Edge, PanelShape),
     ) {
         // Oversized ghost initial, the way a store page bleeds its logo.
         Text(
@@ -471,7 +471,7 @@ private fun HeroPanel(
                 Text(
                     if (item != null) stringResource(R.string.play_next) else stringResource(R.string.get_started),
                     style = labelStyle(10.sp),
-                    color = Steam.Accent,
+                    color = Indie.Accent,
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
@@ -529,7 +529,7 @@ private fun RecentTile(app: LauncherApp, onClick: () -> Unit) {
         Text(
             app.label,
             fontSize = 11.sp,
-            color = Steam.Text,
+            color = Indie.Text,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
@@ -554,8 +554,8 @@ private fun GameRow(
         modifier
             .fillMaxWidth()
             .clip(PanelShape)
-            .background(Steam.Card)
-            .border(1.dp, Steam.Edge, PanelShape)
+            .background(Indie.Card)
+            .border(1.dp, Indie.Edge, PanelShape)
             .clickable(onClick = onClick)
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -590,7 +590,7 @@ private fun GameRow(
                     item.title.take(1).uppercase(),
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Steam.TextBright.copy(alpha = 0.85f),
+                    color = Indie.TextBright.copy(alpha = 0.85f),
                 )
             }
         }
@@ -599,7 +599,7 @@ private fun GameRow(
             Text(
                 item.title,
                 style = MaterialTheme.typography.bodyLarge,
-                color = Steam.TextBright,
+                color = Indie.TextBright,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -619,7 +619,7 @@ private fun GameRow(
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.8.sp,
-                color = Steam.Accent,
+                color = Indie.Accent,
             )
         }
     }
@@ -672,8 +672,8 @@ private fun GameDetailDialog(
             Modifier
                 .fillMaxWidth()
                 .clip(PanelShape)
-                .background(Steam.Panel)
-                .border(1.dp, Steam.Edge, PanelShape)
+                .background(Indie.Panel)
+                .border(1.dp, Indie.Edge, PanelShape)
                 .verticalScroll(rememberScrollState())
                 .padding(18.dp),
         ) {
@@ -736,7 +736,7 @@ private fun GameDetailDialog(
                 Text(
                     librarySubtitle(item),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Steam.Accent,
+                    color = Indie.Accent,
                 )
             }
 
@@ -754,10 +754,10 @@ private fun GameDetailDialog(
                         Text(
                             stringResource(R.string.pin_linked, linkedPinTitle),
                             style = MaterialTheme.typography.bodySmall,
-                            color = Steam.Accent,
+                            color = Indie.Accent,
                         )
                         TextButton({ onLink(null) }) {
-                            Text(stringResource(R.string.unlink), color = Steam.Accent, style = labelStyle())
+                            Text(stringResource(R.string.unlink), color = Indie.Accent, style = labelStyle())
                         }
                     }
 
@@ -770,7 +770,7 @@ private fun GameDetailDialog(
                         TextButton({ onLink(pin.id) }) {
                             Text(
                                 pin.title,
-                                color = Steam.Accent,
+                                color = Indie.Accent,
                                 style = MaterialTheme.typography.bodySmall,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -796,7 +796,7 @@ private fun AccentButton(text: String, onClick: () -> Unit, modifier: Modifier =
         modifier = modifier.height(48.dp),
         shape = PillShape,
         colors = ButtonDefaults.buttonColors(
-            containerColor = Steam.Accent,
+            containerColor = Indie.Accent,
             contentColor = Color(0xFF0B1219),
         ),
         contentPadding = PaddingValues(horizontal = 10.dp),
@@ -817,8 +817,8 @@ private fun OutlineButton(
         modifier = modifier.height(48.dp),
         enabled = enabled,
         shape = PillShape,
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = Steam.Text),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Steam.Edge),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = Indie.Text),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Indie.Edge),
         contentPadding = PaddingValues(horizontal = 8.dp),
     ) {
         Text(text, fontSize = 11.sp, letterSpacing = 0.8.sp, maxLines = 1)
@@ -832,8 +832,8 @@ private fun Panel(modifier: Modifier = Modifier, content: @Composable ColumnScop
         modifier
             .fillMaxWidth()
             .clip(PanelShape)
-            .background(Steam.Card)
-            .border(1.dp, Steam.Edge, PanelShape)
+            .background(Indie.Card)
+            .border(1.dp, Indie.Edge, PanelShape)
             .padding(14.dp),
         content = content,
     )
@@ -841,7 +841,7 @@ private fun Panel(modifier: Modifier = Modifier, content: @Composable ColumnScop
 
 @Composable
 private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
-    Text(text, style = labelStyle(11.sp), color = Steam.TextMuted, modifier = modifier)
+    Text(text, style = labelStyle(11.sp), color = Indie.TextMuted, modifier = modifier)
 }
 
 @Composable
@@ -871,12 +871,12 @@ internal fun AppDrawer(
     Column(
         Modifier
             .fillMaxSize()
-            .background(Steam.Base),
+            .background(Indie.Base),
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .background(Steam.Panel)
+                .background(Indie.Panel)
                 .padding(start = 20.dp, end = 8.dp, top = 14.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -887,28 +887,28 @@ internal fun AppDrawer(
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.6.sp,
-                color = Steam.TextBright,
+                color = Indie.TextBright,
                 modifier = Modifier.weight(1f),
             )
             TextButton(onClick = onClose) {
-                Text(stringResource(R.string.home), style = labelStyle(), color = Steam.Accent)
+                Text(stringResource(R.string.home), style = labelStyle(), color = Indie.Accent)
             }
         }
 
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
-            placeholder = { Text(stringResource(R.string.search_apps), color = Steam.TextMuted) },
+            placeholder = { Text(stringResource(R.string.search_apps), color = Indie.TextMuted) },
             singleLine = true,
             shape = PillShape,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Steam.Accent,
-                unfocusedBorderColor = Steam.Edge,
-                focusedTextColor = Steam.TextBright,
-                unfocusedTextColor = Steam.Text,
-                cursorColor = Steam.Accent,
-                focusedContainerColor = Steam.Panel,
-                unfocusedContainerColor = Steam.Panel,
+                focusedBorderColor = Indie.Accent,
+                unfocusedBorderColor = Indie.Edge,
+                focusedTextColor = Indie.TextBright,
+                unfocusedTextColor = Indie.Text,
+                cursorColor = Indie.Accent,
+                focusedContainerColor = Indie.Panel,
+                unfocusedContainerColor = Indie.Panel,
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -917,7 +917,7 @@ internal fun AppDrawer(
 
         when {
             loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Steam.Accent)
+                CircularProgressIndicator(color = Indie.Accent)
             }
 
             visible.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -967,7 +967,7 @@ private fun AppTile(
         Text(
             app.label,
             fontSize = 11.sp,
-            color = Steam.Text,
+            color = Indie.Text,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
@@ -989,13 +989,13 @@ private fun AppIcon(app: LauncherApp, size: androidx.compose.ui.unit.Dp, corner:
         Box(
             Modifier
                 .size(size)
-                .background(Steam.CardRaised, RoundedCornerShape(corner)),
+                .background(Indie.CardRaised, RoundedCornerShape(corner)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 app.label.take(1).uppercase(),
                 style = MaterialTheme.typography.titleMedium,
-                color = Steam.Accent,
+                color = Indie.Accent,
             )
         }
     }

@@ -49,7 +49,6 @@ object InstalledApps {
             return emptyList()
         }
 
-        val packageManager = context.packageManager
         return activities
             .mapNotNull { info ->
                 val component = info.componentName ?: return@mapNotNull null
@@ -57,15 +56,11 @@ object InstalledApps {
                 if (component.packageName == context.packageName) return@mapNotNull null
 
                 val packageName = component.packageName
-                val appInfo = runCatching {
-                    packageManager.getApplicationInfo(packageName, 0)
-                }.getOrNull()
+                // LauncherActivityInfo already resolves the visible label and icon;
+                // no PackageManager query is needed (or desirable on Android 11+).
                 val label = info.label?.toString()?.takeIf { it.isNotBlank() }
-                    ?: appInfo?.loadLabel(packageManager)?.toString()?.takeIf { it.isNotBlank() }
                     ?: packageName
-                val icon = appInfo
-                    ?.let { runCatching { it.loadIcon(packageManager) }.getOrNull() }
-                    ?.toImageBitmap()
+                val icon = runCatching { info.getIcon(0) }.getOrNull()?.toImageBitmap()
 
                 LauncherApp(
                     packageName = packageName,

@@ -80,7 +80,7 @@ class MainActivity : ComponentActivity() {
         loadApps()
 
         setContent {
-            SteamTheme {
+            IndieTheme {
                 Surface(Modifier.fillMaxSize()) {
                     // Back closes the drawer; on the home screen there is nowhere
                     // to go, which is what a home screen should do.
