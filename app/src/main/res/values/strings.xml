@@ -90,6 +90,7 @@
     <!-- Folder scan -->
     <string name="add_folder">ADD GAMES FOLDER</string>
     <string name="scanning_folders">Scanning folders...</string>
+    <string name="scan_progress">Scanned %1$d folders, found %2$d games...</string>
     <string name="scan_result">Imported %1$d games.</string>
     <string name="scan_result_skipped">Imported %1$d games; %2$d folders skipped.</string>
     <string name="folder_not_remembered">This folder cannot be remembered. Pick another folder.</string>

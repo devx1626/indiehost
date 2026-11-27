@@ -13,6 +13,14 @@ data class ScanResult(
     val error: String? = null,
 )
 
+/** Lightweight progress event; callers decide how often to render it. */
+data class ScanProgress(
+    val foldersVisited: Int,
+    val gamesFound: Int,
+    val current: String,
+    val done: Boolean = false,
+)
+
 /**
  * Walks a folder tree and imports every engine the detector recognises.
  *
@@ -28,6 +36,8 @@ class GameScanner(private val detector: EngineDetector = EngineDetector()) {
         existing: List<Game>,
         now: Long = System.currentTimeMillis(),
         scanId: String = "",
+        progress: (ScanProgress) -> Unit = {},
+        cancelled: () -> Boolean = { false },
     ): ScanResult {
         if (!root.isDirectory) {
             return ScanResult(emptyList(), emptyList(), "The selected location is not a folder")
@@ -36,8 +46,13 @@ class GameScanner(private val detector: EngineDetector = EngineDetector()) {
         val existingById = existing.associateBy { it.id }
         val games = mutableListOf<Game>()
         val skipped = mutableListOf<String>()
+        var foldersVisited = 0
 
         fun visit(folder: GameFolder, depth: Int) {
+            if (cancelled()) return
+            foldersVisited++
+            progress(ScanProgress(foldersVisited, games.size, folder.name))
+
             val entries = try {
                 folder.entries()
             } catch (e: Exception) {
@@ -92,6 +107,7 @@ class GameScanner(private val detector: EngineDetector = EngineDetector()) {
         }
 
         visit(root, 0)
+        progress(ScanProgress(foldersVisited, games.size, root.name, done = true))
         return ScanResult(games.sortedBy { it.title.lowercase() }, skipped)
     }
 

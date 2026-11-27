@@ -109,6 +109,26 @@ class GameScannerTest {
     }
 
     @Test
+    fun `progress is reported and cancellation stops the walk`() {
+        val root = folder(
+            "Games",
+            dirs = mapOf(
+                "One" to folder("One", files = mapOf("data.win" to wad(16))),
+                "Two" to folder("Two", files = mapOf("data.win" to wad(16))),
+            ),
+        )
+        val events = mutableListOf<ScanProgress>()
+        val result = scanner.scan(root, "content://tree", emptyList(), progress = { events += it })
+
+        assertTrue(events.isNotEmpty())
+        assertTrue(events.last().done)
+        assertEquals(2, result.games.size)
+
+        val stopped = scanner.scan(root, "content://tree", emptyList(), cancelled = { true })
+        assertTrue(stopped.games.isEmpty())
+    }
+
+    @Test
     fun `ids are stable and tree-specific`() {
         val a = GameScanner.idFor("content://tree-a", "content://doc/1")
         val b = GameScanner.idFor("content://tree-a", "content://doc/1")

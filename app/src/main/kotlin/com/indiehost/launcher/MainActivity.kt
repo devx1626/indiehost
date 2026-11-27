@@ -7,11 +7,14 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.documentfile.provider.DocumentFile
@@ -66,6 +69,7 @@ class MainActivity : ComponentActivity() {
 
     private var drawerOpen by mutableStateOf(false)
     private var status by mutableStateOf("")
+    private var uiReady by mutableStateOf(false)
 
     @Volatile
     private var appsLoaded = false
@@ -85,11 +89,16 @@ class MainActivity : ComponentActivity() {
         setContent {
             IndieTheme {
                 Surface(Modifier.fillMaxSize()) {
-                    // Back closes the drawer; on the home screen there is nowhere
-                    // to go, which is what a home screen should do.
-                    BackHandler(enabled = drawerOpen) { drawerOpen = false }
+                    if (!uiReady) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Indie.Accent)
+                        }
+                    } else {
+                        // Back closes the drawer; on the home screen there is nowhere
+                        // to go, which is what a home screen should do.
+                        BackHandler(enabled = drawerOpen) { drawerOpen = false }
 
-                    if (drawerOpen) {
+                        if (drawerOpen) {
                         AppDrawer(
                             apps = apps,
                             loading = loadingApps,
@@ -121,6 +130,7 @@ class MainActivity : ComponentActivity() {
                             onChooseHomeApp = ::openHomeSettings,
                             onAllowUsage = ::openUsageSettings,
                         )
+                        }
                     }
                 }
             }
@@ -163,6 +173,9 @@ class MainActivity : ComponentActivity() {
         }.toMap()
         library = loaded
         covers = images
+        // Reveal even when the read failed: an inline status is better than a
+        // permanent splash, and the next resume retries the load.
+        uiReady = true
     }
 
     private fun checkFolderPermissions() {
@@ -213,6 +226,12 @@ class MainActivity : ComponentActivity() {
                     tree.toString(),
                     existing + imported,
                     scanId = scanId,
+                    progress = { p ->
+                        if (!p.done) {
+                            scanMessage = getString(R.string.scan_progress, p.foldersVisited, p.gamesFound)
+                        }
+                    },
+                    cancelled = { !scanning || Thread.currentThread().isInterrupted },
                 )
                 imported += result.games
                 skipped += result.skipped
