@@ -151,7 +151,21 @@ logos or fonts, and it makes no network calls.
 
 ---
 
-## 7. Questions and answers
+## 7. Prior-art studies
+
+The repository documents behavioural studies of DroidDeck (GPL-3.0), Cinnamon
+(GPL-2.0-or-later with mixed vendored licences), COSMIC (GPL-3.0/MPL-2.0/CC BY-SA),
+Bazzite (Apache-2.0), Pop!_OS tools, Lawnchair/ARK-Launcher (Apache-2.0), OpenArcade
+(MIT), Material Files and AntennaPod (GPL-3.0), and Android/AOSP documentation. These
+studies are recorded in [docs/research](docs/research/) and
+[docs/ui-ux-research.md](docs/ui-ux-research.md). **No source file, icon, font, colour
+value, theme asset or translation was copied.** IndieHost's implementations are original
+and remain MIT. Any future change that adapts a permissively licensed snippet must carry
+its notice into `LICENSING.md`; GPL/AGPL/MPL/CC-BY-SA material stays pattern-only.
+
+---
+
+## 8. Questions and answers
 
 **Can I publish a fork of IndieHost?**
 Yes, under MIT, provided the copyright and permission notice are kept and no AGPL

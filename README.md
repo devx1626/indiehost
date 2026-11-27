@@ -72,6 +72,9 @@ as the `app-debug` artifact.
 | [.opencode/SKILLS.md](.opencode/SKILLS.md) | Project-local agent skill set and provenance |
 | [docs/adr](docs/adr/README.md) | Architecture decision records |
 | [docs/ui-ux-research.md](docs/ui-ux-research.md) | Licence-safe UI/UX findings from DroidDeck, Cinnamon and COSMIC |
+| [docs/research/repository-survey-2026-11-27.md](docs/research/repository-survey-2026-11-27.md) | Full ten-domain prior-art survey (UI, library, scan, security, testing, CI) |
+| [docs/research/future-emulation-boundary.md](docs/research/future-emulation-boundary.md) | Why PC-game emulation stays research-only under current hard rules |
+| [docs/roadmap/ui-ux-completion.md](docs/roadmap/ui-ux-completion.md) | Phased roadmap to finish UI/UX |
 
 ## How a game is started
 
