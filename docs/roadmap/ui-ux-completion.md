@@ -38,14 +38,14 @@ UI/UX work is complete when:
 | --- | --- | --- | --- |
 | [x] Add `PinItemRequest.isValid` check, re-resolve shortcut, filter `isEnabled && isPinned`, surface accept failure — `PinPolicy` pure helper + 4 host tests; manual case MT-35 still open | DroidDeck/ARK pin flow | `PinPolicy.kt`, `PinShortcutActivity.kt`, `ButterscotchShortcuts.kt` | Host test for decision logic; manual case for foreign/cancelled request |
 | [x] Add `dataExtractionRules` excluding prefs, Room DB and covers; covers excluded explicitly rather than moved | Android auto-backup docs, DroidDeck private-path model | `AndroidManifest.xml`, `res/xml/data_extraction_rules.xml` | Resource compiles with the manifest; D2D behaviour still needs a device check |
-| [ ] Harden WebView: [x] `blockNetworkLoads`, `MIXED_CONTENT_NEVER_ALLOW`, path segment/length caps, 64 MB asset cap, cache clear on destroy; [ ] per-game origin isolation decision, SVG policy | Android WebViewAssetLoader/WebSettings docs, security report | `GameWebViewActivity.kt`, `WebPaths.kt`, `SafTreeResolver.kt` | MT-36 must confirm local load still works with `blockNetworkLoads=true` |
+| [x] Harden WebView: `blockNetworkLoads`, `MIXED_CONTENT_NEVER_ALLOW`, path segment/length caps, 64 MB asset cap, cache clear on destroy, per-game origin port, SVG as octet-stream | Android WebViewAssetLoader/WebSettings docs, security report | `GameWebViewActivity.kt`, `WebPaths.kt`, `SafTreeResolver.kt` | MT-36 must confirm local load still works with `blockNetworkLoads=true` |
 | Add a one-shot, TTL'd in-process launch token instead of trusting intent extras | DroidDeck `LauncherHandoff`, COSMIC one-shot handover | `MainActivity.kt`, `RpgMakerRuntimeAdapter.kt` | Pure TTL/one-shot host test |
 
 ## Phase 2 — Library lifecycle and scan honesty
 
 | Task | Source patterns | Files | Acceptance |
 | --- | --- | --- | --- |
-| Persist scan runs with `scanId`, phase timings and counts; mark rows `missing` via `lastSeenScanId` instead of deleting | AntennaPod, DroidDeck phased scan | `library/`, `GameScanner.kt`, `MainActivity.kt` | Room/host test: removed file keeps row and pin order |
+| [x] Persist scan runs with `scanId`, timestamps and counts; mark rows unavailable via `lastSeenScanId` instead of deleting (Room v2 + additive migration) — host tests assert watermark and MISSING reason; MT-39 still open | AntennaPod, DroidDeck phased scan | `library/`, `GameScanner.kt`, `MainActivity.kt` | Room/host test: removed file keeps row and pin order |
 | Single-query SAF child listing instead of per-document calls | AntennaPod `FastDocumentFile` | `SafTreeResolver.kt`, `SafGameFolder.kt` | Query-count benchmark/test: O(folders), not O(files) |
 | Duplicate detection with `duplicateOf` and canonical key; flag, never auto-delete | AntennaPod `FeedItemDuplicateGuesser` | `Game.kt`, `GameEntity.kt`, `GameScanner.kt` | Table-driven pure tests |
 | Additive migration skeleton with defaults; replace destructive migration before public release | AntennaPod `DBUpgrader`, COSMIC config versioning | `IndieHostDatabase.kt`, `GameEntity.kt` | Migration test preserves user-owned fields |
@@ -57,7 +57,7 @@ UI/UX work is complete when:
 | Task | Source patterns | Files | Acceptance |
 | --- | --- | --- | --- |
 | Readiness-gated one-shot startup reveal with a failure path that still shows the UI | Cinnamon `main.js`, Bazzite preflight | `MainActivity.kt`, `HomeUi.kt` | Preview of loading/failure states |
-| Tiered search ranking (name > keywords > path) with stable sort; extend `AppSearch` | Cinnamon `MATCH_ADDERS`, ARK `SettingsSearch`, Lawnchair | `AppSearch.kt`, `HomeUi.kt` | Table-driven host tests |
+| [x] Tiered search ranking (label prefix > label substring > package) with stable sort; `AppSearchTest` covers it | Cinnamon `MATCH_ADDERS`, ARK `SettingsSearch`, Lawnchair | `AppSearch.kt`, `HomeUi.kt` | Table-driven host tests |
 | Urgency/status state machine for scan, pin, launch and check feedback; PASS/FAIL/SKIP semantics | Cinnamon `messageTray`, Bazzite diagnostics, DroidDeck device script | `HomeUi.kt`, `MainActivity.kt`, `strings.xml` | No silent pass; explicit next action on failure |
 | Capability snapshot (home role, Butterscotch installed, SAF grants, WebView) drives visible actions and disabled explanations | Cinnamon capability gating, COSMIC `toggler_maybe` | `MainActivity.kt`, `HomeUi.kt` | Host test for capability-to-action mapping |
 | Bounded, idle-delayed recents with cap and privacy explanation | Cinnamon doc-system, Cinnamon privacy panel | `Recents.kt`, `HomeUi.kt`, `strings.xml` | Pure recents test; clear action visible |

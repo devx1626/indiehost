@@ -394,6 +394,22 @@ in system accessibility settings and reopen the app.
 placeholders are not announced; focus reaches state-card actions; no animation runs when the
 system motion scale is 0; all touch targets are at least 48 dp.
 
+### MT-38 — Per-game WebView origin and SVG policy
+
+**Steps:** Launch two scanned MV/MZ games in turn and use each game's save/options screen;
+include a game folder containing an `.svg` asset.
+**Expected:** Saves/options do not leak between games because each game has its own origin
+port. SVG assets are not executed as scripts; they may fail to render, which is the accepted
+trade-off until a sanitising policy exists. Both games still load offline.
+
+### MT-39 — Missing scan rows are marked, not deleted
+
+**Steps:** Scan a folder, remove one game folder from disk, re-scan the same tree, then put
+the folder back and re-scan again.
+**Expected:** The missing row shows `MISSING` with a re-pick hint; its cover, pin link and
+added time are intact. After the folder returns, the same row becomes launchable again with
+no duplicate.
+
 ---
 
 ## 4. Performance protocol
@@ -496,6 +512,8 @@ Before tagging or sideloading a build:
 - [ ] MT-34 passes for all three detection-only engines.
 - [ ] MT-35 and MT-36 pass for pin validity and WebView hardening.
 - [ ] MT-37 passes for TalkBack focus order and reduced motion.
+- [ ] MT-38 passes for per-game origin isolation and SVG policy.
+- [ ] MT-39 passes for missing-row marking and recovery.
 - [ ] `GameDaoTest` runs on a device when `adb` is available.
 - [ ] Cold start and resume recorded (at least once).
 - [ ] No game data in `git status` or the APK.

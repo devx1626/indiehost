@@ -237,7 +237,9 @@ A scan is a snapshot, not a synchronisation. A folder that is no longer present 
 longer recognised is left in the library; only the detail panel's **REMOVE** deletes a row.
 Re-scanning the same tree keeps `addedAt`, `coverPath` and `linkedShortcutId`. A recognised
 GameMaker folder is a leaf, so `www/` and `game/` internals are not imported as separate
-games.
+games. Each scan has a `scanId`; touched rows get `lastSeenScanId` and `available=true`, and
+rows from that tree not seen by the scan are set `available=false` (shown as MISSING) rather
+than deleted. A `scan_runs` row records timestamps, counts and the failure reason.
 
 ### 4.7 Library merge and covers
 
@@ -269,9 +271,10 @@ GameWebViewActivity.onCreate
   → Thread "webgame-load": RoomGameRepository.find(id), require MV/MZ + treeUri
   → SafTreeResolver probes www/index.html + www/js/rpg_core.js, then root layout
   → main thread: WebView settings, WebViewAssetLoader("/game/") + SafAssetPathHandler
-  → loadUrl("https://appassets.androidplatform.net/game/<indexPath>")
+  → loadUrl("https://appassets.androidplatform.net:<portFor(gameId)>/game/<indexPath>")
 
 asset request under /game/ → PathHandler → DocumentsContract child lookup → InputStream
+port per game id isolates DOM storage; SVG is served as octet-stream until sanitised
 off-origin request/navigation → blocked response + visible message, never a network call
 Back → "Leave the game?" confirmation (never goBack)
 onPause/onResume → WebView.onPause/onResume + audio focus abandon/request
@@ -457,7 +460,8 @@ disappears. That is acceptable for a launcher, but it means `drawerOpen` is not 
 | Game files / saves | Butterscotch's private storage | Owned by Butterscotch |
 | Recents (local) | `SharedPreferences("indiehost.recents")` | Survives process death; cleared on uninstall |
 | Checker cache | `cacheDir/import/data.win` | Deleted before and after each check |
-| Game library | Room, `databases/indiehost.db` (version 1) | Survives process death and app updates; cleared on uninstall |
+| Game library | Room, `databases/indiehost.db` (version 2) | Survives process death and app updates; cleared on uninstall |
+| Scan runs | Room `scan_runs` | Records id, timestamps, imported/skipped counts and error |
 | Games folders | `SharedPreferences("indiehost.folders")`, SAF tree URIs + persisted read grants | Survives restart until the user revokes the grant |
 | Cover art | `filesDir/covers/<sha256(gameId)>.webp` | App-private, replaced by the next pick, deleted with the row |
 | MV/MZ saves | WebView DOM/localStorage in app-private `app_webview` | Survives restart; no export yet |

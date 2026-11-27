@@ -160,8 +160,9 @@ Status values: **Implemented**, **Partial**, **Planned**, **Not started**.
 | FR-20 | No hosted engine in M1. In M2 the RPG Maker runtime is code-complete but device-unverified; WebView DOM/localStorage stays app-private and save export is deferred until the runtime is proven on a phone. Butterscotch-owned saves remain Butterscotch's responsibility. | Deferred beyond M2 (scope change recorded in the M2 design) |
 
 M1 implementation notes: `RoomGameRepository` is the persistence seam; `GameScanner`
-imports through the pure `GameFolder` seam; `LibraryItem` merges scans and pins with an
-explicit link and never matches by title. Code is verified by host tests and a debug build,
+imports through the pure `GameFolder` seam; a row not seen by the latest scan of its tree is
+marked unavailable but never deleted; `LibraryItem` merges scans and pins with an explicit
+link and never matches by title. Code is verified by host tests and a debug build,
 but the manual M1 cases (SAF grants, covers, reinstall) have not run on a device; see
 [TESTING.md](TESTING.md) §3.
 
@@ -175,8 +176,10 @@ but the manual M1 cases (SAF grants, covers, reinstall) have not run on a device
 
 M2 implementation notes: `RuntimeRegistry` selects `GameMakerRuntimeAdapter` or
 `RpgMakerRuntimeAdapter`; `GameWebViewActivity` serves SAF documents through
-`WebViewAssetLoader` on `appassets.androidplatform.net` with no `INTERNET` permission and
-no copy. Off-origin requests are blocked with a visible message, Back asks for
+`WebViewAssetLoader` on `appassets.androidplatform.net` with a port derived from the game id
+so games cannot read each other's DOM storage, with no `INTERNET` permission and no copy.
+SVG is served as octet-stream until a sanitising policy exists. Off-origin requests are
+blocked with a visible message, Back asks for
 confirmation, and `configChanges` avoids a rotation restart. Loading is **not** verified on
 a phone, and encrypted `.rpgmvp`/`.rpgmvo` assets are not decrypted; see
 [ADR-0007](docs/adr/0007-webview-offline-assets.md) and [TESTING.md](TESTING.md) §2.1.
@@ -353,7 +356,7 @@ no engine is silently routed to a default.
 
 | Type | Fields | Persistence |
 | --- | --- | --- |
-| `Game` | `id`, `title`, `folderPath`, `engine`, `wadVersion?`, `coverPath?`, `addedAt`, `source`, `linkedShortcutId?`, `treeUri?`, `runnable`, `blocker?` | Room, version 1 schema; app-private |
+| `Game` | `id`, `title`, `folderPath`, `engine`, `wadVersion?`, `coverPath?`, `addedAt`, `source`, `linkedShortcutId?`, `treeUri?`, `runnable`, `blocker?`, `lastSeenScanId?`, `available` | Room, version 2 schema; app-private |
 | `RunnerShortcut` | `id`, `title`, `info` (internal `ShortcutInfo`), `packageName` | Owned by the system/Butterscotch |
 | `LauncherApp` | `packageName`, `activityName`, `label`, `icon` | Rebuilt from `LauncherApps` |
 | `Detection` | `engine`, `runnable`, `wadVersion?`, `blocker?`, `notes` | Computed, not stored |
