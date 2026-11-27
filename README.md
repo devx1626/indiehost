@@ -11,9 +11,9 @@ launcher: it fingerprints a game folder and hands it to a native runtime per eng
 | --- | --- |
 | GameMaker (VM builds only, never YYC/GMRT) | [Butterscotch](https://github.com/ButterscotchRunner/Butterscotch) — AGPL-3.0, run as a separate app, not linked here |
 | RPG Maker MV / MZ | WebView |
-| Ren'Py | official Android runtime (RAPT) |
-| LOVE | official Android build |
-| ScummVM | native port |
+| Ren'Py | Detected only — RAPT builds a per-game APK ([ADR-0008](docs/adr/0008-renpy-detected-not-hosted.md)) |
+| LÖVE | Detected only — generic player can open `.love`; handoff not wired ([ADR-0009](docs/adr/0009-love-handoff-not-implemented.md)) |
+| ScummVM | Detected only — handoff needs a game configured in ScummVM ([ADR-0010](docs/adr/0010-scummvm-handoff-not-implemented.md)) |
 
 Unity, Godot and Unreal are deliberately unsupported: they ship per-platform native
 binaries, so there is nothing portable to re-host.

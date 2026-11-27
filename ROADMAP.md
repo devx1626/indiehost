@@ -165,34 +165,33 @@ refuses the intercepted HTTPS URL without `INTERNET`, implement ADR-0007's copy 
 
 ---
 
-## Milestone 3 — Ren'Py, LOVE, ScummVM — **Planned**
+## Milestone 3 — Ren'Py, LÖVE, ScummVM — **Done (detection-only, no runtime added)**
 
 **Goal:** either host the remaining engines or say clearly why not. No silent detection.
 
 ### Work
 
-1. **Decide the runtime model per engine (ADR required).**
-   - Ren'Py: RAPT produces a per-game APK, not a shared runtime. Options: detect an
-     installed per-game APK and launch it; orchestrate a build (likely out of scope); or
-     mark "detected, not hostable".
-   - LOVE: same shape — the official Android build is per-game.
-   - ScummVM: the Android app is generic; research whether it exposes a public intent for a
-     game path. If not, open ScummVM and guide the user.
+1. **Runtime model decided per engine** — done
+   - [x] [ADR-0008](docs/adr/0008-renpy-detected-not-hosted.md): RAPT builds a per-game APK;
+     no shared runtime exists, so IndieHost does not host it.
+   - [x] [ADR-0009](docs/adr/0009-love-handoff-not-implemented.md): a generic player can open
+     `.love` files, but the handoff intent is unverified — no adapter shipped.
+   - [x] [ADR-0010](docs/adr/0010-scummvm-handoff-not-implemented.md): a `scummvm:<target>`
+     intent exists, but the target must first be configured inside ScummVM.
 
-2. **Implement what the decision allows**
-   - Adapter or explicit "not hostable" result with a reason shown in the library.
-   - Detection stays as-is unless a signature proves unreliable.
+2. **What the decisions allow** — done
+   - [x] Each engine gets its own library reason and `NOT HOSTED` badge; Launch disabled.
+   - [x] Detection unchanged; no unresolved runtime was added.
 
-3. **Update the product claim**
-   - The README table and spec §3 must match reality. If an engine is detection-only, say
-     so in the same sentence as the runtime.
+3. **Product claim** — done
+   - [x] README table and spec FR-24 now say "detected only" for these engines.
 
 ### Exit criteria
 
-- [ ] Every engine in `Engine` has a documented route: launch, hand off, or not hostable.
-- [ ] The library shows the reason for a detected-but-unsupported game.
-- [ ] No engine is silently dropped.
-- [ ] ADRs record the decisions and their consequences.
+- [x] Every engine in `Engine` has a documented route: launch, hand off, or not hostable.
+- [x] The library shows the reason for a detected-but-unsupported game. — MT-34
+- [x] No engine is silently dropped. — `LibraryMergeTest` asserts all three reasons
+- [x] ADRs record the decisions and their consequences.
 
 ### Risks
 

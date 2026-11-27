@@ -279,6 +279,21 @@ game, and declares no new permission. A revoked SAF grant, missing core JS or wr
 finishes with an `AlertDialog` explaining why. Encrypted `.rpgmvp`/`.rpgmvo` assets are
 served as octet-stream and are **not** decrypted in M2.
 
+### 4.9 Engines with no runtime
+
+`mergeLibrary` gives Ren'Py, LÖVE and ScummVM their own `LibraryReason`, so each row says
+why it cannot launch rather than sharing a generic M3 label:
+
+| Engine | Status shown | Source |
+| --- | --- | --- |
+| Ren'Py | Per-game APK; install it to play | ADR-0008 |
+| LÖVE | Generic player can open `.love`; handoff not wired | ADR-0009 |
+| ScummVM | Add the folder inside ScummVM first | ADR-0010 |
+
+No adapter is registered for these engines; `RuntimeRegistry.forEngine` returns null and
+the UI keeps Launch disabled. Adding an adapter requires a resolved runtime model and a new
+ADR, not just a detector branch.
+
 ---
 
 ## 5. Contracts
@@ -538,6 +553,9 @@ Room is already implemented in `:library` (see §5.3). To change the schema:
 | [0005](docs/adr/0005-compose-material3.md) | Compose + Material3 with a custom palette |
 | [0006](docs/adr/0006-room-in-milestone-1.md) | Room for the M1 library; prefs only for recents |
 | [0007](docs/adr/0007-webview-offline-assets.md) | Load RPG Maker games from SAF through WebViewAssetLoader |
+| [0008](docs/adr/0008-renpy-detected-not-hosted.md) | Ren'Py is detected but not hosted |
+| [0009](docs/adr/0009-love-handoff-not-implemented.md) | LÖVE handoff is a candidate, not built |
+| [0010](docs/adr/0010-scummvm-handoff-not-implemented.md) | ScummVM handoff needs a configured target |
 
 ---
 

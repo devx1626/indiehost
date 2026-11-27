@@ -183,7 +183,11 @@ a phone, and encrypted `.rpgmvp`/`.rpgmvo` assets are not decrypted; see
 
 | ID | Requirement | Status |
 | --- | --- | --- |
-| FR-24 | Ren'Py, LOVE and ScummVM folders are either launched by a documented route or marked "detected, not hostable" with a reason shown in the UI. No engine may be silently ignored. | Planned (M3) |
+| FR-24 | Ren'Py, LOVE and ScummVM folders are either launched by a documented route or marked "detected, not hostable" with a reason shown in the UI. No engine may be silently ignored. | Implemented (M3, no runtime added) |
+
+M3 implementation notes: each engine has its own reason — Ren'Py per-game APK (ADR-0008),
+LÖVE handoff candidate (ADR-0009), ScummVM configured target (ADR-0010). No adapter was
+added for an unresolved runtime model; the library shows `NOT HOSTED` and Launch disabled.
 
 ### 4.8 Milestone 4 — compatibility
 
@@ -450,9 +454,10 @@ Implementation is complete; criteria remain open until observed on the baseline 
 
 ### 13.4 Milestone 3
 
-- [ ] Each remaining engine is either launchable or explicitly "detected, not hostable"
-      with a reason.
-- [ ] The decision is recorded in an ADR.
+- [x] Each remaining engine is explicitly "detected, not hostable" with a reason shown in
+      the library.
+- [x] The decision is recorded in an ADR (0008, 0009, 0010). No unresolved runtime was
+      added.
 
 ### 13.5 Milestone 4
 
@@ -464,9 +469,10 @@ Implementation is complete; criteria remain open until observed on the baseline 
 
 ## 14. Open questions
 
-1. **Ren'Py/LOVE runtime model.** Per-game APK vs shared runtime vs "detect and hand off".
-   Needs an ADR before M3.
-2. **ScummVM launch route.** Does the Android app expose a public intent for a game path?
+1. **Ren'Py/LOVE runtime model — resolved in ADR-0008/0009.** Both ship per-game builds;
+   LÖVE also has a generic player, but its handoff intent is unverified.
+2. **ScummVM launch route — resolved in ADR-0010.** A `scummvm:<target>` intent exists, but
+   requires a game already configured inside ScummVM.
 3. **MV WebView loading — resolved by ADR-0007.** `WebViewAssetLoader` over a SAF tree was
    chosen; copying into app storage is the fallback and a localhost server is rejected.
 4. **Offline HTTPS without `INTERNET`.** Confirm on device that WebView calls

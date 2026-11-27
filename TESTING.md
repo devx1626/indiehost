@@ -323,6 +323,13 @@ SAF grant; open each row.
 **Expected:** Each case shows a specific error dialog and finishes without a crash; stored
 library rows remain intact.
 
+### MT-34 — Detected but not hosted engines
+
+**Steps:** Scan folders containing a Ren'Py, a LÖVE and a ScummVM game; open each row.
+**Expected:** All three appear with a `NOT HOSTED` badge and an engine-specific reason;
+`PLAY` is disabled or shows the explanation; no attempt is made to start an unverified
+runtime.
+
 ---
 
 ## 4. Performance protocol
@@ -421,6 +428,7 @@ Before tagging or sideloading a build:
 - [ ] MT-14 and MT-15 pass with a VM and a YYC file.
 - [ ] MT-21 through MT-28 pass on the baseline (SAF, merge, covers, revoke, reinstall).
 - [ ] MT-29 through MT-33 pass offline with an MV and an MZ game.
+- [ ] MT-34 passes for all three detection-only engines.
 - [ ] `GameDaoTest` runs on a device when `adb` is available.
 - [ ] Cold start and resume recorded (at least once).
 - [ ] No game data in `git status` or the APK.
