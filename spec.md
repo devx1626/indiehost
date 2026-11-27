@@ -177,7 +177,8 @@ M2 implementation notes: `RuntimeRegistry` selects `GameMakerRuntimeAdapter` or
 no copy. Off-origin requests are blocked with a visible message, Back asks for
 confirmation, and `configChanges` avoids a rotation restart. Loading is **not** verified on
 a phone, and encrypted `.rpgmvp`/`.rpgmvo` assets are not decrypted; see
-[ADR-0007](docs/adr/0007-webview-offline-assets.md) and [TESTING.md](TESTING.md) §3.
+[ADR-0007](docs/adr/0007-webview-offline-assets.md) and [TESTING.md](TESTING.md) §2.1.
+`tools/device_checks.sh` provides the workstation commands and a synthetic MV fixture.
 
 ### 4.7 Milestone 3 — remaining engines
 

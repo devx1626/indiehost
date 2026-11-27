@@ -55,7 +55,8 @@ persistent, scannable game collection.
      during M1).
    - [x] `RoomGameRepository : GameRepository`; wired into `MainActivity` (plain threads,
      no ViewModel).
-   - [x] Host mapping test; instrumented DAO test written but **not run** (broken `adb`).
+   - [x] Host mapping test; instrumented DAO test written but **not run here**. Run it on
+     a workstation with `tools/device_checks.sh --dao`.
 
 2. **Folder scan** — done
    - [x] SAF `OpenDocumentTree` with persisted read permission (`GameFolderStore`).
@@ -95,8 +96,9 @@ Host evidence: `:detect:test` 19/19, `:library:testDebugUnitTest` 3/3,
 - [ ] DAO tests and the detector tests pass. — DAO test written but unrun; detector 19/19
 - [ ] Manual test matrix updated (MT-21…MT-28); no regression in the pin flow. — MT-23
 
-**Blocker:** this container has no working `adb`, so instrumented and manual cases could
-not be executed. Do not mark M1 done on a compile alone.
+**Blocker:** this container has no usable adb shell uid, so instrumented and manual cases
+could not be executed here. A workstation script and synthetic MV fixture now exist
+(`tools/device_checks.sh`); do not mark M1 done on a compile alone.
 
 ### Risks
 
@@ -153,8 +155,10 @@ Host evidence: `:runtimes:testDebugUnitTest` 3/3, `:app:testDebugUnitTest` 21/21
 - [ ] Manual tests cover a missing `index.html`, a broken JS file and a revoked SAF grant. —
       MT-33, unrun
 
-**Blocker:** no working `adb`, no legal MV/MZ game copy in this environment. If WebView
-refuses the intercepted HTTPS URL without `INTERNET`, implement ADR-0007's copy fallback.
+**Blocker:** no device test path or legal MV/MZ game copy in this environment. The
+workstation script pushes a synthetic MV fixture for MT-29; MZ (MT-30) still needs a legal
+copy. If WebView refuses the intercepted HTTPS URL without `INTERNET`, implement ADR-0007's
+copy fallback.
 
 ### Risks
 
@@ -231,8 +235,9 @@ refuses the intercepted HTTPS URL without `INTERNET`, implement ADR-0007's copy 
 - [ ] README/spec claims match the measurements — currently qualified in COMPATIBILITY.md.
 - [ ] Known-bad configurations documented — the section is deliberately empty until tested.
 
-**Blocker:** the container has no working `adb` and no game data. No performance number may
-be claimed until the maintainer fills the template on the baseline phone.
+**Blocker:** the container has no usable adb shell uid and no game data. Use
+`tools/device_checks.sh --perf` on the baseline phone; no performance number may be claimed
+until the maintainer fills the template.
 
 ---
 

@@ -110,6 +110,7 @@ gradle wrapper --gradle-version 8.7   # once: regenerates gradle/wrapper/gradle-
 ./gradlew :app:assembleDebug          # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :detect:test                # engine detection tests
 python3 tools/make_icons.py           # re-render the legacy launcher PNGs
+tools/device_checks.sh --help         # device tests/measurements from a workstation with adb
 ```
 
 The Gradle wrapper's binary jar is not committed; Android Studio regenerates it when the

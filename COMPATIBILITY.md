@@ -23,6 +23,10 @@ cover art extracted from games, or screenshots of copyrighted art.
 - [ ] Cold start, warm resume and drawer readiness recorded on the baseline.
 - [ ] Idle PSS and a 15-minute battery/thermal note.
 
+On a workstation with a connected phone, `tools/device_checks.sh --perf` prints the raw
+cold-start, warm-resume and memory output to copy into this table; it also pushes a
+synthetic MV fixture for the offline WebView check. See [TESTING.md](TESTING.md) §2.1.
+
 Use the protocol in [TESTING.md](TESTING.md) §4. Record the median of three cold-start runs
 and the actual `adb` output where possible; do not round a guess into a claim. Game fps must
 be measured externally (screen recording frame count or a benchmarking app) — IndieHost has

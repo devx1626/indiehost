@@ -531,8 +531,8 @@ Room is already implemented in `:library` (see §5.3). To change the schema:
 | WebView route is device-unverified | `GameWebViewActivity.kt` | Offline HTTPS without `INTERNET` may be refused before interception | Blocked on device |
 | Encrypted MV/MZ assets not decrypted | `SafAssetPathHandler.kt` | Games using `.rpgmvp`/`.rpgmvo` show broken art | M3 |
 | Room uses destructive migration | `IndieHostDatabase.kt` | Would drop library rows on a future schema change | Before release |
-| Instrumented `GameDaoTest` never ran | `library/src/androidTest` | DAO behaviour is verified only by host mapping tests; `adb` is broken here | Blocked on device |
-| M1/M2 manual cases never ran | `TESTING.md` §3 | SAF, covers, WebView load and Back are compile/test verified, not device verified | Blocked on device |
+| Instrumented `GameDaoTest` never ran | `library/src/androidTest` | DAO behaviour is verified only by host mapping tests here; run `tools/device_checks.sh --dao` on a workstation | Blocked on device |
+| M1/M2 manual cases never ran | `TESTING.md` §3 | SAF, covers, WebView load and Back are compile/test verified, not device verified; script + synthetic fixture provided | Blocked on device |
 | Kotlin incremental cache flake | local Gradle builds | Test compilation can fail to see production top-level functions; use `-Pkotlin.incremental=false` | Local toolchain |
 | Missing `mipmap-xxxhdpi` | `app/src/main/res` | Pre-26 icon upscaled on xxxhdpi | Backlog |
 | No ViewModel / coroutines | `MainActivity.kt` | Harder to test; snapshot writes from threads | Backlog |
