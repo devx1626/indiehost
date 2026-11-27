@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Dark from the very first frame: without this the window flashes white
-         before Compose draws the Steam-style dark background. -->
+         before Compose draws the dark game-client background. -->
     <style name="Theme.IndieHost" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">#171a21</item>
         <item name="android:colorBackground">#171a21</item>

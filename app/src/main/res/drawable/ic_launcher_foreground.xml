@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     IndieHost's mark: a cyan ring around a play triangle, with two curls of
-    steam rising off it. Drawn on the 108dp adaptive-icon grid and kept inside
+    soft curls rising off it. Drawn on the 108dp adaptive-icon grid and kept inside
     the 66dp safe zone, so no mask (circle, squircle, teardrop) can clip it.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"

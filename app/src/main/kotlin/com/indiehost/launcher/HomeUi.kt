@@ -395,7 +395,7 @@ private fun ClientBar(onOpenDrawer: () -> Unit) {
 }
 
 /**
- * The brand mark: a cyan ring around a play triangle with two steam curls
+ * The brand mark: a cyan ring around a play triangle with two rising curls
  * above it. Same shape as the launcher icon, drawn small enough to sit in a
  * text row.
  */
@@ -417,7 +417,7 @@ internal fun BrandMark(modifier: Modifier = Modifier) {
             close()
         }
         drawPath(play, color = Indie.TextBright)
-        // Two puffs of steam rising off the top of the mark.
+        // Two soft curls rising off the top of the mark.
         drawCircle(
             color = Indie.Accent.copy(alpha = 0.55f),
             radius = w * 0.085f,
