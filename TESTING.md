@@ -1,11 +1,12 @@
 # Testing
 
-> **Status:** Living document · **Last updated:** 2026-11-25
+> **Status:** Living document · **Last updated:** 2026-11-27
 > **Related:** [spec.md](spec.md) · [PREREQUISITES](PREREQUISITES.md) · [ARCHITECTURE](ARCHITECTURE.md) · [ROADMAP](ROADMAP.md)
 
-IndieHost has two test layers: host-side JVM tests for the pure detector, and a manual
-device protocol for everything that depends on Android's launcher, shortcut and usage
-APIs. There are no instrumented tests yet; do not pretend the manual matrix is automated.
+IndieHost has host-side JVM tests for the detector, the Room mapping, the SAF scanner,
+library merging and cover sizing, plus a manual device protocol for everything that
+depends on Android's launcher, shortcut and SAF APIs. One instrumented DAO test exists but
+has never run in this environment (`adb` is broken here); do not report it as passing.
 
 ---
 
@@ -13,9 +14,11 @@ APIs. There are no instrumented tests yet; do not pretend the manual matrix is a
 
 | Layer | Scope | Tool | Status |
 | --- | --- | --- | --- |
-| JVM unit tests | `GameMakerWad` parsing, `EngineDetector` fingerprints, blockers | JUnit 4 | **12 tests** (reported 12/12 in MILESTONE-0; re-run before release) |
-| Instrumented tests | Activities, `LauncherApps`, pin flow, Room DAO (M1) | AndroidX Test | **None** |
-| Manual device tests | Home role, pin, launch, recents, drawer, permissions | Human + adb | Required per release |
+| JVM unit tests (`:detect`) | `GameMakerWad` parsing, `EngineDetector` fingerprints, blockers | JUnit 4 | **19 tests**, passing |
+| JVM unit tests (`:library`) | `Game` ↔ `GameEntity` mapping, enum fallback | JUnit 4 | **3 tests**, passing |
+| JVM unit tests (`:app`) | SAF scanner, id stability, merge rules, cover sizing | JUnit 4 | **16 tests**, passing |
+| Instrumented tests | Room DAO round trip | AndroidX Test | 1 test written (`GameDaoTest`), **not run** |
+| Manual device tests | Home role, pin, scan, covers, launch, recents, drawer, permissions | Human + adb | Required per release; M1 cases not yet run |
 | Performance | Startup, resume, drawer, fps, memory | adb + screen recording | Protocol below; not yet measured |
 
 ### 1.1 Existing JVM coverage
@@ -37,6 +40,26 @@ APIs. There are no instrumented tests yet; do not pretend the manual matrix is a
 10. Distinguishes MV from MZ.
 11. Detects LOVE and Ren'Py.
 12. An empty folder is `UNKNOWN`.
+13. `FileGameFolder` lists children and opens files only.
+14. MV is detected through the `GameFolder` seam.
+15. An unknown folder through the seam is not runnable.
+16. `FileGameFolder` and detector agree on a WAD 16 game.
+17. A WAD header is read from a `InputStream` without copying the whole file.
+18. A stream without `CODE` reports the YYC blocker.
+19. A truncated stream is not a GameMaker data file.
+
+`.library` (`GameMappingTest.kt`): round-trips every `Game` field through `GameEntity`,
+maps unknown engine names to `UNKNOWN`, and keeps optional fields null.
+
+`.app` host tests:
+
+- `GameScannerTest` (5): imports GameMaker and MV, ignores unknown folders, keeps stable
+  ids/covers/pin links across re-scans, stops at two levels, and reports an unreadable
+  folder with a reason.
+- `LibraryMergeTest` (7): pins first, linked pin hidden, missing pin, MV/MZ and M3
+  statuses, blocker precedence, pin-only rows.
+- `CoverStoreTest` (4): subsampling bounds, already-small images, tall images, stable
+  hashed file names.
 
 The fixtures are synthetic; no real game data is used.
 
@@ -49,14 +72,23 @@ The fixtures are synthetic; no real game data is used.
 # once Gradle/JDK are available).
 ./gradlew :detect:test
 
-# Everything that can run without a device.
+# Everything that can run without a device (three host-testable modules).
 ./gradlew test
+
+# App scanner/merge/cover tests.
+./gradlew :app:testDebugUnitTest
 
 # Build the APK used for the manual protocol.
 ./gradlew :app:assembleDebug
 ```
 
-Expected: `:detect:test` reports 12 passed, 0 failed. A failure here blocks any release.
+Expected: `:detect:test` reports 19 passed, `:library:testDebugUnitTest` 3, and
+`:app:testDebugUnitTest` 16, all with 0 failures. A detector failure blocks any release.
+`gradle test` does **not** run `library/src/androidTest`; that needs a device.
+
+The container used to prepare M1 has no working `adb`
+(`CANNOT LINK EXECUTABLE "adb": cannot locate symbol ...`), so no instrumented or manual
+device case below was executed here. Run them on the baseline phone before calling M1 done.
 
 ---
 
@@ -190,6 +222,61 @@ non-`game-` shortcut from Butterscotch.
 **Steps:** Cold start on a device with a light system theme.
 **Expected:** No white flash; status/navigation bars are `#171A21`; text remains readable.
 
+### MT-21 — Scan a games folder
+
+**Precondition:** A legally owned games folder on the device; IndieHost is home.
+**Steps:** `ADD GAMES FOLDER` → pick the parent folder; wait for the scan message.
+**Expected:** The message reports imported games and skipped folders; GameMaker and MV/MZ
+folders appear as rows; unknown folders are ignored; `www/` and `game/` internals do not
+appear as separate games. No game file is copied into IndieHost storage.
+
+### MT-22 — Re-scan is stable
+
+**Steps:** Re-open `ADD GAMES FOLDER` and pick the same tree; compare rows and covers.
+**Expected:** No duplicates; `addedAt`, covers and pin links survive; a folder removed from
+the tree is still listed (the scan upserts and never auto-deletes).
+
+### MT-23 — Link a pin and launch
+
+**Precondition:** A GameMaker VM scan without a pin, and the same game pinned in
+Butterscotch.
+**Steps:** Open the scanned row → link its Butterscotch pin → tap `PLAY`.
+**Expected:** The row becomes launchable, the duplicate pin tile disappears, and `PLAY`
+starts Butterscotch's own activity. Unlink returns it to `PIN NEEDED`.
+
+### MT-24 — Detected but not launchable
+
+**Steps:** Scan a folder containing an MV/MZ game and a YYC/YYC-shaped game; open each row.
+**Expected:** MV/MZ shows the M2 message, other engines the M3 message, and a YYC/no-`CODE`
+game shows its detector blocker with `PLAY` disabled. No crash or silent launch.
+
+### MT-25 — Cover art
+
+**Steps:** Open a scanned row → `CHOOSE COVER` → pick a large image (≥ 2000 px) → close and
+reopen IndieHost → `REPLACE COVER` → `REMOVE COVER`.
+**Expected:** The row shows the cover after restart; the stored WebP is at most 512 px on
+its longest edge; replace and remove take effect; no full-resolution image is kept.
+
+### MT-26 — Revoked SAF grant
+
+**Steps:** In Settings, revoke IndieHost's access to the games folder; return Home and scan
+again; then re-pick the folder.
+**Expected:** A clear permission message, no crash, and stored rows untouched. Re-picking
+the same folder restores access and imports without duplicating rows.
+
+### MT-27 — Process death, launcher update and uninstall
+
+**Steps:** Force-stop IndieHost and reopen; install an updated APK over it; then uninstall
+and re-scan the same folder.
+**Expected:** Rows and covers survive the first two; after uninstall the library is empty
+until the same folder is re-scanned, at which point rows return without touching game files.
+
+### MT-28 — Remove is metadata-only
+
+**Steps:** Open a scanned row → `REMOVE` → verify the folder on disk.
+**Expected:** The row and its stored cover disappear from IndieHost; the game folder and all
+game files remain untouched.
+
 ---
 
 ## 4. Performance protocol
@@ -278,12 +365,15 @@ files.
 
 Before tagging or sideloading a build:
 
-- [ ] `./gradlew :detect:test` — 12/12.
+- [ ] `./gradlew :detect:test` — 19/19.
+- [ ] `./gradlew :app:testDebugUnitTest` and `:library:testDebugUnitTest` — green.
 - [ ] `./gradlew :app:assembleDebug` — success.
 - [ ] MT-01 through MT-06 pass on the baseline.
 - [ ] MT-07 through MT-09 pass with usage access granted and revoked.
 - [ ] MT-10 through MT-13 pass.
 - [ ] MT-14 and MT-15 pass with a VM and a YYC file.
+- [ ] MT-21 through MT-28 pass on the baseline (SAF, merge, covers, revoke, reinstall).
+- [ ] `GameDaoTest` runs on a device when `adb` is available.
 - [ ] Cold start and resume recorded (at least once).
 - [ ] No game data in `git status` or the APK.
 - [ ] README/spec version and claims match the build.
@@ -325,8 +415,9 @@ copyrighted game data.** A synthetic fixture or a redacted log is enough.
 
 ## 8. Known limitations of this test plan
 
-- No instrumented tests; `LauncherApps`, pin requests and usage access are only exercised
-  manually.
+- `GameDaoTest` is written but unrun; `LauncherApps`, pin requests, SAF grants and usage
+  access are only exercised manually.
 - No automated fps measurement; screen-recording frame counts are approximate.
+- M1 scan/cover cases MT-21…MT-28 were not executed in the container used to write them.
 - The emulator cannot validate Butterscotch performance or real shortcut ownership.
 - Work profiles and multi-user devices are untested.

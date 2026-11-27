@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Living document · **Last updated:** 2026-11-25
+> **Status:** Living document · **Last updated:** 2026-11-27
 > **Related:** [spec.md](spec.md) · [DEVELOPMENT](DEVELOPMENT.md) · [TESTING](TESTING.md) · [ADR index](docs/adr/README.md)
 
 How IndieHost is put together today, why the seams are where they are, and what to touch
@@ -48,9 +48,9 @@ no AIDL, no ContentProvider and no Intent that carries a folder.
 
 | Module | Type | Responsibility | Android APIs? |
 | --- | --- | --- | --- |
-| `:app` | Android application | Compose UI, activities, system data sources, state wiring | Yes |
-| `:library` | Android library | `Game` model, `GameRepository` seam | Minimal (none today) |
-| `:detect` | Pure Kotlin/JVM | Engine fingerprinting, GameMaker WAD parsing | **No** |
+| `:app` | Android application | Compose UI, SAF folder scan, covers, state wiring, system data sources | Yes |
+| `:library` | Android library | `Game` model, `GameRepository` seam, Room entity/DAO/database | Yes (Room) |
+| `:detect` | Pure Kotlin/JVM | Engine fingerprinting, GameMaker WAD parsing, `GameFolder` seam | **No** |
 | `:runtimes` | Android library | `RuntimeAdapter` contract, GameMaker/Butterscotch implementation | Yes |
 
 Dependency direction is one-way: `:app` → `:runtimes` → `:library` → `:detect`. `:detect`
@@ -61,20 +61,30 @@ must stay free of Android imports so it can be unit-tested on the host.
 ```
 app/src/main/kotlin/com/indiehost/launcher/
   MainActivity.kt        state owner, lifecycle, launch/settings actions
-  HomeUi.kt              HomeScreen, AppDrawer, tiles, panels, checker UI
+  HomeUi.kt              HomeScreen, AppDrawer, library rows/detail, checker UI
   SteamTheme.kt          palette, typography, MaterialTheme wrapper
   InstalledApps.kt       LauncherApps -> LauncherApp, startMainActivity
   Recents.kt             usage-access + SharedPreferences recents
   PinShortcutActivity.kt CONFIRM_PIN_SHORTCUT receiver
+  GameFolderStore.kt     persisted SAF tree URIs and read grants
+  SafGameFolder.kt       DocumentFile tree through the GameFolder seam
+  GameScanner.kt         pure walk, stable ids, upsert-never-delete import
+  LibraryItem.kt         merge of scanned games and pinned shortcuts
+  CoverStore.kt          downsample + store user-picked art in filesDir/covers
 
 library/src/main/kotlin/com/indiehost/library/
   Game.kt                data class
   GameRepository.kt      interface + InMemoryGameRepository
+  GameEntity.kt          Room entity, converters, mapping
+  GameDao.kt             all/find/upsert/remove
+  IndieHostDatabase.kt   version 1, destructive migration in M1
+  RoomGameRepository.kt  production repository
 
 detect/src/main/kotlin/com/indiehost/detect/
   Engine.kt              enum + display names
+  GameFolder.kt          pure folder seam + FileGameFolder
   EngineDetector.kt      folder fingerprinting
-  GameMakerWad.kt        FORM/GEN8 reader, CODE-chunk walk
+  GameMakerWad.kt        streamed FORM/GEN8 reader, CODE-chunk walk
 
 runtimes/src/main/kotlin/com/indiehost/runtimes/
   RuntimeAdapter.kt      contract, PreparedGame, LaunchOutcome
@@ -91,12 +101,16 @@ ViewModel, repository injection or DI framework.
 
 ```
 onCreate
+  ├─ repository / folderStore / coverStore initialised
+  ├─ loadLibrary()           // background Thread: Room read + cover decode
   ├─ refreshGames()          // synchronous: hasShortcutHostPermission + getShortcuts
   ├─ loadApps()              // background Thread: InstalledApps.load + Recents.pick
   └─ setContent { SteamTheme { HomeScreen | AppDrawer } }
 
 onResume
   ├─ refreshGames()          // pins may have changed in Butterscotch
+  ├─ loadLibrary()           // scanned rows may have changed
+  ├─ checkFolderPermissions() // revoked SAF grants become a visible message
   └─ if appsLoaded refreshRecents() else loadApps()
 
 onNewIntent
@@ -193,6 +207,49 @@ The picker callback starts a plain worker `Thread`; the UI shows `CHECKING...` a
 interactive. The cache copy is deleted in a `finally`, so a failed check does not leave a
 large game file behind. Results are written to Compose state from the worker; see §6.2.
 
+### 4.6 Folder scan
+
+```
+ADD GAMES FOLDER → OpenDocumentTree
+  → GameFolderStore.add(uri)        // takePersistableUriPermission, remember only the URI
+  → Thread "folder-scan"
+        for each remembered tree
+          ├─ hasPermission? else: visible message, keep stored rows
+          ├─ DocumentFile.fromTreeUri → SafGameFolder
+          └─ GameScanner.scan(root, treeUri, existing)
+               depth 0..2, max 500 entries per folder
+               detector hit → stable id "scan-" + SHA-256(treeUri|documentUri)
+               unreadable folder → skipped reason, continue
+        → repository.add for each import (upsert only; never delete)
+        → reloadLibrary()          // Room read + cover decode on the same thread
+```
+
+A scan is a snapshot, not a synchronisation. A folder that is no longer present or no
+longer recognised is left in the library; only the detail panel's **REMOVE** deletes a row.
+Re-scanning the same tree keeps `addedAt`, `coverPath` and `linkedShortcutId`. A recognised
+GameMaker folder is a leaf, so `www/` and `game/` internals are not imported as separate
+games.
+
+### 4.7 Library merge and covers
+
+```
+Room games ─┐
+            ├─ mergeLibrary() → pins first, then scans
+pins ───────┘   linked pin is hidden behind its scanned row
+
+tap a scanned row → detail panel
+  ├─ LINK PIN      → explicit game.linkedShortcutId; no title matching
+  ├─ CHOOSE COVER  → OpenDocument(image/*) → CoverStore.save → repository.add
+  └─ REMOVE        → repository.remove + delete stored cover file
+
+GameMaker without a live linked pin is not launchable; MV/MZ say "M2", and the other
+detected engines say "M3". A detector blocker always wins over a linked pin.
+```
+
+`CoverStore` reads bounds first, subsamples, then scales to at most 512 px and writes WebP
+to `filesDir/covers/<sha256(gameId)>.webp`. Decoding and file writes run on worker threads;
+the UI receives decoded `ImageBitmap`s through Compose state.
+
 ---
 
 ## 5. Contracts
@@ -251,8 +308,15 @@ interface GameRepository {
 }
 ```
 
-`InMemoryGameRepository` is a placeholder. Nothing in `:app` uses it. M1 replaces it with a
-Room-backed implementation and wires it into the home screen.
+`RoomGameRepository` is the production implementation; `InMemoryGameRepository` remains as
+a test double. `MainActivity` owns the only instance. Every call is blocking and is made
+from a named background `Thread` (`library-load`, `folder-scan`, `library-link`,
+`cover-save`, `cover-remove`, `library-remove`), never from the main thread.
+
+Room schema version 1 uses `fallbackToDestructiveMigration()`; that is acceptable only while
+M1 is unreleased. A released schema needs explicit migrations. Enum names are stored as
+text, and an unknown name maps to `Engine.UNKNOWN`. `Game` also stores `runnable`/`blocker`
+from the detector so the UI does not re-read a folder just to show why Launch is disabled.
 
 ### 5.4 `EngineDetector.Detection`
 
@@ -290,12 +354,16 @@ All state is `mutableStateOf` fields on `MainActivity`:
 | --- | --- | --- |
 | `games` | `List<RunnerShortcut>` | main (`refreshGames`) |
 | `canListGames` | `Boolean` | main |
+| `library` | `List<Game>` | library/scanner/cover worker threads |
+| `covers` | `Map<String, ImageBitmap>` | library/cover worker threads |
+| `scanning` | `Boolean` | main, then scan thread |
+| `scanMessage` | `String` | main, then scan thread |
 | `apps` | `List<LauncherApp>` | loader thread |
 | `recents` | `List<LauncherApp>` | loader thread |
 | `usageAccess` | `Boolean` | loader thread |
 | `loadingApps` | `Boolean` | loader thread |
 | `drawerOpen` | `Boolean` | main |
-| `status` | `String` | main |
+| `status` | `String` | main and worker threads |
 
 Compose snapshot state is safe to write from a background thread, but recomposition is
 scheduled on the main thread. A future refactor should move the loader into a ViewModel and
@@ -308,10 +376,13 @@ disappears. That is acceptable for a launcher, but it means `drawerOpen` is not 
 
 - **Main thread:** Compose, `refreshGames`, `startActivity`, `startShortcut`.
 - **Background `Thread`:** `InstalledApps.load`, `Recents.pick`,
-  `Recents.systemRecency`, the `data.win` copy/detect. The checker writes its
-  result to Compose state from that thread; recomposition stays on the main thread.
+  `Recents.systemRecency`, the `data.win` copy/detect, all Room calls, the SAF folder
+  walk, and cover decode/encode. Checker, scanner and cover results are written to
+  Compose state from those threads; recomposition stays on the main thread.
 - **No coroutines, no `ExecutorService`, no WorkManager.** Keep it simple until a task
   actually needs cancellation or lifecycle awareness.
+- **No filesystem paths in SharedPreferences.** `GameFolderStore` persists only SAF tree
+  URIs; the document URIs and display paths live in Room rows.
 
 ### 6.3 Refresh triggers
 
@@ -331,13 +402,15 @@ disappears. That is acceptable for a launcher, but it means `drawerOpen` is not 
 | Game files / saves | Butterscotch's private storage | Owned by Butterscotch |
 | Recents (local) | `SharedPreferences("indiehost.recents")` | Survives process death; cleared on uninstall |
 | Checker cache | `cacheDir/import/data.win` | Deleted before and after each check |
-| Game library | None today | `InMemoryGameRepository` is unused |
+| Game library | Room, `databases/indiehost.db` (version 1) | Survives process death and app updates; cleared on uninstall |
+| Games folders | `SharedPreferences("indiehost.folders")`, SAF tree URIs + persisted read grants | Survives restart until the user revokes the grant |
+| Cover art | `filesDir/covers/<sha256(gameId)>.webp` | App-private, replaced by the next pick, deleted with the row |
 
-`android:allowBackup="false"` keeps the prefs and cache out of cloud backup.
-
-M1 introduces Room for `Game` and a SAF-persisted tree URI for the games folder. Saves for
-IndieHost-hosted engines must live outside private storage; Butterscotch-owned saves cannot
-be relocated by us and must be documented as such.
+`android:allowBackup="false"` keeps all of this out of cloud backup. A full uninstall
+therefore loses metadata and must be restored by re-scanning the same folders; the game
+files themselves are untouched. Saves for IndieHost-hosted engines must live outside
+private storage; Butterscotch-owned saves cannot be relocated by us and remain
+Butterscotch's responsibility (FR-20 is deferred to M2).
 
 ---
 
@@ -375,13 +448,17 @@ See [SECURITY.md](SECURITY.md) for the threat model and hardening backlog.
 
 Keep Android APIs in `:runtimes`/`:app`; detection stays pure.
 
-### 9.2 Replace the repository
+### 9.2 Change the repository or schema
 
-1. Implement `GameRepository` with Room in `:library` (entities, DAO, database).
-2. Add KSP/kapt and the Room dependencies to `library/build.gradle.kts`.
-3. Add DAO tests under `library/src/test` or `androidTest` (Robolectric or instrumented).
-4. Wire `MainActivity` to the repository; remove `InMemoryGameRepository` once unused.
-5. Update the schema/migration policy in the spec.
+Room is already implemented in `:library` (see §5.3). To change the schema:
+
+1. Bump the version and write an explicit migration; do not extend the M1 destructive
+   migration waiver.
+2. Update `GameEntity`, the converters and the `Game` mapping test together.
+3. Re-run the instrumented DAO test on a device when one is available.
+4. Update the schema/migration policy in the spec and this document.
+
+`InMemoryGameRepository` is retained as a test double; it is not used by `:app`.
 
 ### 9.3 Add a screen
 
@@ -397,13 +474,15 @@ Keep Android APIs in `:runtimes`/`:app`; detection stays pure.
 | Item | Location | Impact | Tracked |
 | --- | --- | --- | --- |
 | No adapter registry | `runtimes/RuntimeAdapter.kt` comment | Extension friction; second adapter will force it | M2 |
-| `GameRepository` / `canRun` / `prepare` / `supportsSaves` unused | `:library`, `:runtimes` | Misleading seam; dead code | M1 |
+| `canRun` / `prepare` / `supportsSaves` unused | `:runtimes` | Misleading seam; dead code | M2 |
+| Room uses destructive migration | `IndieHostDatabase.kt` | Would drop library rows on a future schema change | Before release |
+| Instrumented `GameDaoTest` never ran | `library/src/androidTest` | DAO behaviour is verified only by host mapping tests; `adb` is broken here | Blocked on device |
+| M1 manual cases never ran | `TESTING.md` §3 | SAF grants, covers and remove flow are compile/test verified, not device verified | Blocked on device |
 | Missing `mipmap-xxxhdpi` | `app/src/main/res` | Pre-26 icon upscaled on xxxhdpi | Backlog |
 | Deprecated `PackageManager` calls | `InstalledApps.kt` | Future API removal | Backlog |
 | No ViewModel / coroutines | `MainActivity.kt` | Harder to test; snapshot writes from threads | Backlog |
-| No instrumented tests | repo-wide | System integrations untested | M1 |
 | No `LICENSE` file | root | Default copyright; cannot be reused | Before release |
-| `-steam` codename | `build.gradle.kts`, `SteamTheme.kt` | Trademark/branding risk (CON-07) | Before release |
+| `-steam` codename | `SteamTheme.kt` identifiers | Trademark/branding risk (CON-07) | Before release |
 
 ---
 

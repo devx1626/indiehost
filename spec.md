@@ -152,10 +152,16 @@ Status values: **Implemented**, **Partial**, **Planned**, **Not started**.
 
 | ID | Requirement | Status |
 | --- | --- | --- |
-| FR-17 | Games are persisted across process death and launcher updates using Room, not an in-memory map. A full uninstall is restored by re-scanning the same folder; metadata is app-private and is not backed up. | Planned (M1) |
-| FR-18 | The user can point IndieHost at a games folder (SAF tree) and scan it for supported engines. | Planned (M1) |
-| FR-19 | Each game has user-visible title, engine, WAD version (when applicable) and optional cover art. | Planned (M1) |
+| FR-17 | Games are persisted across process death and launcher updates using Room, not an in-memory map. A full uninstall is restored by re-scanning the same folder; metadata is app-private and is not backed up. | Implemented (M1) |
+| FR-18 | The user can point IndieHost at a games folder (SAF tree) and scan it for supported engines. The read grant is persisted, the walk covers two levels, and a re-scan upserts by stable id without deleting rows or reporting skipped folders. | Implemented (M1) |
+| FR-19 | Each game has user-visible title, engine, WAD version (when applicable) and optional user-picked cover art, downsampled to at most 512 px and stored app-private. | Implemented (M1) |
 | FR-20 | Not applicable in M1: no engine is hosted by IndieHost yet. Butterscotch-owned saves remain Butterscotch's responsibility and are documented as such. For engines IndieHost hosts from M2, saves live outside the app's private storage. | Deferred to M2 |
+
+M1 implementation notes: `RoomGameRepository` is the persistence seam; `GameScanner`
+imports through the pure `GameFolder` seam; `LibraryItem` merges scans and pins with an
+explicit link and never matches by title. Code is verified by host tests and a debug build,
+but the manual M1 cases (SAF grants, covers, reinstall) have not run on a device; see
+[TESTING.md](TESTING.md) §3.
 
 ### 4.6 Milestone 2 — RPG Maker WebView
 
@@ -295,9 +301,9 @@ The full description is in [ARCHITECTURE.md](ARCHITECTURE.md). In short:
 
 | Module | Responsibility |
 | --- | --- |
-| `:app` | Compose home screen and drawer, activity wiring, system data sources |
-| `:library` | `Game` model and the `GameRepository` storage seam (Room in M1) |
-| `:detect` | Pure Kotlin engine fingerprinting and GameMaker WAD parsing |
+| `:app` | Compose home screen, drawer and detail panel, SAF scan, cover storage, activity wiring |
+| `:library` | `Game` model, `GameRepository` seam and Room persistence |
+| `:detect` | Pure Kotlin `GameFolder` seam, engine fingerprinting and GameMaker WAD parsing |
 | `:runtimes` | `RuntimeAdapter` contract and the GameMaker/Butterscotch implementation |
 
 Dependency direction: `:app` → `:runtimes` → `:library` → `:detect`. `:detect` has no
@@ -330,17 +336,19 @@ result. `ButterscotchShortcuts` is the only code that talks to the runner's shor
 
 | Type | Fields | Persistence |
 | --- | --- | --- |
-| `Game` | `id`, `title`, `folderPath`, `engine`, `wadVersion?` | In memory today; Room in M1 |
+| `Game` | `id`, `title`, `folderPath`, `engine`, `wadVersion?`, `coverPath?`, `addedAt`, `source`, `linkedShortcutId?`, `treeUri?`, `runnable`, `blocker?` | Room, version 1 schema; app-private |
 | `RunnerShortcut` | `id`, `title`, `info` (internal `ShortcutInfo`), `packageName` | Owned by the system/Butterscotch |
 | `LauncherApp` | `packageName`, `activityName`, `label`, `icon` | Rebuilt from `LauncherApps` |
 | `Detection` | `engine`, `runnable`, `wadVersion?`, `blocker?`, `notes` | Computed, not stored |
 | `PreparedGame` | `dataFile?`, `wadVersion?`, `notes` | Computed, not stored |
 | `LaunchOutcome` | `Launched`, `RuntimeNotInstalled`, `Blocked` | Transient |
 
-Locally persisted data is limited to the recents list in
-`SharedPreferences("indiehost.recents")` under `launches`, capped at 12 package names.
-The `data.win` checker copies the chosen file to `cacheDir/import/data.win` and deletes
-the directory before each check.
+Locally persisted data is the recents list in `SharedPreferences("indiehost.recents")` under
+`launches` (capped at 12 package names), SAF tree URIs plus read grants in
+`SharedPreferences("indiehost.folders")`, Room rows in `databases/indiehost.db`, and
+user-picked covers in `filesDir/covers`. The `data.win` checker copies the chosen file to
+`cacheDir/import/data.win` and deletes the directory before each check.
+`allowBackup="false"` keeps all of it out of cloud backup.
 
 ---
 
@@ -411,12 +419,15 @@ Milestone 0 game bar. Measure with the protocol in [TESTING.md](TESTING.md).
 
 ### 13.2 Milestone 1
 
-- [ ] Room persists games across process death and launcher reinstall.
-- [ ] A SAF-selected folder can be scanned and imported.
-- [ ] Cover art can be attached and survives restart.
+Implementation is complete; criteria remain open until observed on the baseline device.
+
+- [ ] Room persists games across process death and launcher reinstall. — MT-27
+- [ ] A SAF-selected folder can be scanned and imported. — MT-21, MT-22
+- [ ] Cover art can be attached and survives restart. — MT-25
 - [ ] Not applicable in M1: no hosted engine exists. Butterscotch-owned saves stay in
-      Butterscotch and are documented in the UI or help text.
-- [ ] DAO and detector tests pass; manual matrix updated.
+      Butterscotch and are documented in the UI or help text. — FR-20, MT-24
+- [ ] DAO and detector tests pass; manual matrix updated. — detector 19/19, mapping 3/3,
+      scanner/merge/cover 16/16; `GameDaoTest` unrun; MT-21…MT-28 unrun
 
 ### 13.3 Milestone 2
 
@@ -448,8 +459,8 @@ Milestone 0 game bar. Measure with the protocol in [TESTING.md](TESTING.md).
    permission; the second is simpler but doubles disk use.
 4. **Save location.** Which shared directory is both scoped-storage-safe and survives
    uninstall? `Documents/IndieHost/<game>` vs app-specific external storage.
-5. **Room schema and migration policy.** Version 1 schema, destructive migration allowed
-   during M1 only.
+5. **Room schema and migration policy.** Version 1 with destructive migration is in place
+   while M1 is unreleased; replace it with explicit migrations before release.
 6. **Application id.** `com.indiehost.launcher` is explicitly a placeholder. Renaming
    changes shortcut ownership and installed-app identity; do it before a public release.
 7. **Launcher licence.** There is no `LICENSE` file. Choose one before publishing.

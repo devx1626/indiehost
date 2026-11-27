@@ -10,6 +10,11 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-25-m1-real-library-design.md`
 
+**Status:** implementation complete. Gate run: `gradle test :app:assembleDebug` — detector
+19/19, library mapping 3/3, app scanner/merge/cover 16/16, debug APK built. Manual cases
+MT-21…MT-28 and the instrumented `GameDaoTest` remain unrun because `adb` is broken in this
+container; M1 is not done until they pass on the baseline device.
+
 ## Global Constraints
 
 - `minSdk 24`, `targetSdk 34`, `compileSdk 34`; `applicationId` and `versionCode` unchanged.
@@ -41,22 +46,22 @@
 - Produces: FR-17 means process death and app update; a full uninstall is restored by re-scan.
 - Produces: FR-20 is not applicable until M2 hosts an engine; Butterscotch saves are documented as Butterscotch's.
 
-- [ ] **Step 1: Reword FR-17**
+- [x] **Step 1: Reword FR-17**
 
 Replace "across process death and reinstall of the launcher" with "across process death
 and launcher updates; a full uninstall is restored by re-scanning the same folder".
 
-- [ ] **Step 2: Reword FR-20 and the M1 exit criterion**
+- [x] **Step 2: Reword FR-20 and the M1 exit criterion**
 
 Mark hosted-engine saves "Not applicable until M2", keep the Butterscotch limitation, and
 change §13.2's save line to say no hosted engine exists in M1.
 
-- [ ] **Step 3: Mark the design approved**
+- [x] **Step 3: Mark the design approved**
 
 Change the design status to "Approved 2026-11-27" and record that the user approved the
 recommended wording.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add spec.md ROADMAP.md docs/superpowers/specs/2026-11-25-m1-real-library-design.md
@@ -78,29 +83,29 @@ git commit -m "docs: settle M1 reinstall and save semantics"
 - Produces: `class FileGameFolder(val file: File) : GameFolder`
 - Produces: `fun EngineDetector.detect(folder: GameFolder): Detection`; `detect(File)` delegates.
 
-- [ ] **Step 1: Write the failing parity test**
+- [x] **Step 1: Write the failing parity test**
 
 Create a `FileGameFolderTest` that writes a WAD-16 `data.win`, wraps the folder, and asserts
 `EngineDetector().detect(FileGameFolder(folder))` has `GAMEMAKER_VM`, `runnable == true`,
 `wadVersion == 16`. Add an MV folder case and an unknown-folder case.
 
-- [ ] **Step 2: Run it and confirm it fails**
+- [x] **Step 2: Run it and confirm it fails**
 
 Run: `gradle :detect:test --tests '*GameFolderTest*' --console=plain`
 Expected: FAIL because `GameFolder` does not exist.
 
-- [ ] **Step 3: Implement `GameFolder` and refactor the detector**
+- [x] **Step 3: Implement `GameFolder` and refactor the detector**
 
 Implement the interface and `FileGameFolder`. Change every private detector helper to take
 `GameFolder`; use `entries()`, `child()` and `open()`. Keep `detect(File)` as a one-line
 delegate. Preserve all existing blocker strings.
 
-- [ ] **Step 4: Run the detector suite**
+- [x] **Step 4: Run the detector suite**
 
 Run: `gradle :detect:test --console=plain`
 Expected: the original 12 tests plus the new parity tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add detect/src
@@ -119,29 +124,29 @@ git commit -m "detect: read folders through a GameFolder seam"
 - Produces: `fun read(input: InputStream, length: Long? = null): Header?`
 - Produces: `read(File)` delegates to `FileInputStream` and the stream overload.
 
-- [ ] **Step 1: Write the failing stream test**
+- [x] **Step 1: Write the failing stream test**
 
 Add a test that builds a WAD-16 byte array with CODE, calls
 `GameMakerWad.read(ByteArrayInputStream(bytes), bytes.size.toLong())`, and asserts version
 16 and `hasCodeChunk`. Add a truncated stream case that returns null.
 
-- [ ] **Step 2: Run it and confirm it fails**
+- [x] **Step 2: Run it and confirm it fails**
 
 Run: `gradle :detect:test --tests '*GameMakerWadTest*' --console=plain`
 Expected: FAIL because the overload does not exist.
 
-- [ ] **Step 3: Implement the sequential reader**
+- [x] **Step 3: Implement the sequential reader**
 
 Read 20 bytes, validate `FORM`/`GEN8`, read the version, skip the rest of the GEN8 chunk,
 then read 8-byte chunk headers and skip `align4(length) - 8` bytes until `CODE`, EOF, or
 `MAX_CHUNKS`. Use a `readFully` helper and a `skipFully` loop. Never seek.
 
-- [ ] **Step 4: Run the suite**
+- [x] **Step 4: Run the suite**
 
 Run: `gradle :detect:test --console=plain`
 Expected: all tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add detect/src
@@ -169,31 +174,31 @@ git commit -m "detect: parse WAD headers from a stream"
 - Produces: `class RoomGameRepository(context: Context) : GameRepository`
 - Produces: `@Entity(tableName = "games") data class GameEntity(...)`
 
-- [ ] **Step 1: Add Room and KSP**
+- [x] **Step 1: Add Room and KSP**
 
 Add the KSP plugin to the root build and `:library`, then `room-runtime`, `room-ktx` and
 `ksp("androidx.room:room-compiler:2.6.1")`. Add `testInstrumentationRunner`.
 
-- [ ] **Step 2: Write the failing mapping test**
+- [x] **Step 2: Write the failing mapping test**
 
 Assert `Game.toEntity().toGame()` round-trips engine, WAD, source, cover and link.
 
-- [ ] **Step 3: Implement the model, entity, DAO and database**
+- [x] **Step 3: Implement the model, entity, DAO and database**
 
 Use `@PrimaryKey` id, `@Insert(onConflict = REPLACE)`, `@Query("SELECT * FROM games ORDER BY title COLLATE NOCASE")`,
 `@Query("SELECT * FROM games WHERE id = :id")`, `@Query("DELETE FROM games WHERE id = :id")`.
 Convert `Engine` and `GameSource` with `@TypeConverters`. Version 1, `fallbackToDestructiveMigration()`.
 
-- [ ] **Step 4: Implement `RoomGameRepository`**
+- [x] **Step 4: Implement `RoomGameRepository`**
 
 Map entities in both directions. Keep `InMemoryGameRepository` for tests.
 
-- [ ] **Step 5: Run the mapping test and compile the app**
+- [x] **Step 5: Run the mapping test and compile the app**
 
 Run: `gradle :library:testDebugUnitTest :app:assembleDebug --console=plain`
 Expected: PASS and BUILD SUCCESSFUL.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add library build.gradle.kts
@@ -218,19 +223,19 @@ git commit -m "library: persist games in Room"
 - Produces: `class GameScanner(context: Context, detector: EngineDetector = EngineDetector()) { fun scan(treeUri: Uri): ScanResult }`
 - Produces: `class GameFolderStore(context: Context) { fun add(uri: Uri); fun all(): List<Uri>; fun remove(uri: Uri) }`
 
-- [ ] **Step 1: Write the failing scanner test**
+- [x] **Step 1: Write the failing scanner test**
 
 Use a fake `GameFolder` tree (root → `Undertale/data.win`, root → `MV/www/index.html` +
 `www/js/rpg_core.js`) and assert two games, stable ids across two scans, and an unknown
 folder skipped with a reason. Keep the fake in the test; `GameScanner` should accept a
 `GameFolder` root for testability.
 
-- [ ] **Step 2: Implement `SafGameFolder`**
+- [x] **Step 2: Implement `SafGameFolder`**
 
 Wrap `DocumentFile`; `entries()` maps `listFiles()` names and directory flags; `child()`
 looks up by name; `open()` uses `contentResolver.openInputStream(document.uri)`.
 
-- [ ] **Step 3: Implement `GameScanner`**
+- [x] **Step 3: Implement `GameScanner`**
 
 Walk at most two levels, cap entries per folder at 500, detect each directory, stop
 descending when a game is recognised. Derive ids as `"scan-" + sha256("$treeUri|$documentUri")`.
@@ -238,24 +243,24 @@ Carry `treeUri`, `folderPath = document.uri.toString()`, `addedAt = existing?.ad
 and preserve `coverPath`/`linkedShortcutId` from the repository on upsert. Catch
 `SecurityException` and `IOException` per folder into `skipped`.
 
-- [ ] **Step 4: Implement `GameFolderStore`**
+- [x] **Step 4: Implement `GameFolderStore`**
 
 Store a string set of tree URIs in `indiehost.folders`; call
 `takePersistableUriPermission(uri, FLAG_GRANT_READ_URI_PERMISSION)` on add.
 
-- [ ] **Step 5: Wire the scan into `MainActivity`**
+- [x] **Step 5: Wire the scan into `MainActivity`**
 
 On startup, load repository games on a `Thread`; expose `onAddFolder(uri)` that persists
 the grant and scans all trees. Show `scanning`, the imported count and skipped reasons.
 On resume, verify each grant with `checkUriPermission`; a revoked grant sets a visible
 message without deleting rows.
 
-- [ ] **Step 6: Run tests and build**
+- [x] **Step 6: Run tests and build**
 
 Run: `gradle :app:testDebugUnitTest :app:assembleDebug --console=plain`
 Expected: PASS and BUILD SUCCESSFUL.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add app/src
@@ -277,33 +282,33 @@ git commit -m "app: scan a SAF games folder into the library"
 - Produces: `data class LibraryItem(val game: Game?, val shortcut: RunnerShortcut?, val title: String, val subtitle: String, val launchable: Boolean, val reason: String?)`
 - Produces: `fun mergeLibrary(games: List<Game>, pins: List<RunnerShortcut>): List<LibraryItem>`
 
-- [ ] **Step 1: Write the failing merge test**
+- [x] **Step 1: Write the failing merge test**
 
 Pins first; a pin linked by a scanned game is hidden; an unlinked GameMaker scan has
 `launchable == false` and a reason; MV/MZ are launchable after M2, not now; Ren'Py is not.
 
-- [ ] **Step 2: Implement the merge**
+- [x] **Step 2: Implement the merge**
 
 Linked pins are matched by `linkedShortcutId`. A scanned GameMaker game is launchable only
 when its linked pin is present. MV/MZ are not launchable until Task 10.
 
-- [ ] **Step 3: Add the detail panel**
+- [x] **Step 3: Add the detail panel**
 
 Tapping a scanned row opens a `Dialog` with title, engine, WAD, location, cover, Launch
 (when launchable), Link pin (list of pins), Change cover, Remove, Close. Removing deletes
 metadata and cover only, never the source folder. Keep pin rows one-tap launch.
 
-- [ ] **Step 4: Update copy and empty state**
+- [x] **Step 4: Update copy and empty state**
 
 Add strings for "Add games folder", "Scanning...", "Detected, no runtime yet", "Pin this
 game in Butterscotch, then link the pin here", "Remove", "Change cover", "Link pin".
 
-- [ ] **Step 5: Build**
+- [x] **Step 5: Build**
 
 Run: `gradle :app:testDebugUnitTest :app:assembleDebug --console=plain`
 Expected: PASS and BUILD SUCCESSFUL.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/src
@@ -323,29 +328,29 @@ git commit -m "app: show scanned games and pins in one library"
 **Interfaces:**
 - Produces: `class CoverStore(context: Context) { fun save(gameId: String, uri: Uri): String?; fun delete(fileName: String); fun file(fileName: String): File }`
 
-- [ ] **Step 1: Write the failing downsample test**
+- [x] **Step 1: Write the failing downsample test**
 
 A 2000×2000 bitmap saved as PNG is passed through the pure `sampleSizeFor(width, height,
 max = 512)` helper; assert the chosen sample size keeps the result at or below 512 and
 above 256. Keep the helper `internal` and pure for the host test.
 
-- [ ] **Step 2: Implement `CoverStore`**
+- [x] **Step 2: Implement `CoverStore`**
 
 Decode bounds with `inJustDecodeBounds`, compute `inSampleSize`, decode, scale to 512 max,
 compress WEBP 85 to a temp file, rename to `<sha256(id)>.webp`. Delete on replace/remove.
 
-- [ ] **Step 3: Wire the picker**
+- [x] **Step 3: Wire the picker**
 
 `OpenDocument` with `image/*`; save on a background `Thread`; update the repository and the
 in-memory library; render with `BitmapFactory.decodeFile` on the same background thread and
 hold `ImageBitmap` in state. No image library.
 
-- [ ] **Step 4: Build**
+- [x] **Step 4: Build**
 
 Run: `gradle :app:testDebugUnitTest :app:assembleDebug --console=plain`
 Expected: PASS and BUILD SUCCESSFUL.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/src
@@ -363,17 +368,17 @@ git commit -m "app: attach downsampled cover art"
 - Modify: `LICENSING.md` (Room/KSP Apache-2.0)
 - Modify: `README.md` (library description)
 
-- [ ] **Step 1: Update the docs**
+- [x] **Step 1: Update the docs**
 
 Record the new seams, the Room schema, the scan limits, the cover path, the reinstall
 semantics and the exact test commands. Mark M1 items done only when their evidence exists.
 
-- [ ] **Step 2: Run the full gate**
+- [x] **Step 2: Run the full gate**
 
 Run: `gradle :detect:test :app:assembleDebug --console=plain`
 Expected: 12+ tests pass and BUILD SUCCESSFUL.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add ARCHITECTURE.md TESTING.md ROADMAP.md LICENSING.md README.md

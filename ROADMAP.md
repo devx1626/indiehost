@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Status:** Living document · **Last updated:** 2026-11-25
+> **Status:** Living document · **Last updated:** 2026-11-27
 > **Related:** [spec.md](spec.md) · [MILESTONE-0](MILESTONE-0.md) · [ARCHITECTURE](ARCHITECTURE.md) · [TESTING](TESTING.md)
 
 Ordered by risk, not visibility. Each milestone has a definition of done; a milestone is
@@ -41,38 +41,39 @@ closed, and `:detect:test` plus the APK build stay green.
 
 ---
 
-## Milestone 1 — Real library — **Planned**
+## Milestone 1 — Real library — **In progress (code complete, device verification pending)**
 
 **Goal:** IndieHost stops borrowing Butterscotch's pins as its only library and owns a
 persistent, scannable game collection.
 
 ### Work
 
-1. **Room**
-   - `GameEntity` (`id`, `title`, `folderPath`, `engine`, `wadVersion`, `coverPath`,
-     `addedAt`).
-   - DAO + database + migration policy (version 1; destructive migration allowed only
+1. **Room** — done
+   - [x] `GameEntity` (`id`, `title`, `folderPath`, `engine`, `wadVersion`, `coverPath`,
+     `addedAt`, `source`, `linkedShortcutId`, `treeUri`, `runnable`, `blocker`).
+   - [x] DAO + database + migration policy (version 1; destructive migration allowed only
      during M1).
-   - `RoomGameRepository : GameRepository`; wire `MainActivity`/a ViewModel to it.
-   - DAO tests (Robolectric or instrumented).
+   - [x] `RoomGameRepository : GameRepository`; wired into `MainActivity` (plain threads,
+     no ViewModel).
+   - [x] Host mapping test; instrumented DAO test written but **not run** (broken `adb`).
 
-2. **Folder scan**
-   - SAF `OpenDocumentTree` with persisted read permission.
-   - Walk one or two levels, run `EngineDetector` on candidate folders.
-   - Import supported games; show skipped folders with reasons.
-   - Handle revoked permission, missing folder and symlinks safely.
+2. **Folder scan** — done
+   - [x] SAF `OpenDocumentTree` with persisted read permission (`GameFolderStore`).
+   - [x] Walk two levels through the `GameFolder` seam, run `EngineDetector` on candidates.
+   - [x] Stable `scan-` ids; upsert only; skipped folders carry reasons; revoked grants
+     produce a visible message and leave rows untouched.
+   - [x] Missing/disappeared children are skipped, not followed as symlinks.
 
-3. **Library UI**
-   - Grid or rows driven by the repository, not only pinned shortcuts.
-   - Game detail: title, engine, WAD, path, launch, remove.
-   - Empty state that explains both sources: pinned Butterscotch games and scanned
-     folders.
-   - Keep the pinned-shortcut path as a first-class source; do not regress it.
+3. **Library UI** — done
+   - [x] Rows driven by `mergeLibrary(games, pins)`, not only pinned shortcuts.
+   - [x] Detail panel: title, engine, WAD, path, launch, explicit pin link, remove.
+   - [x] Empty state explains both sources; GameMaker without a live pin is not launchable.
+   - [x] Pinned-shortcut path kept as a first-class source.
 
-4. **Cover art**
-   - Pick an image per game; copy into app storage with a stable name.
-   - Downsample before storing; never store a full-resolution screenshot.
-   - Do not extract or redistribute copyrighted art.
+4. **Cover art** — done
+   - [x] `OpenDocument(image/*)` → `CoverStore` → app-private WebP with a hashed name.
+   - [x] Bounds decode + subsample + scale to ≤ 512 px, on worker threads.
+   - [x] Only user-supplied art; no extraction or redistribution of game assets.
 
 5. **Saves — deferred to M2**
    - M1 hosts no engine, so there is nothing for IndieHost to save. For engines hosted
@@ -82,13 +83,20 @@ persistent, scannable game collection.
 
 ### Exit criteria
 
+Implementation is complete; criteria stay open until observed on the baseline device.
+Host evidence: `:detect:test` 19/19, `:library:testDebugUnitTest` 3/3,
+`:app:testDebugUnitTest` 16/16, `:app:assembleDebug` successful.
+
 - [ ] Games survive process death and launcher updates; a full uninstall is restored by
-      re-scanning the same folder (metadata is app-private, not backed up).
-- [ ] A SAF folder scan imports at least GameMaker and MV/MZ folders.
-- [ ] Cover art survives restart and is downsampled.
-- [ ] Revoking the SAF permission produces a clear message, not a crash.
-- [ ] DAO tests and the existing 12 detector tests pass.
-- [ ] Manual test matrix updated; no regression in the pin flow.
+      re-scanning the same folder (metadata is app-private, not backed up). — MT-27
+- [ ] A SAF folder scan imports at least GameMaker and MV/MZ folders. — MT-21, MT-22
+- [ ] Cover art survives restart and is downsampled. — MT-25
+- [ ] Revoking the SAF permission produces a clear message, not a crash. — MT-26
+- [ ] DAO tests and the detector tests pass. — DAO test written but unrun; detector 19/19
+- [ ] Manual test matrix updated (MT-21…MT-28); no regression in the pin flow. — MT-23
+
+**Blocker:** this container has no working `adb`, so instrumented and manual cases could
+not be executed. Do not mark M1 done on a compile alone.
 
 ### Risks
 
@@ -225,6 +233,8 @@ area.
 
 | Priority | Item | Why | Where |
 | --- | --- | --- | --- |
+| P0 | Run MT-21…MT-28 and `GameDaoTest` on a device | M1 exit criteria are unobserved | `TESTING.md`, `library/src/androidTest` |
+| P1 | Replace destructive Room migration with explicit migrations | Would drop library rows on a schema change | `IndieHostDatabase.kt` |
 | P2 | Add `mipmap-xxxhdpi` legacy icons | Pre-26 xxxhdpi devices upscale | `res/mipmap-xxxhdpi` |
 | P2 | Add predictive-back opt-in for target 34 | Future-proof back handling | `AndroidManifest.xml` |
 | P2 | Replace deprecated `PackageManager` icon/label calls | Future API removal | `InstalledApps.kt` |

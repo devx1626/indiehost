@@ -33,6 +33,14 @@ game client:
 - an **app drawer** with search, built from `LauncherApps`;
 - the Milestone 0 `data.win` check, kept as a tool.
 
+**Unreleased work in this tree (Milestone 1):** the library is now stored in Room and can
+also be filled by pointing IndieHost at a games folder with `ADD GAMES FOLDER`. Scans use
+stable ids and never delete rows; a GameMaker scan is linked to its Butterscotch pin
+explicitly. Each game can have user-picked cover art, downsampled to 512 px. MV/MZ and the
+remaining engines are detected but show which milestone still owes them a runtime. The M1
+device checklist is in [TESTING.md](TESTING.md) §3; it has **not** been run here because
+`adb` does not work in the build container.
+
 ## Downloads
 
 Signed release APKs are on the [Releases page](https://github.com/devx1626/indiehost/releases).
@@ -71,11 +79,15 @@ Nothing of Butterscotch is linked, forked or repackaged, and game files never le
 phone. A pin belongs to the launcher that accepted it, so games pinned while another
 launcher was active must be re-pinned with IndieHost as home.
 
+Milestone 1 adds a second source: scan a folder you own, then link the matching pin from
+the game's detail panel. IndieHost stores only metadata and your chosen cover art; scanning
+never copies or modifies game files.
+
 ## Modules
 
-- `:app` — Compose home screen and drawer
-- `:library` — data layer (Game model; Room in Milestone 1)
-- `:detect` — pure Kotlin engine fingerprinting, unit-tested on the host
+- `:app` — Compose home screen, drawer, SAF scan and cover storage
+- `:library` — `Game` model, repository seam and Room persistence
+- `:detect` — pure Kotlin `GameFolder` seam, engine fingerprinting and WAD parsing
 - `:runtimes` — one `RuntimeAdapter` per engine (`canRun`, `prepare`, `launch`, `supportsSaves`)
 
 ## Build
