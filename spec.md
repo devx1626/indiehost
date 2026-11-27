@@ -148,7 +148,7 @@ Status values: **Implemented**, **Partial**, **Planned**, **Not started**.
 | --- | --- | --- | --- |
 | FR-14 | "CHECK DATA.WIN" lets the user pick a file, copies it to the cache on a worker thread, and reports engine, runnable status, WAD version and blocker. | Implemented | `HomeScreen`, `EngineDetector` |
 | FR-15 | "BUTTERSCOTCH" opens the runner app, or explains how to install it when missing. | Implemented | `GameMakerRuntimeAdapter.launch` |
-| FR-16 | IndieHost accepts `CONFIRM_PIN_SHORTCUT` requests from Butterscotch for `game-` shortcuts so a pin made while it is the home app is recorded against it. Other pin requests are declined. | Implemented | `PinShortcutActivity` |
+| FR-16 | IndieHost accepts `CONFIRM_PIN_SHORTCUT` requests from Butterscotch for `game-` shortcuts so a pin made while it is the home app is recorded against it. The request must still be valid; disabled or unpinned shortcuts are not shown. Other pin requests are declined. | Implemented | `PinPolicy`, `PinShortcutActivity`, `ButterscotchShortcuts` |
 
 ### 4.5 Milestone 1 — real library
 
