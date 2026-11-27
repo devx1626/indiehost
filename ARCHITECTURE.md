@@ -72,6 +72,7 @@ app/src/main/kotlin/com/indiehost/launcher/
   LibraryItem.kt         merge of scanned games and pinned shortcuts
   CoverStore.kt          downsample + store user-picked art in filesDir/covers
   AppSearch.kt           pure case/accent-folding drawer search rules
+  Contrast.kt / Motion.kt  pure WCAG ratio and reduced-motion rules
   (debug) LauncherPreviews.kt  device-less state previews, not shipped
   WebPaths.kt            pure URL/path/MIME rules for the offline WebView
   SafTreeResolver.kt     resolve a relative path inside one SAF game folder
@@ -480,7 +481,7 @@ M2 design and in `spec.md`.
 | Permissions | `PACKAGE_USAGE_STATS` only (app-op); no `INTERNET`; no runtime permissions |
 | Package visibility | `<queries>` for Butterscotch and `MAIN`/`LAUNCHER` |
 | Game data | Never copied out of Butterscotch; checker cache is local and transient |
-| WebView | JavaScript on, no bridge, file/content access off, `blockNetworkLoads=true`, mixed content never, off-origin requests/navigation blocked; no `INTERNET` |
+| WebView | JavaScript on, no bridge, file/content access off, `blockNetworkLoads=true`, mixed content never, off-origin requests/navigation blocked, path segments/length and 64 MB asset caps, cache cleared on destroy; no `INTERNET` |
 | Pin requests | `PinPolicy` requires a valid, shortcut-type `game-` request from Butterscotch; listed shortcuts must also be enabled and pinned |
 | Backup | `allowBackup="false"` plus `dataExtractionRules` excluding prefs, Room and covers from cloud backup and device transfer |
 

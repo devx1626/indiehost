@@ -428,7 +428,7 @@ Milestone 0 game bar. Measure with the protocol in [TESTING.md](TESTING.md).
 - [ ] Scanned folders and covers survive process death and launcher updates. — MT-21…MT-27
 - [ ] MV/MZ games launch offline without `INTERNET` and no remote request succeeds. — MT-29…MT-31
 - [ ] Back/audio/rotation behave like a game; detection-only engines show a reason. — MT-32, MT-34
-- [ ] Host gate passes: 19 detector + 3 mapping + 3 registry + 25 app tests and a debug APK.
+- [ ] Host gate passes: 19 detector + 3 mapping + 7 runtime + 31 app tests and a debug APK.
 - [ ] Installs and launches on API 24 through 34.
 - [ ] Can be selected as the home app; Home returns to it with `singleTask` behaviour.
 - [ ] Lists pinned `game-` shortcuts only while it is the home app.

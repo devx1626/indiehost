@@ -16,8 +16,8 @@ has never run in this environment (`adb` is broken here); do not report it as pa
 | --- | --- | --- | --- |
 | JVM unit tests (`:detect`) | `GameMakerWad` parsing, `EngineDetector` fingerprints, blockers | JUnit 4 | **19 tests**, passing |
 | JVM unit tests (`:library`) | `Game` ↔ `GameEntity` mapping, enum fallback | JUnit 4 | **3 tests**, passing |
-| JVM unit tests (`:app`) | SAF scanner, merge rules, covers, WebView paths, drawer search | JUnit 4 | **25 tests**, passing |
-| JVM unit tests (`:runtimes`) | Engine → adapter registry selection, WebView action constants | JUnit 4 | **3 tests**, passing |
+| JVM unit tests (`:app`) | SAF scanner, merge rules, covers, WebView paths, drawer search, contrast, motion, preview coverage | JUnit 4 | **31 tests**, passing |
+| JVM unit tests (`:runtimes`) | Adapter registry, WebView action constants, pin policy | JUnit 4 | **7 tests**, passing |
 | Instrumented tests | Room DAO round trip | AndroidX Test | 1 test written (`GameDaoTest`), **not run here**; run via `tools/device_checks.sh --dao` |
 | Manual device tests | Home role, pin, scan, covers, launch, recents, drawer, permissions | Human + adb | Required per release; script and synthetic fixture provided; cases not yet run |
 | Performance | Startup, resume, drawer, fps, memory | adb + screen recording | Protocol below; not yet measured |
@@ -65,10 +65,14 @@ maps unknown engine names to `UNKNOWN`, and keeps optional fields null.
   percent-escape rejection, MIME map.
 - `AppSearchTest` (4): case-insensitive label/package matching, accent folding, empty query
   and non-matching queries.
+- `ContrastTest` (3): every text token against all four surfaces, plus accent/button ink.
+- `MotionTest` (2): zero/negative animator scale disables decorative motion.
+- `LauncherPreviewsTest` (1, debug): the four key state previews still exist.
 
-`.runtimes` host tests (`RuntimeRegistryTest.kt`, 3): all three registered engines resolve to
-their adapter, an unregistered engine resolves to null, and both RPG Maker adapters share
-the manifest action/extra constants.
+`.runtimes` host tests: `RuntimeRegistryTest.kt` (3) verifies all three registered engines,
+null for an unregistered engine, and shared WebView action/extra constants;
+`PinPolicyTest.kt` (4) verifies valid/invalid, non-shortcut, foreign and disabled/unpinned
+pin decisions.
 
 The fixtures are synthetic; no real game data is used.
 
@@ -92,7 +96,7 @@ The fixtures are synthetic; no real game data is used.
 ```
 
 Expected: `:detect:test` reports 19 passed, `:library:testDebugUnitTest` 3,
-`:app:testDebugUnitTest` 25 and `:runtimes:testDebugUnitTest` 3, all with 0 failures. A
+`:app:testDebugUnitTest` 31 and `:runtimes:testDebugUnitTest` 7, all with 0 failures. A
 detector failure blocks any release. `gradle test` does **not** run
 `library/src/androidTest`; that needs a device.
 
@@ -106,7 +110,9 @@ top-level functions.
 the empty library, a scanning state with a blocked game, an app drawer with no search
 matches, and the drawer loading state. Open them in Android Studio's preview pane to inspect
 the shared state cards, reserved badge slots and search affordances without a device. They
-are debug-only and are not part of the shipped APK.
+are debug-only and are not part of the shipped APK. `LauncherPreviewsTest` (host) checks that
+all four state previews still exist. Robolectric PNG rendering is deferred until the offline
+`android-all-instrumented` jar story is settled; it is not a substitute for MT-37.
 
 ### 2.1 Running the device checks from a workstation
 
@@ -379,6 +385,15 @@ allowed, with the device offline.
 handler; no network request succeeds; the loading overlay clears after first page finish.
 If local loads break, revisit the hardening flags before any release.
 
+### MT-37 — TalkBack and reduced motion
+
+**Steps:** With TalkBack on, traverse home → recents → library row → detail dialog → drawer;
+open detail and confirm the Play/link/Remove actions are announced. Enable "Remove animations"
+in system accessibility settings and reopen the app.
+**Expected:** Every interactive item has a spoken name; decorative marks and letter
+placeholders are not announced; focus reaches state-card actions; no animation runs when the
+system motion scale is 0; all touch targets are at least 48 dp.
+
 ---
 
 ## 4. Performance protocol
@@ -469,8 +484,8 @@ guessing.
 Before tagging or sideloading a build:
 
 - [ ] `./gradlew :detect:test` — 19/19.
-- [ ] `./gradlew :app:testDebugUnitTest` (25), `:library:testDebugUnitTest` (3) and
-      `:runtimes:testDebugUnitTest` (3) — green.
+- [ ] `./gradlew :app:testDebugUnitTest` (31), `:library:testDebugUnitTest` (3) and
+      `:runtimes:testDebugUnitTest` (7) — green.
 - [ ] `./gradlew :app:assembleDebug` — success.
 - [ ] MT-01 through MT-06 pass on the baseline.
 - [ ] MT-07 through MT-09 pass with usage access granted and revoked.
@@ -480,6 +495,7 @@ Before tagging or sideloading a build:
 - [ ] MT-29 through MT-33 pass offline with an MV and an MZ game.
 - [ ] MT-34 passes for all three detection-only engines.
 - [ ] MT-35 and MT-36 pass for pin validity and WebView hardening.
+- [ ] MT-37 passes for TalkBack focus order and reduced motion.
 - [ ] `GameDaoTest` runs on a device when `adb` is available.
 - [ ] Cold start and resume recorded (at least once).
 - [ ] No game data in `git status` or the APK.

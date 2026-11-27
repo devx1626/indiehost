@@ -11,7 +11,7 @@
 - P0/P1 of the earlier UI findings implemented: real drawer search, shared state cards,
   semantic tokens, reserved badge slots, detail focus/confirmation, WebView loading/blocked
   overlay, debug-only Compose previews.
-- Host gate green: 19 detector + 3 mapping + 3 registry + 25 app tests; debug APK and signed
+- Host gate green: 19 detector + 3 mapping + 7 runtime + 31 app tests; debug APK and signed
   v0.4.0 release built.
 - Device verification still open (MT-01…MT-34 and `GameDaoTest`). No performance claims.
 
@@ -38,7 +38,7 @@ UI/UX work is complete when:
 | --- | --- | --- | --- |
 | [x] Add `PinItemRequest.isValid` check, re-resolve shortcut, filter `isEnabled && isPinned`, surface accept failure — `PinPolicy` pure helper + 4 host tests; manual case MT-35 still open | DroidDeck/ARK pin flow | `PinPolicy.kt`, `PinShortcutActivity.kt`, `ButterscotchShortcuts.kt` | Host test for decision logic; manual case for foreign/cancelled request |
 | [x] Add `dataExtractionRules` excluding prefs, Room DB and covers; covers excluded explicitly rather than moved | Android auto-backup docs, DroidDeck private-path model | `AndroidManifest.xml`, `res/xml/data_extraction_rules.xml` | Resource compiles with the manifest; D2D behaviour still needs a device check |
-| [ ] Harden WebView: [x] `blockNetworkLoads`, `MIXED_CONTENT_NEVER_ALLOW`; [ ] per-game origin isolation decision, SVG policy, path/byte caps, cache clear on destroy | Android WebViewAssetLoader/WebSettings docs, security report | `GameWebViewActivity.kt`, `WebPaths.kt`, `SafTreeResolver.kt` | MT-36 must confirm local load still works with `blockNetworkLoads=true` |
+| [ ] Harden WebView: [x] `blockNetworkLoads`, `MIXED_CONTENT_NEVER_ALLOW`, path segment/length caps, 64 MB asset cap, cache clear on destroy; [ ] per-game origin isolation decision, SVG policy | Android WebViewAssetLoader/WebSettings docs, security report | `GameWebViewActivity.kt`, `WebPaths.kt`, `SafTreeResolver.kt` | MT-36 must confirm local load still works with `blockNetworkLoads=true` |
 | Add a one-shot, TTL'd in-process launch token instead of trusting intent extras | DroidDeck `LauncherHandoff`, COSMIC one-shot handover | `MainActivity.kt`, `RpgMakerRuntimeAdapter.kt` | Pure TTL/one-shot host test |
 
 ## Phase 2 — Library lifecycle and scan honesty
@@ -66,10 +66,10 @@ UI/UX work is complete when:
 
 | Task | Source patterns | Files | Acceptance |
 | --- | --- | --- | --- |
-| Contrast tests for every palette pair and accent/ink combination | DroidDeck contrast tests | `IndieTheme.kt`, host test | 4.5:1 floor asserted over sampled gradients |
-| Reduced-motion gate via `Settings.Global.ANIMATOR_DURATION_SCALE`; one short fade maximum | COSMIC open issue, Cinnamon software-render detection | `IndieTheme.kt`, `MainActivity.kt`, `HomeUi.kt` | Setting respected; no spring/blur |
-| TalkBack focus order and content descriptions for home, drawer, detail, WebView | Lawnchair/ARK a11y, Cinnamon accessible names | `HomeUi.kt`, `GameWebViewActivity.kt` | Manual a11y checklist in `TESTING.md` |
-| Device-less preview PNG renders at handheld + portrait, failing on flat colour | DroidDeck `PreviewRenderTest` | debug/testDebug source sets, `TESTING.md` | CI job green offline (cache caveat documented) |
+| [x] Contrast tests for every text/surface and accent/ink combination — `ContrastTest`; `TextMuted` lifted to `#939CA5` so raised cards also clear 4.5:1 | DroidDeck contrast tests | `IndieTheme.kt`, `Contrast.kt`, host test | 4.5:1 floor asserted on all four surfaces |
+| [x] Reduced-motion gate via `Settings.Global.ANIMATOR_DURATION_SCALE`; the only animation (`animateContentSize` on state cards) is disabled when scale is 0 | COSMIC open issue, Cinnamon software-render detection | `Motion.kt`, `HomeUi.kt`, host test | Setting respected; no spring/blur |
+| [ ] TalkBack focus order — decorative marks and letter placeholders are hidden from semantics; manual MT-37 still open | Lawnchair/ARK a11y, Cinnamon accessible names | `HomeUi.kt`, `GameWebViewActivity.kt` | Manual a11y checklist in `TESTING.md` |
+| [ ] Device-less preview PNG renders; [x] preview state coverage test verifies all key states still have previews | DroidDeck `PreviewRenderTest` | debug/testDebug source sets, `TESTING.md` | PNG rendering deferred until the offline Robolectric jar story is settled |
 
 ## Phase 5 — Settings and onboarding (only if user evidence supports it)
 

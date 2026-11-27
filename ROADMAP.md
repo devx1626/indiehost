@@ -145,7 +145,7 @@ to work, and give the launcher a second real engine.
 
 ### Exit criteria
 
-Host evidence: `:runtimes:testDebugUnitTest` 3/3, `:app:testDebugUnitTest` 25/25,
+Host evidence: `:runtimes:testDebugUnitTest` 7/7, `:app:testDebugUnitTest` 31/31,
 `:detect:test` 19/19, `:library:testDebugUnitTest` 3/3, debug APK built.
 
 - [ ] One MV game and one MZ game launch offline from a scanned folder. — MT-29, MT-30
