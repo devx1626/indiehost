@@ -152,10 +152,10 @@ Status values: **Implemented**, **Partial**, **Planned**, **Not started**.
 
 | ID | Requirement | Status |
 | --- | --- | --- |
-| FR-17 | Games are persisted across process death and reinstall of the launcher using Room, not an in-memory map. | Planned (M1) |
+| FR-17 | Games are persisted across process death and launcher updates using Room, not an in-memory map. A full uninstall is restored by re-scanning the same folder; metadata is app-private and is not backed up. | Planned (M1) |
 | FR-18 | The user can point IndieHost at a games folder (SAF tree) and scan it for supported engines. | Planned (M1) |
 | FR-19 | Each game has user-visible title, engine, WAD version (when applicable) and optional cover art. | Planned (M1) |
-| FR-20 | For engines IndieHost hosts itself, saves live outside the app's private storage and survive a launcher reinstall. Butterscotch-owned saves remain Butterscotch's responsibility and are documented as such. | Planned (M1) |
+| FR-20 | Not applicable in M1: no engine is hosted by IndieHost yet. Butterscotch-owned saves remain Butterscotch's responsibility and are documented as such. For engines IndieHost hosts from M2, saves live outside the app's private storage. | Deferred to M2 |
 
 ### 4.6 Milestone 2 — RPG Maker WebView
 
@@ -414,8 +414,8 @@ Milestone 0 game bar. Measure with the protocol in [TESTING.md](TESTING.md).
 - [ ] Room persists games across process death and launcher reinstall.
 - [ ] A SAF-selected folder can be scanned and imported.
 - [ ] Cover art can be attached and survives restart.
-- [ ] Hosted-engine saves survive a launcher reinstall; the Butterscotch limitation is
-      documented in the UI or help text.
+- [ ] Not applicable in M1: no hosted engine exists. Butterscotch-owned saves stay in
+      Butterscotch and are documented in the UI or help text.
 - [ ] DAO and detector tests pass; manual matrix updated.
 
 ### 13.3 Milestone 2

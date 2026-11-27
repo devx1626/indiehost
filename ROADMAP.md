@@ -74,15 +74,16 @@ persistent, scannable game collection.
    - Downsample before storing; never store a full-resolution screenshot.
    - Do not extract or redistribute copyrighted art.
 
-5. **Saves**
-   - For engines IndieHost hosts (M2+), save to a shared, documented directory that
-     survives a launcher reinstall.
+5. **Saves — deferred to M2**
+   - M1 hosts no engine, so there is nothing for IndieHost to save. For engines hosted
+     from M2, save to a shared, documented directory.
    - For Butterscotch-hosted games, saves belong to Butterscotch; document the limitation
      and do not pretend to manage them.
 
 ### Exit criteria
 
-- [ ] Games survive process death and a launcher reinstall.
+- [ ] Games survive process death and launcher updates; a full uninstall is restored by
+      re-scanning the same folder (metadata is app-private, not backed up).
 - [ ] A SAF folder scan imports at least GameMaker and MV/MZ folders.
 - [ ] Cover art survives restart and is downsampled.
 - [ ] Revoking the SAF permission produces a clear message, not a crash.
