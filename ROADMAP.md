@@ -145,7 +145,7 @@ to work, and give the launcher a second real engine.
 
 ### Exit criteria
 
-Host evidence: `:runtimes:testDebugUnitTest` 3/3, `:app:testDebugUnitTest` 21/21,
+Host evidence: `:runtimes:testDebugUnitTest` 3/3, `:app:testDebugUnitTest` 25/25,
 `:detect:test` 19/19, `:library:testDebugUnitTest` 3/3, debug APK built.
 
 - [ ] One MV game and one MZ game launch offline from a scanned folder. — MT-29, MT-30
@@ -248,6 +248,8 @@ area.
 
 | Priority | Item | Why | Where |
 | --- | --- | --- | --- |
+| ~~P0~~ | ~~Drawer search, shared state cards, semantic tokens, badge slots~~ | Done: P0 from [UI/UX research](docs/ui-ux-research.md) | `HomeUi.kt`, `IndieTheme.kt` |
+| ~~P1~~ | ~~Staged status, detail focus, WebView feedback, debug previews~~ | Done: P1 from the same research | `GameWebViewActivity.kt`, `HomeUi.kt`, `TESTING.md` |
 | P0 | Run MT-21…MT-33 and `GameDaoTest` on a device | M1/M2 exit criteria are unobserved | `TESTING.md`, `library/src/androidTest` |
 | P0 | Confirm WebView loads `appassets` without `INTERNET` | Decides whether ADR-0007's copy fallback is needed | `GameWebViewActivity.kt` |
 | P1 | Replace destructive Room migration with explicit migrations | Would drop library rows on a schema change | `IndieHostDatabase.kt` |

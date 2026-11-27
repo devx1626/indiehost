@@ -52,6 +52,9 @@
     <string name="blocked_short">BLOCKED</string>
     <string name="close">CLOSE</string>
     <string name="remove">REMOVE</string>
+    <string name="remove_confirm">Remove this game from the library? The game folder is not touched.</string>
+    <string name="confirm">CONFIRM</string>
+    <string name="cancel">CANCEL</string>
     <string name="link_pin_hint">Link the Butterscotch pin for this game:</string>
     <string name="pin_linked">Linked pin: %1$s</string>
     <string name="unlink">UNLINK</string>
@@ -64,7 +67,10 @@
     <string name="removed_game">Removed from the library. The game folder was not touched.</string>
 
     <!-- App drawer -->
-    <string name="search_apps">Search your library</string>
+    <string name="search_apps">Search apps</string>
+    <string name="clear_search">CLEAR</string>
+    <string name="search_hint">Try a different name, or clear the search.</string>
+    <string name="retry">RETRY</string>
     <string name="no_apps">No apps found.</string>
     <string name="no_app_matches">No app matches \"%1$s\".</string>
 
@@ -95,6 +101,8 @@
     <string name="web_no_access">Access to the games folder was revoked. Pick the folder again.</string>
     <string name="web_missing_files">No index.html and core JavaScript were found in this folder.</string>
     <string name="web_cannot_start">Cannot start game</string>
+    <string name="web_loading">Loading game...</string>
+    <string name="back_to_library">BACK TO LIBRARY</string>
     <string name="remote_blocked">Network requests are blocked. This game needs no internet.</string>
     <string name="leave_game">Leave the game?</string>
     <string name="leave">LEAVE</string>

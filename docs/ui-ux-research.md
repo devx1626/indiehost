@@ -2,6 +2,8 @@
 
 > **Status:** Research notes, not a change proposal.
 > **Date:** 2026-11-27
+> **Outcome:** P0 items 1–4 and P1 items 5–8 were reimplemented in original Kotlin/Compose;
+> P2 remains evidence-gated. No upstream code or assets were copied.
 > **Method:** GitHub web/API/raw reads only. No repository was cloned into IndieHost, no
 > source file, icon, font, colour value or theme asset was copied, and no build or device
 > test was run for this document.

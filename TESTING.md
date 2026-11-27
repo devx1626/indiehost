@@ -16,7 +16,7 @@ has never run in this environment (`adb` is broken here); do not report it as pa
 | --- | --- | --- | --- |
 | JVM unit tests (`:detect`) | `GameMakerWad` parsing, `EngineDetector` fingerprints, blockers | JUnit 4 | **19 tests**, passing |
 | JVM unit tests (`:library`) | `Game` ↔ `GameEntity` mapping, enum fallback | JUnit 4 | **3 tests**, passing |
-| JVM unit tests (`:app`) | SAF scanner, merge rules, covers, WebView path/security rules | JUnit 4 | **21 tests**, passing |
+| JVM unit tests (`:app`) | SAF scanner, merge rules, covers, WebView paths, drawer search | JUnit 4 | **25 tests**, passing |
 | JVM unit tests (`:runtimes`) | Engine → adapter registry selection, WebView action constants | JUnit 4 | **3 tests**, passing |
 | Instrumented tests | Room DAO round trip | AndroidX Test | 1 test written (`GameDaoTest`), **not run here**; run via `tools/device_checks.sh --dao` |
 | Manual device tests | Home role, pin, scan, covers, launch, recents, drawer, permissions | Human + adb | Required per release; script and synthetic fixture provided; cases not yet run |
@@ -63,6 +63,8 @@ maps unknown engine names to `UNKNOWN`, and keeps optional fields null.
   hashed file names.
 - `WebPathsTest` (4): both RPG Maker entry layouts, local-origin allowlist, traversal and
   percent-escape rejection, MIME map.
+- `AppSearchTest` (4): case-insensitive label/package matching, accent folding, empty query
+  and non-matching queries.
 
 `.runtimes` host tests (`RuntimeRegistryTest.kt`, 3): all three registered engines resolve to
 their adapter, an unregistered engine resolves to null, and both RPG Maker adapters share
@@ -90,13 +92,21 @@ The fixtures are synthetic; no real game data is used.
 ```
 
 Expected: `:detect:test` reports 19 passed, `:library:testDebugUnitTest` 3,
-`:app:testDebugUnitTest` 21 and `:runtimes:testDebugUnitTest` 3, all with 0 failures. A
+`:app:testDebugUnitTest` 25 and `:runtimes:testDebugUnitTest` 3, all with 0 failures. A
 detector failure blocks any release. `gradle test` does **not** run
 `library/src/androidTest`; that needs a device.
 
 On the aarch64 container used here, add `-Pkotlin.incremental=false` and the aapt2
 override; a stale incremental cache can otherwise make the test compiler miss production
 top-level functions.
+
+### 2.2 Device-less UI previews
+
+`app/src/debug/kotlin/com/indiehost/launcher/LauncherPreviews.kt` has Compose previews for
+the empty library, a scanning state with a blocked game, an app drawer with no search
+matches, and the drawer loading state. Open them in Android Studio's preview pane to inspect
+the shared state cards, reserved badge slots and search affordances without a device. They
+are debug-only and are not part of the shipped APK.
 
 ### 2.1 Running the device checks from a workstation
 
@@ -443,7 +453,7 @@ guessing.
 Before tagging or sideloading a build:
 
 - [ ] `./gradlew :detect:test` — 19/19.
-- [ ] `./gradlew :app:testDebugUnitTest` (21), `:library:testDebugUnitTest` (3) and
+- [ ] `./gradlew :app:testDebugUnitTest` (25), `:library:testDebugUnitTest` (3) and
       `:runtimes:testDebugUnitTest` (3) — green.
 - [ ] `./gradlew :app:assembleDebug` — success.
 - [ ] MT-01 through MT-06 pass on the baseline.

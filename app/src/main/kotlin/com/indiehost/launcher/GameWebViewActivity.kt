@@ -7,13 +7,18 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Toast
+import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -37,6 +42,9 @@ class GameWebViewActivity : Activity() {
     private val focusListener = AudioManager.OnAudioFocusChangeListener {}
 
     private lateinit var webView: WebView
+    private lateinit var overlay: LinearLayout
+    private lateinit var overlayText: TextView
+    private lateinit var overlayBack: Button
     private var showingExit = false
 
     @Volatile
@@ -51,7 +59,7 @@ class GameWebViewActivity : Activity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         webView = WebView(this)
-        setContentView(webView)
+        setContentView(buildRoot())
 
         val gameId = intent.getStringExtra(RpgMakerRuntimeAdapter.EXTRA_GAME_ID)
         if (gameId.isNullOrBlank()) {
@@ -108,6 +116,76 @@ class GameWebViewActivity : Activity() {
         }, "webgame-load").start()
     }
 
+    /** WebView plus a small overlay for loading and blocked-network states. */
+    private fun buildRoot(): FrameLayout {
+        val root = FrameLayout(this)
+        root.addView(
+            webView,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            ),
+        )
+
+        overlayText = TextView(this).apply {
+            textSize = 16f
+            setTextColor(resources.getColor(android.R.color.white, null))
+            gravity = Gravity.CENTER
+        }
+        overlayBack = Button(this).apply {
+            text = getString(R.string.back_to_library)
+            setOnClickListener { finish() }
+        }
+        overlay = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setBackgroundColor(0xCC171A21.toInt())
+            addView(
+                overlayText,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+            addView(
+                overlayBack,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ).apply { topMargin = (24 * resources.displayMetrics.density).toInt() },
+            )
+            visibility = View.GONE
+        }
+        root.addView(
+            overlay,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            ),
+        )
+        return root
+    }
+
+    private fun showLoading(message: String) {
+        webView.post {
+            overlayText.text = message
+            overlayBack.visibility = View.GONE
+            overlay.visibility = View.VISIBLE
+        }
+    }
+
+    private fun hideOverlay() {
+        webView.post { overlay.visibility = View.GONE }
+    }
+
+    private fun showBlockedInline() {
+        webView.post {
+            overlayText.text = getString(R.string.remote_blocked)
+            overlayBack.visibility = View.VISIBLE
+            overlay.visibility = View.VISIBLE
+        }
+    }
+
     private fun startGame(resolver: SafTreeResolver, indexPath: String) {
         webView.settings.apply {
             javaScriptEnabled = true
@@ -139,6 +217,10 @@ class GameWebViewActivity : Activity() {
                 request: WebResourceRequest,
             ): Boolean = blockIfRemote(request.url.toString())
 
+            override fun onPageFinished(view: WebView?, url: String?) {
+                hideOverlay()
+            }
+
             private fun intercept(
                 url: String?,
                 local: () -> WebResourceResponse?,
@@ -151,6 +233,7 @@ class GameWebViewActivity : Activity() {
             }
         }
 
+        showLoading(getString(R.string.web_loading))
         webView.loadUrl(WebPaths.urlFor(indexPath))
     }
 
@@ -168,9 +251,7 @@ class GameWebViewActivity : Activity() {
         val now = System.currentTimeMillis()
         if (now - lastBlockedAt < 3_000L) return
         lastBlockedAt = now
-        webView.post {
-            Toast.makeText(this, R.string.remote_blocked, Toast.LENGTH_SHORT).show()
-        }
+        showBlockedInline()
     }
 
     private fun fail(message: String) {

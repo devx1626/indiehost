@@ -44,6 +44,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,6 +52,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -60,6 +63,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -211,12 +215,13 @@ internal fun HomeScreen(
             }
 
             libraryItems.isEmpty() -> item {
-                Panel(Modifier.padding(horizontal = 20.dp)) {
-                    Text(
-                        stringResource(R.string.no_games),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
+                StateCard(
+                    title = stringResource(R.string.library_empty),
+                    detail = stringResource(R.string.no_games),
+                    actionLabel = stringResource(R.string.add_folder),
+                    onAction = { folderPicker.launch(null) },
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
             }
 
             else -> items(libraryItems, key = { it.key }) { item ->
@@ -241,9 +246,7 @@ internal fun HomeScreen(
 
         if (status.isNotEmpty()) {
             item {
-                Panel(Modifier.padding(horizontal = 20.dp)) {
-                    Text(status, style = MaterialTheme.typography.bodySmall, color = Indie.Accent)
-                }
+                StateCard(title = status, modifier = Modifier.padding(horizontal = 20.dp))
             }
         }
 
@@ -276,29 +279,23 @@ internal fun HomeScreen(
         }
         if (scanMessage.isNotEmpty()) {
             item {
-                Panel(Modifier.padding(horizontal = 20.dp)) {
-                    Text(scanMessage, style = MaterialTheme.typography.bodySmall, color = Indie.Accent)
-                }
+                StateCard(
+                    title = scanMessage,
+                    actionLabel = stringResource(R.string.retry),
+                    onAction = { folderPicker.launch(null) },
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
             }
         }
 
         if (checking || report.isNotEmpty()) {
             item {
-                Panel(Modifier.padding(horizontal = 20.dp)) {
-                    if (checking) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(
-                                Modifier.size(14.dp),
-                                color = Indie.Accent,
-                                strokeWidth = 2.dp,
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(stringResource(R.string.reading_datawin), style = MaterialTheme.typography.bodySmall)
-                        }
-                    } else {
-                        Text(report, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
+                StateCard(
+                    title = if (checking) stringResource(R.string.reading_datawin) else stringResource(R.string.check_datawin),
+                    detail = if (checking) null else report,
+                    progress = checking,
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
             }
         }
     }
@@ -526,14 +523,16 @@ private fun RecentTile(app: LauncherApp, onClick: () -> Unit) {
     ) {
         AppIcon(app, size = 52.dp, corner = 4.dp)
         Spacer(Modifier.height(6.dp))
-        Text(
-            app.label,
-            fontSize = 11.sp,
-            color = Indie.Text,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-        )
+        Box(Modifier.height(30.dp), contentAlignment = Alignment.TopCenter) {
+            Text(
+                app.label,
+                fontSize = 11.sp,
+                color = Indie.Text,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 
@@ -591,6 +590,7 @@ private fun GameRow(
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                     color = Indie.TextBright.copy(alpha = 0.85f),
+                    modifier = Modifier.clearAndSetSemantics {},
                 )
             }
         }
@@ -611,16 +611,19 @@ private fun GameRow(
             )
         }
         Spacer(Modifier.width(8.dp))
-        if (item.launchable) {
-            AccentButton(stringResource(R.string.play), onPlay, Modifier.width(80.dp))
-        } else {
-            Text(
-                statusLabel(item.reason),
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp,
-                color = Indie.Accent,
-            )
+        // Fixed slot: a status badge appearing must not reflow the row.
+        Box(Modifier.width(84.dp), contentAlignment = Alignment.CenterEnd) {
+            if (item.launchable) {
+                AccentButton(stringResource(R.string.play), onPlay, Modifier.width(80.dp))
+            } else {
+                Text(
+                    statusLabel(item.reason),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp,
+                    color = Indie.Accent,
+                )
+            }
         }
     }
 }
@@ -665,6 +668,11 @@ private fun GameDetailDialog(
 ) {
     val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) onPickCover(uri)
+    }
+    var confirmRemove by remember { mutableStateOf(false) }
+    val primaryFocus = remember { FocusRequester() }
+    LaunchedEffect(item.key) {
+        if (item.launchable) runCatching { primaryFocus.requestFocus() }
     }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -742,7 +750,11 @@ private fun GameDetailDialog(
 
             Spacer(Modifier.height(12.dp))
             if (item.launchable) {
-                AccentButton(stringResource(R.string.play), onLaunch, Modifier.fillMaxWidth())
+                AccentButton(
+                    stringResource(R.string.play),
+                    onLaunch,
+                    Modifier.fillMaxWidth().focusRequester(primaryFocus),
+                )
                 Spacer(Modifier.height(10.dp))
             }
 
@@ -781,8 +793,32 @@ private fun GameDetailDialog(
                 Spacer(Modifier.height(10.dp))
             }
 
+            if (confirmRemove) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(R.string.remove_confirm),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Indie.TextMuted,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlineButton(
+                        stringResource(R.string.confirm),
+                        { confirmRemove = false; onRemove() },
+                        Modifier.weight(1f),
+                    )
+                    OutlineButton(
+                        stringResource(R.string.cancel),
+                        { confirmRemove = false },
+                        Modifier.weight(1f),
+                    )
+                }
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlineButton(stringResource(R.string.remove), onRemove, Modifier.weight(1f))
+                OutlineButton(
+                    stringResource(R.string.remove),
+                    { confirmRemove = true },
+                    Modifier.weight(1f),
+                )
                 OutlineButton(stringResource(R.string.close), onDismiss, Modifier.weight(1f))
             }
         }
@@ -797,7 +833,9 @@ private fun AccentButton(text: String, onClick: () -> Unit, modifier: Modifier =
         shape = PillShape,
         colors = ButtonDefaults.buttonColors(
             containerColor = Indie.Accent,
-            contentColor = Color(0xFF0B1219),
+            contentColor = Indie.OnAccent,
+            disabledContainerColor = Indie.disabled(Indie.Accent),
+            disabledContentColor = Indie.OnAccent,
         ),
         contentPadding = PaddingValues(horizontal = 10.dp),
     ) {
@@ -817,7 +855,10 @@ private fun OutlineButton(
         modifier = modifier.height(48.dp),
         enabled = enabled,
         shape = PillShape,
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = Indie.Text),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = Indie.Text,
+            disabledContentColor = Indie.disabled(),
+        ),
         border = androidx.compose.foundation.BorderStroke(1.dp, Indie.Edge),
         contentPadding = PaddingValues(horizontal = 8.dp),
     ) {
@@ -837,6 +878,49 @@ private fun Panel(modifier: Modifier = Modifier, content: @Composable ColumnScop
             .padding(14.dp),
         content = content,
     )
+}
+
+/**
+ * One shape for every "nothing here / still working / something failed" state:
+ * a short title, an optional reason, and one next action. Reused by the drawer,
+ * the library, the scan/check tools and the WebView failure path.
+ */
+@Composable
+private fun StateCard(
+    title: String,
+    detail: String? = null,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+    progress: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    Panel(modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (progress) {
+                CircularProgressIndicator(
+                    Modifier.size(20.dp),
+                    color = Indie.Accent,
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                BrandMark(Modifier.size(24.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge, color = Indie.TextBright)
+                if (detail != null) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(detail, style = MaterialTheme.typography.bodySmall, color = Indie.TextMuted)
+                }
+                if (actionLabel != null && onAction != null) {
+                    Spacer(Modifier.height(6.dp))
+                    TextButton(onClick = onAction) {
+                        Text(actionLabel, style = labelStyle(), color = Indie.Accent)
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -860,12 +944,14 @@ internal fun AppDrawer(
     onClose: () -> Unit,
     onLaunch: (LauncherApp) -> Unit,
     onAppInfo: (LauncherApp) -> Unit,
+    initialQuery: String = "",
 ) {
-    var query by remember { mutableStateOf("") }
+    var query by remember { mutableStateOf(initialQuery) }
+    val searchFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { searchFocus.requestFocus() } }
+
     val visible = remember(apps, query) {
-        val needle = query.trim().lowercase()
-        if (needle.isEmpty()) apps
-        else apps.filter { it.label.lowercase().contains(needle) || it.packageName.contains(needle) }
+        apps.filter { AppSearch.matches(it.label, it.packageName, query) }
     }
 
     Column(
@@ -910,22 +996,34 @@ internal fun AppDrawer(
                 focusedContainerColor = Indie.Panel,
                 unfocusedContainerColor = Indie.Panel,
             ),
+            trailingIcon = if (query.isEmpty()) null else {
+                {
+                    TextButton(onClick = { query = "" }) {
+                        Text(stringResource(R.string.clear_search), style = labelStyle(), color = Indie.Accent)
+                    }
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp)
+                .focusRequester(searchFocus),
         )
 
         when {
-            loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Indie.Accent)
-            }
+            loading -> StateCard(
+                title = stringResource(R.string.loading_apps),
+                progress = true,
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
 
-            visible.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    if (apps.isEmpty()) stringResource(R.string.no_apps) else stringResource(R.string.no_app_matches, query),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
+            visible.isEmpty() -> StateCard(
+                title = if (apps.isEmpty()) stringResource(R.string.no_apps)
+                        else stringResource(R.string.no_app_matches, query),
+                detail = if (apps.isEmpty()) null else stringResource(R.string.search_hint),
+                actionLabel = if (apps.isEmpty() || query.isEmpty()) null else stringResource(R.string.clear_search),
+                onAction = { query = "" },
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
 
             else -> LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 84.dp),

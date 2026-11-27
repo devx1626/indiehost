@@ -41,6 +41,12 @@ internal object Indie {
     val TextMuted = Color(0xFF8F98A0)
     val Green = Color(0xFFA4D007)
 
+    /** Ink used on [Accent]; kept here so buttons do not hardcode it. */
+    val OnAccent = Color(0xFF0B1219)
+
+    /** Disabled content derived from the palette instead of a magic alpha. */
+    fun disabled(color: Color = Text): Color = color.copy(alpha = 0.5f)
+
     val HeroGradient = Brush.linearGradient(
         listOf(Color(0xFF2A475E), Color(0xFF1B2838), Color(0xFF171A21)),
     )

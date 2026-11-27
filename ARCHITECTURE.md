@@ -71,6 +71,8 @@ app/src/main/kotlin/com/indiehost/launcher/
   GameScanner.kt         pure walk, stable ids, upsert-never-delete import
   LibraryItem.kt         merge of scanned games and pinned shortcuts
   CoverStore.kt          downsample + store user-picked art in filesDir/covers
+  AppSearch.kt           pure case/accent-folding drawer search rules
+  (debug) LauncherPreviews.kt  device-less state previews, not shipped
   WebPaths.kt            pure URL/path/MIME rules for the offline WebView
   SafTreeResolver.kt     resolve a relative path inside one SAF game folder
   SafAssetPathHandler.kt WebViewAssetLoader path handler backed by SAF streams
