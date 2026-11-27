@@ -18,6 +18,9 @@ interface GameFolder {
     val name: String
     val isDirectory: Boolean
 
+    /** Opaque, stable-enough location for display and id derivation. */
+    val location: String
+
     fun entries(): List<GameEntry>
 
     /** Returns null when the named child does not exist. */
@@ -33,6 +36,8 @@ class FileGameFolder(val file: File) : GameFolder {
     override val name: String get() = file.name
 
     override val isDirectory: Boolean get() = file.isDirectory
+
+    override val location: String get() = file.absolutePath
 
     override fun entries(): List<GameEntry> =
         file.listFiles()

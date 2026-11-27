@@ -109,6 +109,7 @@ data class GameEntry(val name: String, val isDirectory: Boolean)
 interface GameFolder {
     val name: String
     val isDirectory: Boolean
+    val location: String
     fun entries(): List<GameEntry>
     fun child(name: String): GameFolder?
     fun open(name: String): InputStream?
