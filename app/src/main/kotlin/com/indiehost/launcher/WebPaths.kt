@@ -14,6 +14,11 @@ object WebPaths {
     /** Every game file is mounted below this path, never at the domain root. */
     const val PREFIX = "/game/"
 
+    /** Bounds for untrusted paths coming from game HTML/JS. */
+    const val MAX_SEGMENTS = 24
+    const val MAX_SEGMENT_LENGTH = 128
+    const val MAX_ASSET_BYTES = 64L * 1024 * 1024
+
     /**
      * The two layouts EngineDetector accepts: a `www/` wrapper or files at the
      * folder root. Try them in this order so a `www/` game wins when both exist.
@@ -44,7 +49,10 @@ object WebPaths {
         if (relative.isEmpty() || relative.startsWith('/') || relative.contains('\\')) return null
         if (relative.contains('%')) return null
         val parts = relative.split('/')
-        if (parts.any { it.isEmpty() || it == "." || it == ".." }) return null
+        if (parts.size > MAX_SEGMENTS) return null
+        if (parts.any { it.isEmpty() || it == "." || it == ".." || it.length > MAX_SEGMENT_LENGTH }) {
+            return null
+        }
         return parts
     }
 

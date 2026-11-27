@@ -301,6 +301,7 @@ class GameWebViewActivity : Activity() {
 
     override fun onDestroy() {
         webView.loadUrl("about:blank")
+        webView.clearCache(true)
         (webView.parent as? ViewGroup)?.removeView(webView)
         webView.destroy()
         super.onDestroy()

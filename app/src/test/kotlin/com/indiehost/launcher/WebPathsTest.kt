@@ -45,6 +45,8 @@ class WebPathsTest {
         assertNull(WebPaths.segments("www//js"))
         assertNull(WebPaths.segments("www/%2e%2e/secret"))
         assertNull(WebPaths.segments("www\\secret"))
+        assertNull(WebPaths.segments(List(WebPaths.MAX_SEGMENTS + 1) { "a" }.joinToString("/")))
+        assertNull(WebPaths.segments("a".repeat(WebPaths.MAX_SEGMENT_LENGTH + 1)))
     }
 
     @Test

@@ -5,6 +5,7 @@ import android.graphics.drawable.Drawable
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -894,7 +895,10 @@ private fun StateCard(
     progress: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    Panel(modifier) {
+    // The only animation in the launcher; disabled by system motion settings.
+    val motion = rememberMotionEnabled()
+    val cardModifier = if (motion) modifier.animateContentSize() else modifier
+    Panel(cardModifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (progress) {
                 CircularProgressIndicator(
@@ -903,7 +907,7 @@ private fun StateCard(
                     strokeWidth = 2.dp,
                 )
             } else {
-                BrandMark(Modifier.size(24.dp))
+                BrandMark(Modifier.size(24.dp).clearAndSetSemantics {})
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {

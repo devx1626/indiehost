@@ -54,6 +54,25 @@ class SafTreeResolver(
         }
 
         val documentUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, documentId)
+
+        // Refuse oversized local assets before opening a stream. A malicious or
+        // broken game page must not make WebView map a huge file into memory.
+        val sizeCursor = resolver.query(
+            documentUri,
+            arrayOf(DocumentsContract.Document.COLUMN_SIZE),
+            null,
+            null,
+            null,
+        )
+        sizeCursor?.use { rows ->
+            val index = rows.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE)
+            if (index >= 0 && rows.moveToNext() && !rows.isNull(index) &&
+                rows.getLong(index) > WebPaths.MAX_ASSET_BYTES
+            ) {
+                return null
+            }
+        }
+
         return resolver.openInputStream(documentUri)
     }
 
