@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -52,6 +54,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
@@ -62,6 +65,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import com.indiehost.detect.Engine
 import com.indiehost.detect.EngineDetector
 import com.indiehost.library.Game
 import com.indiehost.runtimes.RunnerShortcut
@@ -86,11 +91,16 @@ internal fun HomeScreen(
     usageAccess: Boolean,
     status: String,
     library: List<Game>,
+    covers: Map<String, ImageBitmap>,
     scanning: Boolean,
     scanMessage: String,
     onAddFolder: (Uri) -> Unit,
+    onLaunchItem: (LibraryItem) -> Unit,
+    onLinkPin: (Game, String?) -> Unit,
+    onPickCover: (Game, Uri) -> Unit,
+    onRemoveCover: (Game) -> Unit,
+    onRemoveGame: (Game) -> Unit,
     onOpenDrawer: () -> Unit,
-    onLaunchGame: (RunnerShortcut) -> Unit,
     onLaunchApp: (LauncherApp) -> Unit,
     onOpenRunner: () -> Unit,
     onChooseHomeApp: () -> Unit,
@@ -118,6 +128,13 @@ internal fun HomeScreen(
         if (uri != null) onAddFolder(uri)
     }
 
+    val libraryItems = remember(library, games) {
+        mergeLibrary(library, games.map { LibraryPin(it.id, it.title) })
+    }
+    val pinsById = remember(games) { games.associateBy { it.id } }
+    var selectedGameId by remember { mutableStateOf<String?>(null) }
+    val selected = selectedGameId?.let { id -> libraryItems.firstOrNull { it.game?.id == id } }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -129,9 +146,9 @@ internal fun HomeScreen(
 
         item {
             HeroPanel(
-                games = games,
+                item = libraryItems.firstOrNull { it.launchable } ?: libraryItems.firstOrNull(),
                 canListGames = canListGames,
-                onLaunchGame = onLaunchGame,
+                onLaunch = onLaunchItem,
                 onChooseHomeApp = onChooseHomeApp,
             )
         }
@@ -182,7 +199,7 @@ internal fun HomeScreen(
         }
 
         when {
-            !canListGames -> item {
+            libraryItems.isEmpty() && !canListGames -> item {
                 Panel(Modifier.padding(horizontal = 20.dp)) {
                     Text(
                         stringResource(R.string.not_home),
@@ -193,7 +210,7 @@ internal fun HomeScreen(
                 }
             }
 
-            games.isEmpty() -> item {
+            libraryItems.isEmpty() -> item {
                 Panel(Modifier.padding(horizontal = 20.dp)) {
                     Text(
                         stringResource(R.string.no_games),
@@ -202,11 +219,21 @@ internal fun HomeScreen(
                 }
             }
 
-            else -> items(games, key = { it.id }) { shortcut ->
+            else -> items(libraryItems, key = { it.key }) { item ->
+                val pin = item.shortcutId?.let { pinsById[it] }
                 GameRow(
-                    title = shortcut.title,
-                    icon = shortcut.icon,
-                    onClick = { onLaunchGame(shortcut) },
+                    item = item,
+                    icon = pin?.icon,
+                    cover = item.game?.id?.let { covers[it] },
+                    subtitle = librarySubtitle(item),
+                    onClick = {
+                        if (item.game != null) {
+                            selectedGameId = item.game.id
+                        } else {
+                            onLaunchItem(item)
+                        }
+                    },
+                    onPlay = { onLaunchItem(item) },
                     modifier = Modifier.padding(horizontal = 20.dp),
                 )
             }
@@ -216,17 +243,6 @@ internal fun HomeScreen(
             item {
                 Panel(Modifier.padding(horizontal = 20.dp)) {
                     Text(status, style = MaterialTheme.typography.bodySmall, color = Steam.Accent)
-                }
-            }
-        }
-
-        if (library.isNotEmpty()) {
-            item {
-                Panel(Modifier.padding(horizontal = 20.dp)) {
-                    Text(
-                        stringResource(R.string.scanned_count, library.size),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
                 }
             }
         }
@@ -285,6 +301,35 @@ internal fun HomeScreen(
                 }
             }
         }
+    }
+
+    if (selected != null) {
+        val game = selected.game
+        val availablePins = if (game != null) {
+            games.filter { pin ->
+                library.none { it.linkedShortcutId == pin.id && it.id != game.id }
+            }
+        } else {
+            emptyList()
+        }
+        GameDetailDialog(
+            item = selected,
+            cover = game?.id?.let { covers[it] },
+            linkedPinTitle = selected.shortcutId?.let { pinsById[it]?.title },
+            availablePins = availablePins,
+            onDismiss = { selectedGameId = null },
+            onLaunch = {
+                onLaunchItem(selected)
+                selectedGameId = null
+            },
+            onLink = { pinId -> game?.let { onLinkPin(it, pinId) } },
+            onPickCover = { uri -> game?.let { onPickCover(it, uri) } },
+            onRemoveCover = { game?.let(onRemoveCover) },
+            onRemove = {
+                game?.let(onRemoveGame)
+                selectedGameId = null
+            },
+        )
     }
 }
 
@@ -393,13 +438,11 @@ internal fun BrandMark(modifier: Modifier = Modifier) {
  */
 @Composable
 private fun HeroPanel(
-    games: List<RunnerShortcut>,
+    item: LibraryItem?,
     canListGames: Boolean,
-    onLaunchGame: (RunnerShortcut) -> Unit,
+    onLaunch: (LibraryItem) -> Unit,
     onChooseHomeApp: () -> Unit,
 ) {
-    val game = games.firstOrNull()
-
     Box(
         Modifier
             .fillMaxWidth()
@@ -411,7 +454,7 @@ private fun HeroPanel(
     ) {
         // Oversized ghost initial, the way a store page bleeds its logo.
         Text(
-            text = (game?.title ?: "IH").take(1).uppercase(),
+            text = (item?.title ?: "IH").take(1).uppercase(),
             fontSize = 150.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White.copy(alpha = 0.05f),
@@ -426,14 +469,14 @@ private fun HeroPanel(
         ) {
             Column {
                 Text(
-                    if (game != null) stringResource(R.string.play_next) else stringResource(R.string.get_started),
+                    if (item != null) stringResource(R.string.play_next) else stringResource(R.string.get_started),
                     style = labelStyle(10.sp),
                     color = Steam.Accent,
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
                     when {
-                        game != null -> game.title
+                        item != null -> item.title
                         canListGames -> stringResource(R.string.library_empty)
                         else -> stringResource(R.string.make_home)
                     },
@@ -444,18 +487,20 @@ private fun HeroPanel(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     when {
-                        game != null -> stringResource(R.string.hero_runner)
+                        item != null -> librarySubtitle(item)
                         canListGames -> stringResource(R.string.hint_pin)
                         else -> stringResource(R.string.hint_home_access)
                     },
                     style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
 
-            if (game != null) {
+            if (item != null && item.launchable) {
                 AccentButton(
                     stringResource(R.string.play),
-                    { onLaunchGame(game) },
+                    { onLaunch(item) },
                     Modifier.width(112.dp),
                 )
             } else if (!canListGames) {
@@ -492,12 +537,15 @@ private fun RecentTile(app: LauncherApp, onClick: () -> Unit) {
     }
 }
 
-/** A library entry: art block, title, runtime and the blue play pill. */
+/** A library entry: art block, title, status and either Play or the reason it cannot. */
 @Composable
 private fun GameRow(
-    title: String,
+    item: LibraryItem,
     icon: Drawable?,
+    cover: ImageBitmap?,
+    subtitle: String,
     onClick: () -> Unit,
+    onPlay: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Shortcut icons are small; convert once per icon, not on every recomposition.
@@ -523,16 +571,23 @@ private fun GameRow(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            if (image != null) {
-                Image(
+            when {
+                cover != null -> Image(
+                    bitmap = cover,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+
+                image != null -> Image(
                     bitmap = image,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )
-            } else {
-                Text(
-                    title.take(1).uppercase(),
+
+                else -> Text(
+                    item.title.take(1).uppercase(),
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                     color = Steam.TextBright.copy(alpha = 0.85f),
@@ -542,16 +597,190 @@ private fun GameRow(
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                title,
+                item.title,
                 style = MaterialTheme.typography.bodyLarge,
                 color = Steam.TextBright,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(stringResource(R.string.game_installed), style = MaterialTheme.typography.bodySmall)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
         Spacer(Modifier.width(8.dp))
-        AccentButton(stringResource(R.string.play), onClick, Modifier.width(80.dp))
+        if (item.launchable) {
+            AccentButton(stringResource(R.string.play), onPlay, Modifier.width(80.dp))
+        } else {
+            Text(
+                statusLabel(item.reason),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp,
+                color = Steam.Accent,
+            )
+        }
+    }
+}
+
+@Composable
+private fun librarySubtitle(item: LibraryItem): String = when (item.reason) {
+    null -> item.game?.engine?.displayName ?: stringResource(R.string.game_installed)
+    LibraryReason.NEEDS_PIN -> stringResource(R.string.pin_needed)
+    LibraryReason.WEBVIEW_M2 -> stringResource(R.string.runtime_m2)
+    LibraryReason.RUNTIME_M3 -> stringResource(R.string.runtime_m3)
+    LibraryReason.DETECTOR_BLOCKED ->
+        item.game?.blocker?.let { stringResource(R.string.detector_blocked, it) }
+            ?: stringResource(R.string.runtime_m3)
+}
+
+@Composable
+private fun statusLabel(reason: LibraryReason?): String = when (reason) {
+    LibraryReason.NEEDS_PIN -> stringResource(R.string.pin_needed_short)
+    LibraryReason.WEBVIEW_M2 -> stringResource(R.string.runtime_m2_short)
+    LibraryReason.RUNTIME_M3 -> stringResource(R.string.runtime_m3_short)
+    LibraryReason.DETECTOR_BLOCKED -> stringResource(R.string.blocked_short)
+    null -> ""
+}
+
+@Composable
+private fun GameDetailDialog(
+    item: LibraryItem,
+    cover: ImageBitmap?,
+    linkedPinTitle: String?,
+    availablePins: List<RunnerShortcut>,
+    onDismiss: () -> Unit,
+    onLaunch: () -> Unit,
+    onLink: (String?) -> Unit,
+    onPickCover: (Uri) -> Unit,
+    onRemoveCover: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) onPickCover(uri)
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(PanelShape)
+                .background(Steam.Panel)
+                .border(1.dp, Steam.Edge, PanelShape)
+                .verticalScroll(rememberScrollState())
+                .padding(18.dp),
+        ) {
+            if (cover != null) {
+                Image(
+                    bitmap = cover,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    contentScale = ContentScale.Crop,
+                )
+                Spacer(Modifier.height(10.dp))
+            }
+
+            Text(item.title, style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(10.dp))
+
+            item.game?.let { game ->
+                Text(
+                    stringResource(R.string.game_engine, game.engine.displayName),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                game.wadVersion?.let {
+                    Text(
+                        stringResource(R.string.game_wad, it),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                if (game.folderPath.isNotBlank()) {
+                    Text(
+                        stringResource(R.string.game_location, game.folderPath),
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlineButton(
+                        stringResource(
+                            if (game.coverPath == null) R.string.choose_cover else R.string.replace_cover,
+                        ),
+                        { coverPicker.launch(arrayOf("image/*")) },
+                        Modifier.weight(1f),
+                    )
+                    if (game.coverPath != null) {
+                        OutlineButton(
+                            stringResource(R.string.remove_cover),
+                            onRemoveCover,
+                            Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+
+            item.reason?.let {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    librarySubtitle(item),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Steam.Accent,
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+            if (item.launchable) {
+                AccentButton(stringResource(R.string.play), onLaunch, Modifier.fillMaxWidth())
+                Spacer(Modifier.height(10.dp))
+            }
+
+            if (item.game?.engine == Engine.GAMEMAKER_VM) {
+                Text(stringResource(R.string.link_pin_hint), style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(4.dp))
+                when {
+                    linkedPinTitle != null -> {
+                        Text(
+                            stringResource(R.string.pin_linked, linkedPinTitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Steam.Accent,
+                        )
+                        TextButton({ onLink(null) }) {
+                            Text(stringResource(R.string.unlink), color = Steam.Accent, style = labelStyle())
+                        }
+                    }
+
+                    availablePins.isEmpty() -> Text(
+                        stringResource(R.string.no_pins_to_link),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+
+                    else -> availablePins.forEach { pin ->
+                        TextButton({ onLink(pin.id) }) {
+                            Text(
+                                pin.title,
+                                color = Steam.Accent,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlineButton(stringResource(R.string.remove), onRemove, Modifier.weight(1f))
+                OutlineButton(stringResource(R.string.close), onDismiss, Modifier.weight(1f))
+            }
+        }
     }
 }
 

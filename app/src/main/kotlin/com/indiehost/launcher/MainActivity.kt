@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.documentfile.provider.DocumentFile
 import com.indiehost.detect.Engine
 import com.indiehost.library.Game
@@ -36,9 +37,11 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var repository: GameRepository
     private lateinit var folderStore: GameFolderStore
+    private lateinit var coverStore: CoverStore
 
     private var games by mutableStateOf<List<RunnerShortcut>>(emptyList())
     private var library by mutableStateOf<List<Game>>(emptyList())
+    private var covers by mutableStateOf<Map<String, ImageBitmap>>(emptyMap())
     private var canListGames by mutableStateOf(false)
 
     private var scanning by mutableStateOf(false)
@@ -62,6 +65,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         repository = RoomGameRepository(applicationContext)
         folderStore = GameFolderStore(this)
+        coverStore = CoverStore(this)
         loadLibrary()
         refreshGames()
         loadApps()
@@ -90,11 +94,16 @@ class MainActivity : ComponentActivity() {
                             usageAccess = usageAccess,
                             status = status,
                             library = library,
+                            covers = covers,
                             scanning = scanning,
                             scanMessage = scanMessage,
                             onAddFolder = ::addFolder,
+                            onLaunchItem = ::launchItem,
+                            onLinkPin = ::linkPin,
+                            onPickCover = ::pickCover,
+                            onRemoveCover = ::removeCover,
+                            onRemoveGame = ::removeGame,
                             onOpenDrawer = { drawerOpen = true },
-                            onLaunchGame = ::launchGame,
                             onLaunchApp = ::launchApp,
                             onOpenRunner = ::openRunner,
                             onChooseHomeApp = ::openHomeSettings,
@@ -125,8 +134,23 @@ class MainActivity : ComponentActivity() {
 
     private fun loadLibrary() {
         Thread({
-            library = runCatching { repository.all() }.getOrElse { emptyList() }
+            reloadLibrary(emptyList())
         }, "library-load").start()
+    }
+
+    /**
+     * Re-reads the library and its decoded covers. Blocks: call from a worker
+     * thread. [fallback] keeps the last good rows when the database read fails.
+     */
+    private fun reloadLibrary(fallback: List<Game> = library) {
+        val loaded = runCatching { repository.all() }.getOrElse { fallback }
+        val images = loaded.mapNotNull { game ->
+            game.coverPath?.let { path ->
+                coverStore.load(path)?.let { bitmap -> game.id to bitmap }
+            }
+        }.toMap()
+        library = loaded
+        covers = images
     }
 
     private fun checkFolderPermissions() {
@@ -183,7 +207,7 @@ class MainActivity : ComponentActivity() {
             runCatching { imported.forEach { repository.add(it) } }
                 .onFailure { failure = getString(R.string.scan_failed) }
 
-            library = runCatching { repository.all() }.getOrElse { existing + imported }
+            reloadLibrary(existing + imported)
             scanning = false
             scanMessage = when {
                 failure != null -> failure!!
@@ -225,6 +249,71 @@ class MainActivity : ComponentActivity() {
         }.start()
     }
 
+    private fun launchItem(item: LibraryItem) {
+        val game = item.game
+        if (game == null) {
+            item.shortcutId?.let { id -> games.firstOrNull { it.id == id }?.let(::launchGame) }
+            return
+        }
+        val blocker = game.blocker
+        if (blocker != null) {
+            status = blocker
+            return
+        }
+        if (game.engine == Engine.GAMEMAKER_VM) {
+            val pin = game.linkedShortcutId?.let { id -> games.firstOrNull { it.id == id } }
+            if (pin != null) {
+                launchGame(pin)
+            } else {
+                openRunner(getString(R.string.pin_needed))
+            }
+        } else {
+            status = when (game.engine) {
+                Engine.RPGMAKER_MV, Engine.RPGMAKER_MZ -> getString(R.string.runtime_m2)
+                else -> getString(R.string.runtime_m3)
+            }
+        }
+    }
+
+    private fun linkPin(game: Game, shortcutId: String?) {
+        Thread({
+            runCatching { repository.add(game.copy(linkedShortcutId = shortcutId)) }
+            reloadLibrary()
+        }, "library-link").start()
+    }
+
+    private fun pickCover(game: Game, uri: Uri) {
+        Thread({
+            val name = coverStore.save(game.id, uri)
+            if (name == null) {
+                status = getString(R.string.cover_failed)
+                return@Thread
+            }
+            runCatching { repository.add(game.copy(coverPath = name)) }
+                .onSuccess { status = getString(R.string.cover_saved) }
+                .onFailure { status = getString(R.string.cover_failed) }
+            reloadLibrary()
+        }, "cover-save").start()
+    }
+
+    private fun removeCover(game: Game) {
+        val path = game.coverPath ?: return
+        Thread({
+            coverStore.delete(path)
+            runCatching { repository.add(game.copy(coverPath = null)) }
+            reloadLibrary()
+        }, "cover-remove").start()
+    }
+
+    private fun removeGame(game: Game) {
+        Thread({
+            game.coverPath?.let(coverStore::delete)
+            runCatching { repository.remove(game.id) }
+            reloadLibrary()
+        }, "library-remove").start()
+        status = getString(R.string.removed_game)
+    }
+
     private fun launchGame(shortcut: RunnerShortcut) {
         status = when (val outcome = runtime.launchShortcut(this, shortcut)) {
             is LaunchOutcome.Launched -> ""
@@ -253,8 +342,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openRunner() {
+        openRunner(getString(R.string.opened_runner))
+    }
+
+    private fun openRunner(message: String) {
         status = when (val outcome = runtime.launch(this, runnerOnlyGame(getString(R.string.runner_name)))) {
-            is LaunchOutcome.Launched -> getString(R.string.opened_runner)
+            is LaunchOutcome.Launched -> message
             is LaunchOutcome.RuntimeNotInstalled ->
                 getString(R.string.runner_not_installed, outcome.installUrl)
             is LaunchOutcome.Blocked -> outcome.reason
