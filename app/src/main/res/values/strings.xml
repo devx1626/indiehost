@@ -84,6 +84,18 @@
     <string name="folder_permission_lost">Access to a games folder was revoked. Pick it again to rescan.</string>
     <string name="scan_failed">Could not save the scanned games.</string>
 
+    <!-- Offline RPG Maker runtime -->
+    <string name="web_missing_game">That game is no longer in the library. Scan its folder again.</string>
+    <string name="web_wrong_engine">Only RPG Maker MV and MZ can be opened here.</string>
+    <string name="web_no_folder">This game has no scanned folder to read.</string>
+    <string name="web_no_access">Access to the games folder was revoked. Pick the folder again.</string>
+    <string name="web_missing_files">No index.html and core JavaScript were found in this folder.</string>
+    <string name="web_cannot_start">Cannot start game</string>
+    <string name="remote_blocked">Network requests are blocked. This game needs no internet.</string>
+    <string name="leave_game">Leave the game?</string>
+    <string name="leave">LEAVE</string>
+    <string name="resume">RESUME</string>
+
     <!-- Status messages -->
     <string name="runner_not_installed">Butterscotch is not installed\n%1$s</string>
     <string name="opened_runner">Opened Butterscotch</string>

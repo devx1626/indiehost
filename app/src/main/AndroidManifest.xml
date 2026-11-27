@@ -53,6 +53,20 @@
             </intent-filter>
         </activity>
 
+        <!-- Offline RPG Maker MV/MZ runtime. Not exported: only the adapter in
+             this same app starts it, by action and with an explicit package. -->
+        <activity
+            android:name=".GameWebViewActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.IndieHost">
+            <intent-filter>
+                <action android:name="com.indiehost.launcher.GAME_WEBVIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <!-- Answers "Add Shortcut to Home Screen" requests from Butterscotch.
              Android only allows pinning when the current home app declares this
              action, and a pin is recorded against the accepting launcher, so

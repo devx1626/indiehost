@@ -75,6 +75,7 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.activity:activity-compose:1.9.2")
     implementation("androidx.documentfile:documentfile:1.0.1")
+    implementation("androidx.webkit:webkit:1.12.0")
 
     testImplementation("junit:junit:4.13.2")
 }
