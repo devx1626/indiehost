@@ -33,4 +33,8 @@ data class Game(
     val linkedShortcutId: String? = null,
     /** SAF tree URI, when [folderPath] is a document inside that tree. */
     val treeUri: String? = null,
+    /** The detector's verdict at import time; false keeps Launch disabled. */
+    val runnable: Boolean = true,
+    /** Human-readable reason when [runnable] is false. */
+    val blocker: String? = null,
 )

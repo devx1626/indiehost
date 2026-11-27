@@ -62,5 +62,7 @@ class GameDaoTest {
         source = GameSource.SCANNED,
         linkedShortcutId = null,
         treeUri = "content://tree",
+        runnable = true,
+        blocker = null,
     )
 }

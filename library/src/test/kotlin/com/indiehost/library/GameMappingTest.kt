@@ -19,6 +19,8 @@ class GameMappingTest {
             source = GameSource.SCANNED,
             linkedShortcutId = "game-1234",
             treeUri = "content://tree",
+            runnable = false,
+            blocker = "No CODE chunk",
         )
 
         assertEquals(game, game.toEntity().toGame())

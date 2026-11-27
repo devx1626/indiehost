@@ -22,6 +22,8 @@ data class GameEntity(
     val source: GameSource,
     val linkedShortcutId: String?,
     val treeUri: String?,
+    val runnable: Boolean,
+    val blocker: String?,
 )
 
 class GameConverters {
@@ -52,6 +54,8 @@ fun Game.toEntity(): GameEntity = GameEntity(
     source = source,
     linkedShortcutId = linkedShortcutId,
     treeUri = treeUri,
+    runnable = runnable,
+    blocker = blocker,
 )
 
 fun GameEntity.toGame(): Game = Game(
@@ -65,4 +69,6 @@ fun GameEntity.toGame(): Game = Game(
     source = source,
     linkedShortcutId = linkedShortcutId,
     treeUri = treeUri,
+    runnable = runnable,
+    blocker = blocker,
 )
