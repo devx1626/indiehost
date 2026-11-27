@@ -71,6 +71,7 @@ as the `app-debug` artifact.
 | [AGENTS.md](AGENTS.md) | Operating rules for AI coding agents |
 | [.opencode/SKILLS.md](.opencode/SKILLS.md) | Project-local agent skill set and provenance |
 | [docs/adr](docs/adr/README.md) | Architecture decision records |
+| [docs/ui-ux-research.md](docs/ui-ux-research.md) | Licence-safe UI/UX findings from DroidDeck, Cinnamon and COSMIC |
 
 ## How a game is started
 
