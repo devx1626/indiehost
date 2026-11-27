@@ -10,6 +10,12 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-27-m2-webview-runtime-design.md` and `docs/adr/0007-webview-offline-assets.md`.
 
+**Status:** implementation complete. Gate run: `gradle test :app:assembleDebug` with
+`-Pkotlin.incremental=false -Pandroid.aapt2FromMavenOverride=/usr/bin/aapt2` — detector
+19/19, mapping 3/3, registry 3/3, app 21/21, debug APK built. Manual cases MT-29…MT-33
+and the offline-HTTPS question in ADR-0007 remain open: there is no device and no legal
+MV/MZ game copy here.
+
 ## Global Constraints
 
 - `minSdk 24`, `targetSdk 34`, `compileSdk 34`; `applicationId` and `versionCode` unchanged.
@@ -46,25 +52,25 @@
 - Consumes: `Engine`, `Game`, `RunnerShortcut`, `LaunchOutcome`, `GameMakerRuntimeAdapter.launchShortcut`.
 - Produces: `RuntimeAdapter.launch(activity: Activity, game: Game, shortcut: RunnerShortcut? = null): LaunchOutcome`; `RuntimeRegistry(adapters: List<RuntimeAdapter>)` with `fun forEngine(engine: Engine): RuntimeAdapter?`; `RpgMakerRuntimeAdapter(engine: Engine)`, constants `GAME_WEBVIEW_ACTION = "com.indiehost.launcher.GAME_WEBVIEW"` and `EXTRA_GAME_ID = "com.indiehost.launcher.game_id"`.
 
-- [ ] **Step 1: Add JUnit to `:runtimes` and write the failing registry test**
+- [x] **Step 1: Add JUnit to `:runtimes` and write the failing registry test**
 
 `RuntimeRegistryTest` asserts: a registry of a GameMaker adapter and two RPG Maker adapters returns the adapter whose `engine` matches `GAMEMAKER_VM`, `RPGMAKER_MV` and `RPGMAKER_MZ`; returns null for `RENPY`; and that both RPG Maker adapters share the action constant. Do not construct an Activity.
 
-- [ ] **Step 2: Run it and confirm it fails**
+- [x] **Step 2: Run it and confirm it fails**
 
 Run: `gradle :runtimes:testDebugUnitTest --no-daemon --console=plain`
 Expected: compilation failure because the classes do not exist.
 
-- [ ] **Step 3: Change the seam and add the adapters**
+- [x] **Step 3: Change the seam and add the adapters**
 
 Add the optional `shortcut` parameter to `RuntimeAdapter.launch`; GameMaker overrides it to call `launchShortcut` when a shortcut is supplied and returns `Blocked` with the pin-needed sentence otherwise. `RpgMakerRuntimeAdapter.launch` starts `Intent(GAME_WEBVIEW_ACTION).setPackage(activity.packageName).putExtra(EXTRA_GAME_ID, game.id)` and returns `LaunchOutcome.Launched(activity.packageName)`. Its `canRun`/`prepare` remain conservative: `canRun` is false for a `File` path (SAF games are validated in the Activity), `prepare` returns a `PreparedGame` with a note that validation happens at launch. `supportsSaves()` returns true.
 
-- [ ] **Step 4: Run the test and compile**
+- [x] **Step 4: Run the test and compile**
 
 Run: `gradle :runtimes:testDebugUnitTest :app:compileDebugKotlin --no-daemon --console=plain`
 Expected: tests pass; `:app` compiles despite the new interface parameter.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add runtimes
@@ -85,33 +91,33 @@ git commit -m "runtimes: select engines through one adapter registry"
 - Consumes: `Game`, `RoomGameRepository`, SAF tree/document URIs, `RpgMakerRuntimeAdapter.EXTRA_GAME_ID`.
 - Produces: `object WebPaths` with `const val ORIGIN = "appassets.androidplatform.net"`, `const val PREFIX = "/game/"`, `val ENTRY_CANDIDATES: List<Pair<String, String>>` (`www/index.html` + `www/js/rpg_core.js`, then `index.html` + `js/rpg_core.js`), `fun urlFor(indexPath: String): String`, `fun isLocal(url: String): Boolean`, `fun segments(relative: String): List<String>?`, `fun mimeFor(name: String): String`; `class SafAssetPathHandler(context: Context, treeUri: Uri, folderUri: Uri) : WebViewAssetLoader.PathHandler`.
 
-- [ ] **Step 1: Write the failing pure path test**
+- [x] **Step 1: Write the failing pure path test**
 
 `WebPathsTest` asserts: `ENTRY_CANDIDATES` is exactly `("www/index.html" to "www/js/rpg_core.js")` followed by `("index.html" to "js/rpg_core.js")`; `urlFor("index.html")` is `https://appassets.androidplatform.net/game/index.html`; `isLocal(urlFor("www/index.html"))` is true and `isLocal("https://example.com/game/www/index.html")`, `isLocal("http://appassets.androidplatform.net/game/www/index.html")` and `isLocal("https://appassets.androidplatform.net/other")` are false; `segments("www/js/rpg_core.js")` returns the three segments; `segments("../secret")`, `segments("/etc/passwd")`, `segments("www/../../x")` and `segments("www//js")` return null; `mimeFor("a.js")` is `text/javascript`, `mimeFor("a.png")` is `image/png`, `mimeFor("a.rpgmvp")` is `application/octet-stream`.
 
-- [ ] **Step 2: Run it and confirm it fails**
+- [x] **Step 2: Run it and confirm it fails**
 
 Run: `gradle :app:testDebugUnitTest --tests '*WebPathsTest' --no-daemon --console=plain`
 Expected: compilation failure because `WebPaths` does not exist.
 
-- [ ] **Step 3: Implement `WebPaths` and add the WebKit dependency**
+- [x] **Step 3: Implement `WebPaths` and add the WebKit dependency**
 
 Add `implementation("androidx.webkit:webkit:1.12.0")` to `:app`. Implement `WebPaths` with strict segment validation (no empty segment, `.`, `..`, backslash or leading slash) and a small MIME map with `application/octet-stream` fallback.
 
-- [ ] **Step 4: Implement `SafAssetPathHandler`**
+- [x] **Step 4: Implement `SafAssetPathHandler`**
 
 It resolves `treeUri` with `DocumentFile.fromTreeUri`, walks the segments with `findFile`, rejects a non-file, opens an `InputStream`, and returns `WebResourceResponse(WebPaths.mimeFor(lastSegment), null, stream)`. Any exception or null returns null. It never copies bytes to disk.
 
-- [ ] **Step 5: Implement `GameWebViewActivity` and declare it**
+- [x] **Step 5: Implement `GameWebViewActivity` and declare it**
 
 The Activity reads `EXTRA_GAME_ID`, loads the row from `RoomGameRepository` on a worker `Thread`, requires an MV/MZ engine and a non-blank `treeUri`, probes `WebPaths.ENTRY_CANDIDATES` under the tree and picks the first pair whose index and core JS both exist, then on the main thread configures a fullscreen WebView (JavaScript and DOM storage on; file/content access off; no JS bridge; `setKeepScreenOn(true)`), installs a `WebViewClient` that calls the loader, blocks off-origin subresources, shows a visible message for off-origin navigation (FR-22), and loads `WebPaths.urlFor(indexPath)`. Failures show an `AlertDialog` with a reason and finish. Use `OnBackPressedDispatcher` for a leave confirmation; never call `goBack()`. Pause WebView and abandon audio focus in `onPause`, restore in `onResume`. Manifest: exported=false, `configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"`, action `com.indiehost.launcher.GAME_WEBVIEW`, no new permission.
 
-- [ ] **Step 6: Run the test and build**
+- [x] **Step 6: Run the test and build**
 
 Run: `gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon --console=plain`
 Expected: path tests pass and the APK builds.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add app
@@ -130,25 +136,25 @@ git commit -m "app: launch RPG Maker games from a SAF tree in a WebView"
 - Consumes: `RuntimeRegistry`, `LibraryItem`, `mergeLibrary`, `Game`, `RunnerShortcut`.
 - Produces: `launchItem` selects the adapter by `game.engine` and passes the linked pin as a `RunnerShortcut`; MV/MZ scanned rows are launchable.
 
-- [ ] **Step 1: Update the failing merge test**
+- [x] **Step 1: Update the failing merge test**
 
 Replace the "MV and MZ wait for M2" test with one asserting both are launchable with `reason == null`; add a case where a pinned-only MV game without a tree URI is `WEBVIEW_M2`.
 
-- [ ] **Step 2: Run it and confirm it fails**
+- [x] **Step 2: Run it and confirm it fails**
 
 Run: `gradle :app:testDebugUnitTest --tests '*LibraryMergeTest' --no-daemon --console=plain`
 Expected: the launchability assertion fails.
 
-- [ ] **Step 3: Change the merge rule and wire the registry**
+- [x] **Step 3: Change the merge rule and wire the registry**
 
 MV/MZ with a tree URI and no blocker become launchable. In `MainActivity`, build a `RuntimeRegistry` with GameMaker and both RPG Maker adapters; `launchItem` resolves the adapter by engine, resolves the linked pin, and maps `LaunchOutcome` to the existing status strings. Keep the pinned-only row's direct shortcut launch.
 
-- [ ] **Step 4: Run the tests and build**
+- [x] **Step 4: Run the tests and build**
 
 Run: `gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon --console=plain`
 Expected: green.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app
@@ -160,16 +166,16 @@ git commit -m "app: launch scanned MV and MZ games through the registry"
 **Files:**
 - Modify: `ARCHITECTURE.md`, `TESTING.md`, `ROADMAP.md`, `LICENSING.md`, `README.md`, `spec.md`, `docs/adr/README.md`
 
-- [ ] **Step 1: Update the docs**
+- [x] **Step 1: Update the docs**
 
 Link ADR-0007; mark FR-21–FR-23 implemented but device-unverified; add manual cases MT-29…MT-33 for MV load, no remote request, Back confirmation, missing core JS and revoked grant; record WebKit's Apache-2.0 licence and the "encrypted assets not decrypted" limitation.
 
-- [ ] **Step 2: Run the full gate**
+- [x] **Step 2: Run the full gate**
 
 Run: `gradle test :app:assembleDebug --no-daemon --console=plain`
 Expected: all host tests pass and the APK builds. State plainly that no device case ran.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add ARCHITECTURE.md TESTING.md ROADMAP.md LICENSING.md README.md spec.md docs/adr/README.md docs/superpowers

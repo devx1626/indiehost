@@ -155,7 +155,7 @@ Status values: **Implemented**, **Partial**, **Planned**, **Not started**.
 | FR-17 | Games are persisted across process death and launcher updates using Room, not an in-memory map. A full uninstall is restored by re-scanning the same folder; metadata is app-private and is not backed up. | Implemented (M1) |
 | FR-18 | The user can point IndieHost at a games folder (SAF tree) and scan it for supported engines. The read grant is persisted, the walk covers two levels, and a re-scan upserts by stable id without deleting rows or reporting skipped folders. | Implemented (M1) |
 | FR-19 | Each game has user-visible title, engine, WAD version (when applicable) and optional user-picked cover art, downsampled to at most 512 px and stored app-private. | Implemented (M1) |
-| FR-20 | Not applicable in M1: no engine is hosted by IndieHost yet. Butterscotch-owned saves remain Butterscotch's responsibility and are documented as such. For engines IndieHost hosts from M2, saves live outside the app's private storage. | Deferred to M2 |
+| FR-20 | No hosted engine in M1. In M2 the RPG Maker runtime is code-complete but device-unverified; WebView DOM/localStorage stays app-private and save export is deferred until the runtime is proven on a phone. Butterscotch-owned saves remain Butterscotch's responsibility. | Deferred beyond M2 (scope change recorded in the M2 design) |
 
 M1 implementation notes: `RoomGameRepository` is the persistence seam; `GameScanner`
 imports through the pure `GameFolder` seam; `LibraryItem` merges scans and pins with an
@@ -167,9 +167,17 @@ but the manual M1 cases (SAF grants, covers, reinstall) have not run on a device
 
 | ID | Requirement | Status |
 | --- | --- | --- |
-| FR-21 | An MV/MZ folder detected by `EngineDetector` can be launched inside IndieHost in a WebView, fully offline. | Planned (M2) |
-| FR-22 | The WebView blocks remote content by default; a game that requires a network request fails visibly rather than silently reaching the internet. | Planned (M2) |
-| FR-23 | Back, pause/resume and audio focus behave like a game, not like a browser page. | Planned (M2) |
+| FR-21 | An MV/MZ folder detected by `EngineDetector` can be launched inside IndieHost in a WebView, fully offline. | Implemented (M2, device-unverified) |
+| FR-22 | The WebView blocks remote content by default; a game that requires a network request fails visibly rather than silently reaching the internet. | Implemented (M2, device-unverified) |
+| FR-23 | Back, pause/resume and audio focus behave like a game, not like a browser page. | Implemented (M2, device-unverified) |
+
+M2 implementation notes: `RuntimeRegistry` selects `GameMakerRuntimeAdapter` or
+`RpgMakerRuntimeAdapter`; `GameWebViewActivity` serves SAF documents through
+`WebViewAssetLoader` on `appassets.androidplatform.net` with no `INTERNET` permission and
+no copy. Off-origin requests are blocked with a visible message, Back asks for
+confirmation, and `configChanges` avoids a rotation restart. Loading is **not** verified on
+a phone, and encrypted `.rpgmvp`/`.rpgmvo` assets are not decrypted; see
+[ADR-0007](docs/adr/0007-webview-offline-assets.md) and [TESTING.md](TESTING.md) §3.
 
 ### 4.7 Milestone 3 — remaining engines
 
@@ -301,10 +309,10 @@ The full description is in [ARCHITECTURE.md](ARCHITECTURE.md). In short:
 
 | Module | Responsibility |
 | --- | --- |
-| `:app` | Compose home screen, drawer and detail panel, SAF scan, cover storage, activity wiring |
+| `:app` | Compose home screen, drawer and detail panel, SAF scan, covers, offline WebView activity |
 | `:library` | `Game` model, `GameRepository` seam and Room persistence |
 | `:detect` | Pure Kotlin `GameFolder` seam, engine fingerprinting and GameMaker WAD parsing |
-| `:runtimes` | `RuntimeAdapter` contract and the GameMaker/Butterscotch implementation |
+| `:runtimes` | `RuntimeAdapter` contract, adapter registry, GameMaker and RPG Maker adapters |
 
 Dependency direction: `:app` → `:runtimes` → `:library` → `:detect`. `:detect` has no
 Android dependencies and is tested on the host.
@@ -329,6 +337,8 @@ sealed interface LaunchOutcome {
 
 `GameRepository` is the persistence seam; `EngineDetector.Detection` is the detector's
 result. `ButterscotchShortcuts` is the only code that talks to the runner's shortcuts.
+`RuntimeRegistry.forEngine(Engine)` is the single place that maps an engine to its adapter;
+no engine is silently routed to a default.
 
 ---
 
@@ -431,9 +441,12 @@ Implementation is complete; criteria remain open until observed on the baseline 
 
 ### 13.3 Milestone 2
 
-- [ ] An MV and an MZ game launch offline in a WebView.
-- [ ] Back/pause/audio behave; no remote request succeeds.
-- [ ] The adapter is selected through the same `RuntimeAdapter` seam as GameMaker.
+Implementation is complete; criteria remain open until observed on the baseline device.
+
+- [ ] An MV and an MZ game launch offline in a WebView. — MT-29, MT-33; no device here
+- [ ] Back/pause/audio behave; no remote request succeeds. — MT-30…MT-32; no device here
+- [ ] The adapter is selected through the same `RuntimeAdapter` seam as GameMaker. —
+      registry tests 3/3; adapter selection is host-verified
 
 ### 13.4 Milestone 3
 
@@ -454,20 +467,24 @@ Implementation is complete; criteria remain open until observed on the baseline 
 1. **Ren'Py/LOVE runtime model.** Per-game APK vs shared runtime vs "detect and hand off".
    Needs an ADR before M3.
 2. **ScummVM launch route.** Does the Android app expose a public intent for a game path?
-3. **MV WebView loading.** `WebViewAssetLoader` over a SAF tree vs copying into app
-   storage vs a localhost server. The first avoids duplication and the `INTERNET`
-   permission; the second is simpler but doubles disk use.
-4. **Save location.** Which shared directory is both scoped-storage-safe and survives
-   uninstall? `Documents/IndieHost/<game>` vs app-specific external storage.
-5. **Room schema and migration policy.** Version 1 with destructive migration is in place
+3. **MV WebView loading — resolved by ADR-0007.** `WebViewAssetLoader` over a SAF tree was
+   chosen; copying into app storage is the fallback and a localhost server is rejected.
+4. **Offline HTTPS without `INTERNET`.** Confirm on device that WebView calls
+   `shouldInterceptRequest` for `appassets.androidplatform.net` with no network permission;
+   if it does not, ADR-0007's copy-into-app-storage fallback is required.
+5. **Save location and export (FR-20, deferred beyond M2).** WebView DOM storage is
+   app-private. Which shared directory is both scoped-storage-safe and survives uninstall?
+   `Documents/IndieHost/<game>` vs app-specific external storage. The M2 design defers this
+   until the WebView runtime is proven on a device.
+6. **Room schema and migration policy.** Version 1 with destructive migration is in place
    while M1 is unreleased; replace it with explicit migrations before release.
-6. **Application id.** `com.indiehost.launcher` is explicitly a placeholder. Renaming
+7. **Application id.** `com.indiehost.launcher` is explicitly a placeholder. Renaming
    changes shortcut ownership and installed-app identity; do it before a public release.
-7. **Launcher licence.** There is no `LICENSE` file. Choose one before publishing.
-8. **Internal `Steam*` identifiers.** `SteamTheme` and `Steam` remain in source; renaming
+8. **Launcher licence.** There is no `LICENSE` file. Choose one before publishing.
+9. **Internal `Steam*` identifiers.** `SteamTheme` and `Steam` remain in source; renaming
    them is a follow-up refactor. The public version string is clean (CON-07).
-9. **Localisation.** Move Compose copy into `strings.xml`; decide whether M1 or backlog.
-10. **Work profiles.** `LauncherApps` is queried for `Process.myUserHandle()` only. Support
+10. **Localisation.** Move Compose copy into `strings.xml`; decide whether M1 or backlog.
+11. **Work profiles.** `LauncherApps` is queried for `Process.myUserHandle()` only. Support
     for managed profiles is out of scope until requested.
 
 ---

@@ -41,6 +41,14 @@ remaining engines are detected but show which milestone still owes them a runtim
 device checklist is in [TESTING.md](TESTING.md) §3; it has **not** been run here because
 `adb` does not work in the build container.
 
+**Unreleased work in this tree (Milestone 2):** scanned MV/MZ games now launch offline in a
+WebView through [ADR-0007](docs/adr/0007-webview-offline-assets.md). `WebViewAssetLoader`
+serves the game's SAF folder under Android's reserved `appassets.androidplatform.net`
+origin — no `INTERNET` permission, no localhost server and no copy of the game. Remote
+requests are blocked, Back asks before leaving, and both `www/` and root `index.html`
+layouts are supported. This route is **code-complete but device-unverified**; encrypted
+`.rpgmvp`/`.rpgmvo` assets are not decrypted, and save export is deferred.
+
 ## Downloads
 
 Signed release APKs are on the [Releases page](https://github.com/devx1626/indiehost/releases).
@@ -81,14 +89,15 @@ launcher was active must be re-pinned with IndieHost as home.
 
 Milestone 1 adds a second source: scan a folder you own, then link the matching pin from
 the game's detail panel. IndieHost stores only metadata and your chosen cover art; scanning
-never copies or modifies game files.
+never copies or modifies game files. Milestone 2 adds a third route: a scanned RPG Maker
+MV/MZ game starts directly in IndieHost's WebView, with no pin and no network permission.
 
 ## Modules
 
-- `:app` — Compose home screen, drawer, SAF scan and cover storage
+- `:app` — Compose home screen, drawer, SAF scan, covers and the offline WebView activity
 - `:library` — `Game` model, repository seam and Room persistence
 - `:detect` — pure Kotlin `GameFolder` seam, engine fingerprinting and WAD parsing
-- `:runtimes` — one `RuntimeAdapter` per engine (`canRun`, `prepare`, `launch`, `supportsSaves`)
+- `:runtimes` — adapter registry plus GameMaker and RPG Maker adapters
 
 ## Build
 

@@ -48,10 +48,10 @@ no AIDL, no ContentProvider and no Intent that carries a folder.
 
 | Module | Type | Responsibility | Android APIs? |
 | --- | --- | --- | --- |
-| `:app` | Android application | Compose UI, SAF folder scan, covers, state wiring, system data sources | Yes |
+| `:app` | Android application | Compose UI, SAF folder scan, covers, offline WebView game activity, state wiring | Yes |
 | `:library` | Android library | `Game` model, `GameRepository` seam, Room entity/DAO/database | Yes (Room) |
 | `:detect` | Pure Kotlin/JVM | Engine fingerprinting, GameMaker WAD parsing, `GameFolder` seam | **No** |
-| `:runtimes` | Android library | `RuntimeAdapter` contract, GameMaker/Butterscotch implementation | Yes |
+| `:runtimes` | Android library | `RuntimeAdapter` contract, adapter registry, GameMaker and RPG Maker adapters | Yes |
 
 Dependency direction is one-way: `:app` → `:runtimes` → `:library` → `:detect`. `:detect`
 must stay free of Android imports so it can be unit-tested on the host.
@@ -71,6 +71,10 @@ app/src/main/kotlin/com/indiehost/launcher/
   GameScanner.kt         pure walk, stable ids, upsert-never-delete import
   LibraryItem.kt         merge of scanned games and pinned shortcuts
   CoverStore.kt          downsample + store user-picked art in filesDir/covers
+  WebPaths.kt            pure URL/path/MIME rules for the offline WebView
+  SafTreeResolver.kt     resolve a relative path inside one SAF game folder
+  SafAssetPathHandler.kt WebViewAssetLoader path handler backed by SAF streams
+  GameWebViewActivity.kt offline MV/MZ host; no INTERNET, no copy
 
 library/src/main/kotlin/com/indiehost/library/
   Game.kt                data class
@@ -88,7 +92,9 @@ detect/src/main/kotlin/com/indiehost/detect/
 
 runtimes/src/main/kotlin/com/indiehost/runtimes/
   RuntimeAdapter.kt      contract, PreparedGame, LaunchOutcome
+  RuntimeRegistry.kt     Engine -> RuntimeAdapter, no silent fallback
   GameMakerRuntimeAdapter.kt
+  RpgMakerRuntimeAdapter.kt
   ButterscotchShortcuts.kt
 ```
 
@@ -250,6 +256,29 @@ detected engines say "M3". A detector blocker always wins over a linked pin.
 to `filesDir/covers/<sha256(gameId)>.webp`. Decoding and file writes run on worker threads;
 the UI receives decoded `ImageBitmap`s through Compose state.
 
+### 4.8 Offline RPG Maker WebView
+
+```
+launchItem → RuntimeRegistry.forEngine(engine) → RpgMakerRuntimeAdapter.launch
+  → startActivity(action com.indiehost.launcher.GAME_WEBVIEW, extra game id)
+
+GameWebViewActivity.onCreate
+  → Thread "webgame-load": RoomGameRepository.find(id), require MV/MZ + treeUri
+  → SafTreeResolver probes www/index.html + www/js/rpg_core.js, then root layout
+  → main thread: WebView settings, WebViewAssetLoader("/game/") + SafAssetPathHandler
+  → loadUrl("https://appassets.androidplatform.net/game/<indexPath>")
+
+asset request under /game/ → PathHandler → DocumentsContract child lookup → InputStream
+off-origin request/navigation → blocked response + visible message, never a network call
+Back → "Leave the game?" confirmation (never goBack)
+onPause/onResume → WebView.onPause/onResume + audio focus abandon/request
+```
+
+The Activity is `exported=false`, uses `configChanges` so rotation does not restart the
+game, and declares no new permission. A revoked SAF grant, missing core JS or wrong engine
+finishes with an `AlertDialog` explaining why. Encrypted `.rpgmvp`/`.rpgmvo` assets are
+served as octet-stream and are **not** decrypted in M2.
+
 ---
 
 ## 5. Contracts
@@ -261,7 +290,7 @@ interface RuntimeAdapter {
     val engine: Engine
     fun canRun(folder: File): Boolean
     fun prepare(folder: File, game: Game): PreparedGame
-    fun launch(activity: Activity, game: Game): LaunchOutcome
+    fun launch(activity: Activity, game: Game, shortcut: RunnerShortcut? = null): LaunchOutcome
     fun supportsSaves(): Boolean
 }
 ```
@@ -273,14 +302,20 @@ interface RuntimeAdapter {
 | `launch` | Start the runtime for a `Game` | Yes — the "BUTTERSCOTCH" button |
 | `supportsSaves` | Whether the adapter manages saves | No |
 
+`RuntimeAdapter.launch(activity, game, shortcut)` now takes the linked Butterscotch pin as
+an optional third argument. GameMaker uses it for the shortcut handoff; RPG Maker ignores
+it. `RuntimeRegistry(adapters).forEngine(engine)` is the only routing decision in the app,
+and returns null for an engine with no adapter.
+
 `GameMakerRuntimeAdapter` adds two methods outside the interface:
 
 - `canListShortcuts(context)` — home-role check.
 - `shortcuts(context)` / `launchShortcut(activity, shortcut)` — the pinned-shortcut route.
 
-**There is no adapter registry yet.** The comment in `RuntimeAdapter.kt` promises "one line
-in the adapter registry"; that registry does not exist. M2 should introduce one
-(`Map<Engine, RuntimeAdapter>`) before the second adapter lands.
+The registry is `RuntimeRegistry`, a small wrapper over a fixed `List<RuntimeAdapter>`.
+It is not a mutable map: the set of engines is a build-time decision, and a missing adapter
+must be visible rather than silently replaced. `RpgMakerRuntimeAdapter` starts
+`GameWebViewActivity` by a manifest action string so `:runtimes` never depends on `:app`.
 
 ### 5.2 Results
 
@@ -377,8 +412,10 @@ disappears. That is acceptable for a launcher, but it means `drawerOpen` is not 
 - **Main thread:** Compose, `refreshGames`, `startActivity`, `startShortcut`.
 - **Background `Thread`:** `InstalledApps.load`, `Recents.pick`,
   `Recents.systemRecency`, the `data.win` copy/detect, all Room calls, the SAF folder
-  walk, and cover decode/encode. Checker, scanner and cover results are written to
-  Compose state from those threads; recomposition stays on the main thread.
+  walk, cover decode/encode, the WebView game-row lookup and
+  `WebViewAssetLoader.shouldInterceptRequest` (which WebView invokes on a worker).
+  Checker, scanner and cover results are written to Compose state from those threads;
+  recomposition stays on the main thread.
 - **No coroutines, no `ExecutorService`, no WorkManager.** Keep it simple until a task
   actually needs cancellation or lifecycle awareness.
 - **No filesystem paths in SharedPreferences.** `GameFolderStore` persists only SAF tree
@@ -405,12 +442,14 @@ disappears. That is acceptable for a launcher, but it means `drawerOpen` is not 
 | Game library | Room, `databases/indiehost.db` (version 1) | Survives process death and app updates; cleared on uninstall |
 | Games folders | `SharedPreferences("indiehost.folders")`, SAF tree URIs + persisted read grants | Survives restart until the user revokes the grant |
 | Cover art | `filesDir/covers/<sha256(gameId)>.webp` | App-private, replaced by the next pick, deleted with the row |
+| MV/MZ saves | WebView DOM/localStorage in app-private `app_webview` | Survives restart; no export yet |
 
 `android:allowBackup="false"` keeps all of this out of cloud backup. A full uninstall
 therefore loses metadata and must be restored by re-scanning the same folders; the game
-files themselves are untouched. Saves for IndieHost-hosted engines must live outside
-private storage; Butterscotch-owned saves cannot be relocated by us and remain
-Butterscotch's responsibility (FR-20 is deferred to M2).
+files themselves are untouched. Butterscotch-owned saves cannot be relocated by us and
+remain Butterscotch's responsibility. FR-20 (saves outside private storage) is **deferred
+beyond M2** until the WebView runtime is device-proven; the scope change is recorded in the
+M2 design and in `spec.md`.
 
 ---
 
@@ -423,6 +462,7 @@ Butterscotch's responsibility (FR-20 is deferred to M2).
 | Permissions | `PACKAGE_USAGE_STATS` only (app-op); no `INTERNET`; no runtime permissions |
 | Package visibility | `<queries>` for Butterscotch and `MAIN`/`LAUNCHER` |
 | Game data | Never copied out of Butterscotch; checker cache is local and transient |
+| WebView | JavaScript on, no bridge, file/content access off, off-origin requests/navigation blocked; no `INTERNET` |
 | Backup | Disabled |
 
 See [SECURITY.md](SECURITY.md) for the threat model and hardening backlog.
@@ -439,8 +479,7 @@ See [SECURITY.md](SECURITY.md) for the threat model and hardening backlog.
 3. Create `XxxRuntimeAdapter : RuntimeAdapter` in `:runtimes`.
 4. Implement `canRun`, `prepare`, `launch`, `supportsSaves`. Return `Blocked` with a
    sentence, not an exception, when the game cannot run.
-5. Introduce/register it in the adapter registry (create one if this is the second
-   adapter).
+5. Add it to the `RuntimeRegistry` list in `MainActivity` and add a test in `:runtimes`.
 6. Wire the UI: the home screen needs a tile/row and a launch path.
 7. Update [spec.md](spec.md) §3, [ROADMAP.md](ROADMAP.md), and add an ADR if the runtime
    model is non-obvious.
@@ -473,11 +512,13 @@ Room is already implemented in `:library` (see §5.3). To change the schema:
 
 | Item | Location | Impact | Tracked |
 | --- | --- | --- | --- |
-| No adapter registry | `runtimes/RuntimeAdapter.kt` comment | Extension friction; second adapter will force it | M2 |
-| `canRun` / `prepare` / `supportsSaves` unused | `:runtimes` | Misleading seam; dead code | M2 |
+| `canRun` / `prepare` unused for SAF games | `:runtimes` | File-based seam cannot pre-flight a tree URI; validation happens in the Activity | M3 |
+| WebView route is device-unverified | `GameWebViewActivity.kt` | Offline HTTPS without `INTERNET` may be refused before interception | Blocked on device |
+| Encrypted MV/MZ assets not decrypted | `SafAssetPathHandler.kt` | Games using `.rpgmvp`/`.rpgmvo` show broken art | M3 |
 | Room uses destructive migration | `IndieHostDatabase.kt` | Would drop library rows on a future schema change | Before release |
 | Instrumented `GameDaoTest` never ran | `library/src/androidTest` | DAO behaviour is verified only by host mapping tests; `adb` is broken here | Blocked on device |
-| M1 manual cases never ran | `TESTING.md` §3 | SAF grants, covers and remove flow are compile/test verified, not device verified | Blocked on device |
+| M1/M2 manual cases never ran | `TESTING.md` §3 | SAF, covers, WebView load and Back are compile/test verified, not device verified | Blocked on device |
+| Kotlin incremental cache flake | local Gradle builds | Test compilation can fail to see production top-level functions; use `-Pkotlin.incremental=false` | Local toolchain |
 | Missing `mipmap-xxxhdpi` | `app/src/main/res` | Pre-26 icon upscaled on xxxhdpi | Backlog |
 | Deprecated `PackageManager` calls | `InstalledApps.kt` | Future API removal | Backlog |
 | No ViewModel / coroutines | `MainActivity.kt` | Harder to test; snapshot writes from threads | Backlog |
@@ -496,6 +537,7 @@ Room is already implemented in `:library` (see §5.3). To change the schema:
 | [0004](docs/adr/0004-launcherapps-and-usage-access.md) | `LauncherApps` for apps/shortcuts; usage access optional |
 | [0005](docs/adr/0005-compose-material3.md) | Compose + Material3 with a custom palette |
 | [0006](docs/adr/0006-room-in-milestone-1.md) | Room for the M1 library; prefs only for recents |
+| [0007](docs/adr/0007-webview-offline-assets.md) | Load RPG Maker games from SAF through WebViewAssetLoader |
 
 ---
 

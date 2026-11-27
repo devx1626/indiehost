@@ -16,7 +16,8 @@ has never run in this environment (`adb` is broken here); do not report it as pa
 | --- | --- | --- | --- |
 | JVM unit tests (`:detect`) | `GameMakerWad` parsing, `EngineDetector` fingerprints, blockers | JUnit 4 | **19 tests**, passing |
 | JVM unit tests (`:library`) | `Game` ↔ `GameEntity` mapping, enum fallback | JUnit 4 | **3 tests**, passing |
-| JVM unit tests (`:app`) | SAF scanner, id stability, merge rules, cover sizing | JUnit 4 | **16 tests**, passing |
+| JVM unit tests (`:app`) | SAF scanner, merge rules, covers, WebView path/security rules | JUnit 4 | **21 tests**, passing |
+| JVM unit tests (`:runtimes`) | Engine → adapter registry selection, WebView action constants | JUnit 4 | **3 tests**, passing |
 | Instrumented tests | Room DAO round trip | AndroidX Test | 1 test written (`GameDaoTest`), **not run** |
 | Manual device tests | Home role, pin, scan, covers, launch, recents, drawer, permissions | Human + adb | Required per release; M1 cases not yet run |
 | Performance | Startup, resume, drawer, fps, memory | adb + screen recording | Protocol below; not yet measured |
@@ -60,6 +61,12 @@ maps unknown engine names to `UNKNOWN`, and keeps optional fields null.
   statuses, blocker precedence, pin-only rows.
 - `CoverStoreTest` (4): subsampling bounds, already-small images, tall images, stable
   hashed file names.
+- `WebPathsTest` (4): both RPG Maker entry layouts, local-origin allowlist, traversal and
+  percent-escape rejection, MIME map.
+
+`.runtimes` host tests (`RuntimeRegistryTest.kt`, 3): all three registered engines resolve to
+their adapter, an unregistered engine resolves to null, and both RPG Maker adapters share
+the manifest action/extra constants.
 
 The fixtures are synthetic; no real game data is used.
 
@@ -82,9 +89,14 @@ The fixtures are synthetic; no real game data is used.
 ./gradlew :app:assembleDebug
 ```
 
-Expected: `:detect:test` reports 19 passed, `:library:testDebugUnitTest` 3, and
-`:app:testDebugUnitTest` 16, all with 0 failures. A detector failure blocks any release.
-`gradle test` does **not** run `library/src/androidTest`; that needs a device.
+Expected: `:detect:test` reports 19 passed, `:library:testDebugUnitTest` 3,
+`:app:testDebugUnitTest` 21 and `:runtimes:testDebugUnitTest` 3, all with 0 failures. A
+detector failure blocks any release. `gradle test` does **not** run
+`library/src/androidTest`; that needs a device.
+
+On the aarch64 container used here, add `-Pkotlin.incremental=false` and the aapt2
+override; a stale incremental cache can otherwise make the test compiler miss production
+top-level functions.
 
 The container used to prepare M1 has no working `adb`
 (`CANNOT LINK EXECUTABLE "adb": cannot locate symbol ...`), so no instrumented or manual
@@ -277,6 +289,40 @@ until the same folder is re-scanned, at which point rows return without touching
 **Expected:** The row and its stored cover disappear from IndieHost; the game folder and all
 game files remain untouched.
 
+### MT-29 — Launch an MV game offline
+
+**Precondition:** A legally owned RPG Maker MV game in a scanned folder; airplane mode on.
+**Steps:** Tap its row → `PLAY`; repeat with a root-layout game (`index.html` beside `js/`).
+**Expected:** The game loads fullscreen with no browser chrome; art and sound work; both
+folder layouts launch. No copy of the game appears in app storage. **This is the check that
+closes ADR-0007's open question about HTTPS interception without `INTERNET`.**
+
+### MT-30 — An MZ game launches through the same seam
+
+**Steps:** Scan an MZ folder and launch it.
+**Expected:** It opens without a GameMaker pin and without a separate setup screen; the
+row is launchable immediately after the scan.
+
+### MT-31 — Remote requests are blocked visibly
+
+**Steps:** In a game with a link or plugin that requests a remote URL, trigger that request.
+**Expected:** A `Network requests are blocked` message appears; nothing loads from the
+network; device traffic logs show no outbound request from IndieHost.
+
+### MT-32 — Back, rotation and audio
+
+**Steps:** During play press Back → `RESUME`, then Back → `LEAVE`; rotate the device;
+background the app and return.
+**Expected:** Back asks before leaving and never walks browser history; rotation does not
+restart the game; audio pauses in the background and resumes on return.
+
+### MT-33 — Broken WebView inputs
+
+**Steps:** Scan folders with (a) no `index.html`, (b) a missing `rpg_core.js`, (c) a revoked
+SAF grant; open each row.
+**Expected:** Each case shows a specific error dialog and finishes without a crash; stored
+library rows remain intact.
+
 ---
 
 ## 4. Performance protocol
@@ -366,13 +412,15 @@ files.
 Before tagging or sideloading a build:
 
 - [ ] `./gradlew :detect:test` — 19/19.
-- [ ] `./gradlew :app:testDebugUnitTest` and `:library:testDebugUnitTest` — green.
+- [ ] `./gradlew :app:testDebugUnitTest` (21), `:library:testDebugUnitTest` (3) and
+      `:runtimes:testDebugUnitTest` (3) — green.
 - [ ] `./gradlew :app:assembleDebug` — success.
 - [ ] MT-01 through MT-06 pass on the baseline.
 - [ ] MT-07 through MT-09 pass with usage access granted and revoked.
 - [ ] MT-10 through MT-13 pass.
 - [ ] MT-14 and MT-15 pass with a VM and a YYC file.
 - [ ] MT-21 through MT-28 pass on the baseline (SAF, merge, covers, revoke, reinstall).
+- [ ] MT-29 through MT-33 pass offline with an MV and an MZ game.
 - [ ] `GameDaoTest` runs on a device when `adb` is available.
 - [ ] Cold start and resume recorded (at least once).
 - [ ] No game data in `git status` or the APK.
@@ -418,6 +466,9 @@ copyrighted game data.** A synthetic fixture or a redacted log is enough.
 - `GameDaoTest` is written but unrun; `LauncherApps`, pin requests, SAF grants and usage
   access are only exercised manually.
 - No automated fps measurement; screen-recording frame counts are approximate.
-- M1 scan/cover cases MT-21…MT-28 were not executed in the container used to write them.
+- M1 scan/cover cases MT-21…MT-28 and M2 WebView cases MT-29…MT-33 were not executed in
+  the container used to write them.
+- No legal MV/MZ game copy is present in the repository, and game data must never be added
+  to it. Device verification needs the maintainer's own copies.
 - The emulator cannot validate Butterscotch performance or real shortcut ownership.
 - Work profiles and multi-user devices are untested.

@@ -107,47 +107,54 @@ not be executed. Do not mark M1 done on a compile alone.
 
 ---
 
-## Milestone 2 — RPG Maker MV/MZ in a WebView — **Planned**
+## Milestone 2 — RPG Maker MV/MZ in a WebView — **In progress (code complete, device verification pending)**
 
 **Goal:** prove the "one `RuntimeAdapter` per engine" claim with a runtime that is certain
 to work, and give the launcher a second real engine.
 
 ### Work
 
-1. **Adapter**
-   - `RpgMakerRuntimeAdapter : RuntimeAdapter` for `RPGMAKER_MV` and `RPGMAKER_MZ`.
-   - Introduce the adapter registry (`Map<Engine, RuntimeAdapter>`), since this is the
-     second adapter.
-   - `prepare` validates `index.html` and the core JS; `launch` starts a new
-     `GameWebViewActivity`.
+1. **Adapter** — done
+   - [x] `RpgMakerRuntimeAdapter` for MV and MZ, registered twice in `RuntimeRegistry`.
+   - [x] `RuntimeAdapter.launch(activity, game, shortcut?)` keeps GameMaker's pin handoff;
+     GameMaker and RPG Maker share the registry seam.
+   - [x] Validation of `index.html`/core JS moved into `GameWebViewActivity`, because a SAF
+     tree is not a `File`; `prepare` documents that instead of pretending to pre-flight.
 
-2. **Loading strategy** (decide in an ADR)
-   - **Preferred:** `WebViewAssetLoader` over the SAF tree / copied folder, so there is no
-     `INTERNET` permission and no localhost server.
-   - **Fallback:** copy the game into app storage (simple, but duplicates data).
-   - **Rejected unless necessary:** a localhost HTTP server (adds a socket and a permission
-     story).
+2. **Loading strategy** — done in [ADR-0007](docs/adr/0007-webview-offline-assets.md)
+   - [x] `WebViewAssetLoader` + SAF `PathHandler`; no `INTERNET` permission, no copy, no
+     localhost server.
+   - [ ] Device fallback (copy into app storage) is named but **not** implemented; needed
+     only if WebView refuses intercepted HTTPS without `INTERNET`.
+   - [x] A localhost server remains rejected.
 
-3. **WebView configuration**
-   - JavaScript on, DOM storage on.
-   - File access off, universal access from file URLs off, mixed content never allowed.
-   - No JavaScript bridge unless a concrete feature requires it; if added, expose one
-     narrow method and validate input.
-   - Block remote requests; a game that needs the network fails visibly.
+3. **WebView configuration** — done
+   - [x] JavaScript and DOM storage on; file/content access and universal file access off.
+   - [x] No JavaScript bridge; popups and multiple windows disabled.
+   - [x] Off-origin subresources get a blocked response; off-origin navigation shows a
+     visible message and never reaches the network.
 
-4. **Game lifecycle**
-   - Fullscreen/immersive, keep screen on, audio focus.
-   - Back = pause/exit confirmation, not browser history.
-   - Save data in WebView storage; document where it lives and how to export it.
-   - Handle rotation without restarting the game if feasible.
+4. **Game lifecycle** — done
+   - [x] Fullscreen, keep screen on, audio focus request/abandon on resume/pause.
+   - [x] Back = leave confirmation, never browser history.
+   - [x] `configChanges` avoids a rotation restart.
+   - [ ] Save export (FR-20) is **deferred beyond M2**; WebView DOM storage is app-private
+     and the runtime is not yet device-proven. Scope change recorded in the M2 design.
 
 ### Exit criteria
 
-- [ ] One MV game and one MZ game launch offline from a scanned folder.
-- [ ] No remote request succeeds; no `INTERNET` permission added.
-- [ ] Back/pause/audio behave like a game.
-- [ ] The adapter is selected through the same seam as GameMaker.
-- [ ] Manual tests cover a missing `index.html`, a broken JS file and a revoked SAF grant.
+Host evidence: `:runtimes:testDebugUnitTest` 3/3, `:app:testDebugUnitTest` 21/21,
+`:detect:test` 19/19, `:library:testDebugUnitTest` 3/3, debug APK built.
+
+- [ ] One MV game and one MZ game launch offline from a scanned folder. — MT-29, MT-30
+- [ ] No remote request succeeds; no `INTERNET` permission added. — MT-31; manifest checked
+- [ ] Back/pause/audio behave like a game. — MT-32
+- [ ] The adapter is selected through the same seam as GameMaker. — registry tests
+- [ ] Manual tests cover a missing `index.html`, a broken JS file and a revoked SAF grant. —
+      MT-33, unrun
+
+**Blocker:** no working `adb`, no legal MV/MZ game copy in this environment. If WebView
+refuses the intercepted HTTPS URL without `INTERNET`, implement ADR-0007's copy fallback.
 
 ### Risks
 
@@ -233,8 +240,11 @@ area.
 
 | Priority | Item | Why | Where |
 | --- | --- | --- | --- |
-| P0 | Run MT-21…MT-28 and `GameDaoTest` on a device | M1 exit criteria are unobserved | `TESTING.md`, `library/src/androidTest` |
+| P0 | Run MT-21…MT-33 and `GameDaoTest` on a device | M1/M2 exit criteria are unobserved | `TESTING.md`, `library/src/androidTest` |
+| P0 | Confirm WebView loads `appassets` without `INTERNET` | Decides whether ADR-0007's copy fallback is needed | `GameWebViewActivity.kt` |
 | P1 | Replace destructive Room migration with explicit migrations | Would drop library rows on a schema change | `IndieHostDatabase.kt` |
+| P1 | Decrypt MV/MZ encrypted assets | Games with `.rpgmvp`/`.rpgmvo` show broken art | `SafAssetPathHandler.kt` |
+| P2 | Export MV/MZ saves outside private storage | FR-20 deferred beyond M2 | `GameWebViewActivity.kt` |
 | P2 | Add `mipmap-xxxhdpi` legacy icons | Pre-26 xxxhdpi devices upscale | `res/mipmap-xxxhdpi` |
 | P2 | Add predictive-back opt-in for target 34 | Future-proof back handling | `AndroidManifest.xml` |
 | P2 | Replace deprecated `PackageManager` icon/label calls | Future API removal | `InstalledApps.kt` |

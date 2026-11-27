@@ -80,6 +80,8 @@ Game data is copyrighted by the game's authors and is **never** part of this pro
 - Cover art is **only** what the user picks from their own images. It is downsampled to
   at most 512 px, stored app-private under `filesDir/covers`, and never extracted from a
   game folder or committed. Do not point the picker at copyrighted art you cannot use.
+- The M2 WebView serves SAF documents as streams into WebView; nothing is copied into app
+  storage, and no game asset is committed or backed up.
 - Issue reports must not attach game files; see [TESTING §7](TESTING.md#7-bug-report-template).
 
 IndieHost does not circumvent DRM or copy protection. If a game cannot be run from a
@@ -94,6 +96,7 @@ user-supplied folder without that, it is out of scope.
 | AndroidX / Jetpack Compose / Material3 | Apache-2.0 | UI and activity plumbing |
 | AndroidX Room + Room KSP compiler | Apache-2.0 | M1 game-library persistence |
 | AndroidX DocumentFile | Apache-2.0 | SAF tree walking |
+| AndroidX WebKit (`WebViewAssetLoader`) | Apache-2.0 | Offline MV/MZ runtime; no network permission |
 | Kotlin standard library | Apache-2.0 | Language/runtime |
 | Android Gradle Plugin, Gradle | Apache-2.0 | Build |
 | JUnit 4 | EPL-1.0 | Host tests |
