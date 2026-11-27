@@ -21,4 +21,13 @@ interface GameDao {
 
     @Query("DELETE FROM games WHERE id = :id")
     fun delete(id: String)
+
+    @Query("UPDATE games SET available = :available WHERE id = :id")
+    fun setAvailable(id: String, available: Boolean)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun recordScan(run: ScanRunEntity)
+
+    @Query("SELECT * FROM scan_runs ORDER BY startedAt DESC LIMIT 1")
+    fun latestScan(): ScanRunEntity?
 }

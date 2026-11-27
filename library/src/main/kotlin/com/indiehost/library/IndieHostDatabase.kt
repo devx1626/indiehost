@@ -5,12 +5,14 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
- * Version 1 is the M1 schema. Destructive migration is allowed during M1 only;
- * after the library is in daily use, a real migration is required.
+ * Version 1 was the M1 schema. Version 2 adds scan provenance and an availability
+ * flag; rows are never deleted by a scan, only marked unavailable.
  */
-@Database(entities = [GameEntity::class], version = 1, exportSchema = false)
+@Database(entities = [GameEntity::class, ScanRunEntity::class], version = 2, exportSchema = false)
 @TypeConverters(GameConverters::class)
 abstract class IndieHostDatabase : RoomDatabase() {
 
@@ -29,9 +31,26 @@ abstract class IndieHostDatabase : RoomDatabase() {
                     IndieHostDatabase::class.java,
                     NAME,
                 )
-                    .fallbackToDestructiveMigration()
+                    .addMigrations(MIGRATION_1_2)
                     .build()
                     .also { instance = it }
             }
+    }
+}
+
+/** Additive: neither column loses user data, and the new table starts empty. */
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE games ADD COLUMN lastSeenScanId TEXT")
+        db.execSQL("ALTER TABLE games ADD COLUMN available INTEGER NOT NULL DEFAULT 1")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS scan_runs (" +
+                "id TEXT NOT NULL PRIMARY KEY, " +
+                "startedAt INTEGER NOT NULL, " +
+                "finishedAt INTEGER NOT NULL, " +
+                "imported INTEGER NOT NULL, " +
+                "skipped INTEGER NOT NULL, " +
+                "error TEXT)",
+        )
     }
 }

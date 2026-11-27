@@ -21,6 +21,8 @@ class GameMappingTest {
             treeUri = "content://tree",
             runnable = false,
             blocker = "No CODE chunk",
+            lastSeenScanId = "run-1",
+            available = false,
         )
 
         assertEquals(game, game.toEntity().toGame())

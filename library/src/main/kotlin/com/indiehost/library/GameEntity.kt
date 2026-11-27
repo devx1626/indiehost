@@ -24,6 +24,8 @@ data class GameEntity(
     val treeUri: String?,
     val runnable: Boolean,
     val blocker: String?,
+    val lastSeenScanId: String?,
+    val available: Boolean,
 )
 
 class GameConverters {
@@ -56,6 +58,8 @@ fun Game.toEntity(): GameEntity = GameEntity(
     treeUri = treeUri,
     runnable = runnable,
     blocker = blocker,
+    lastSeenScanId = lastSeenScanId,
+    available = available,
 )
 
 fun GameEntity.toGame(): Game = Game(
@@ -71,4 +75,6 @@ fun GameEntity.toGame(): Game = Game(
     treeUri = treeUri,
     runnable = runnable,
     blocker = blocker,
+    lastSeenScanId = lastSeenScanId,
+    available = available,
 )

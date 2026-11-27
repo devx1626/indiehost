@@ -37,4 +37,8 @@ data class Game(
     val runnable: Boolean = true,
     /** Human-readable reason when [runnable] is false. */
     val blocker: String? = null,
+    /** Id of the last completed scan that saw this row. */
+    val lastSeenScanId: String? = null,
+    /** False when a later scan of this tree did not see the folder. Never deleted. */
+    val available: Boolean = true,
 )

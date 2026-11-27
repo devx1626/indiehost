@@ -18,4 +18,14 @@ class RoomGameRepository(private val dao: GameDao) : GameRepository {
     override fun remove(id: String) {
         dao.delete(id)
     }
+
+    override fun setAvailable(id: String, available: Boolean) {
+        dao.setAvailable(id, available)
+    }
+
+    override fun recordScan(run: ScanRun) {
+        dao.recordScan(run.toEntity())
+    }
+
+    override fun latestScan(): ScanRun? = dao.latestScan()?.toScanRun()
 }
