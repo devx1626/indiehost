@@ -202,16 +202,17 @@ refuses the intercepted HTTPS URL without `INTERNET`, implement ADR-0007's copy 
 
 ---
 
-## Milestone 4 — Compatibility and performance — **Planned**
+## Milestone 4 — Compatibility and performance — **In progress (template only, measurements blocked)**
 
 **Goal:** replace "it runs" with measured claims.
 
 ### Work
 
-1. **Compatibility matrix**
-   - At least five GameMaker titles across WAD versions 8–17.
-   - Columns: device, Android, RAM, engine, game, WAD, fps (walk/battle), audio, notes.
-   - Commit device data only; never game files.
+1. **Compatibility matrix** — template ready, data blocked
+   - [x] [COMPATIBILITY.md](COMPATIBILITY.md) created with the required columns and a
+     "no measured data" banner; detection-only engines are listed as such.
+   - [ ] At least five GameMaker titles across WAD versions 8–17, plus an MV and MZ title.
+   - [x] Commit device data only; never game files.
 
 2. **Performance protocol**
    - Cold start, resume, drawer load, recents refresh, idle PSS.
@@ -225,10 +226,13 @@ refuses the intercepted HTTPS URL without `INTERNET`, implement ADR-0007's copy 
 
 ### Exit criteria
 
-- [ ] Matrix committed with at least five titles.
-- [ ] Cold start, resume and drawer numbers recorded on the baseline.
-- [ ] README/spec claims match the measurements.
-- [ ] Known-bad configurations documented.
+- [ ] Matrix filled with at least five titles — **blocked: no device or legal game copy**.
+- [ ] Cold start, resume and drawer numbers recorded on the baseline — **blocked**.
+- [ ] README/spec claims match the measurements — currently qualified in COMPATIBILITY.md.
+- [ ] Known-bad configurations documented — the section is deliberately empty until tested.
+
+**Blocker:** the container has no working `adb` and no game data. No performance number may
+be claimed until the maintainer fills the template on the baseline phone.
 
 ---
 

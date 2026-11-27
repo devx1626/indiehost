@@ -193,7 +193,7 @@ added for an unresolved runtime model; the library shows `NOT HOSTED` and Launch
 
 | ID | Requirement | Status |
 | --- | --- | --- |
-| FR-25 | A compatibility matrix records device, Android version, RAM, engine, game, WAD, measured fps, audio quality and notes. | Planned (M4) |
+| FR-25 | A compatibility matrix records device, Android version, RAM, engine, game, WAD, measured fps, audio quality and notes. | Partial (M4): [COMPATIBILITY.md](COMPATIBILITY.md) template exists; no measurements recorded |
 
 ---
 
@@ -462,8 +462,9 @@ Implementation is complete; criteria remain open until observed on the baseline 
 ### 13.5 Milestone 4
 
 - [ ] At least five GameMaker titles are measured on the baseline device with fps, audio
-      and notes.
-- [ ] The matrix is committed (device data only; no game files).
+      and notes. — template ready, no device here
+- [ ] The matrix is committed (device data only; no game files). — template committed,
+      filled matrix blocked
 
 ---
 

@@ -64,6 +64,7 @@ as the `app-debug` artifact.
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Modules, flows, contracts, technical debt |
 | [ROADMAP.md](ROADMAP.md) | Milestones and exit criteria |
 | [TESTING.md](TESTING.md) | Automated and manual test protocol |
+| [COMPATIBILITY.md](COMPATIBILITY.md) | Device results template; currently no measured data |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Build, style, commit and release workflow |
 | [LICENSING.md](LICENSING.md) | AGPL boundary, game-data policy, third-party licences |
 | [SECURITY.md](SECURITY.md) | Permissions, exported components, threat model |

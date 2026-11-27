@@ -404,8 +404,9 @@ Note whether the device throttles. This is informational; there is no hard budge
 
 ## 5. Compatibility matrix template
 
-Copy this table into the release notes or a future `COMPATIBILITY.md`. Never include game
-files.
+The tracked template is [COMPATIBILITY.md](COMPATIBILITY.md). Copy its table into the
+release notes as well. Never include game files, and leave a cell `unmeasured` rather than
+guessing.
 
 | Device | Android | RAM | Engine | Game | WAD | Walk fps | Battle fps | Audio | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
