@@ -1,7 +1,7 @@
 # IndieHost Specification
 
 > **Status:** Living document · **Version:** 1.0 · **Last updated:** 2026-11-25
-> **Applies to:** `0.3.0` (versionCode 3)
+> **Applies to:** `0.4.0` (versionCode 5)
 > **Related:** [README](README.md) · [MILESTONE-0](MILESTONE-0.md) · [ARCHITECTURE](ARCHITECTURE.md) · [ROADMAP](ROADMAP.md) · [TESTING](TESTING.md) · [LICENSING](LICENSING.md) · [SECURITY](SECURITY.md)
 
 This document is normative. If the code and this document disagree, the code is wrong
@@ -40,15 +40,17 @@ recents and an app drawer, styled like a game client rather than a stock launche
 
 ## 2. Scope
 
-### 2.1 Current release — `0.3.0`
+### 2.1 Current release — `0.4.0`
 
 Shipped and expected to work:
 
 - Home-app role with a Compose home screen.
-- Library built from Butterscotch's pinned `game-` shortcuts.
-- One-tap game launch through `LauncherApps.startShortcut`.
+- Persistent library combining pinned `game-` shortcuts and SAF-scanned folders.
+- One-tap GameMaker launch through `LauncherApps.startShortcut` via an explicitly linked pin.
+- Offline RPG Maker MV/MZ launch in an in-app WebView (device-unverified in this build).
 - Recents from usage access when granted, plus locally remembered launches.
 - App drawer with search and long-press app info.
+- User-picked cover art, downsampled to 512 px.
 - The Milestone 0 `data.win` checker (engine, WAD version, blocker).
 - Pin-request acceptance so Butterscotch games can be pinned to IndieHost.
 
@@ -229,7 +231,7 @@ These are not trade-offs. A change that violates one is rejected.
 | CON-04 | **No emulation.** No Wine, no x86 translation, no Windows container, no proprietary runner redistribution. |
 | CON-05 | **GameMaker support is VM-only.** A build without a `CODE` chunk is reported as blocked, never attempted. |
 | CON-06 | **The launcher works with zero games.** A missing runtime, empty library or denied usage access must leave a usable home screen, not a setup wall. |
-| CON-07 | **No third-party artwork or trademarks in shipped branding.** The palette is a generic game-client look. The public version string is `0.3.0`; the internal identifiers were renamed to `IndieTheme`/`Indie` on 2026-11-27 and no third-party product name remains in the build. |
+| CON-07 | **No third-party artwork or trademarks in shipped branding.** The palette is a generic game-client look. The public version string is `0.4.0`; the internal identifiers were renamed to `IndieTheme`/`Indie` on 2026-11-27 and no third-party product name remains in the build. |
 
 ---
 
@@ -420,8 +422,13 @@ Milestone 0 game bar. Measure with the protocol in [TESTING.md](TESTING.md).
 
 ## 13. Acceptance criteria
 
-### 13.1 `0.3.0`
+### 13.1 `0.4.0`
 
+- [ ] All 0.3.0 behaviour below still works after the library/WebView changes.
+- [ ] Scanned folders and covers survive process death and launcher updates. — MT-21…MT-27
+- [ ] MV/MZ games launch offline without `INTERNET` and no remote request succeeds. — MT-29…MT-31
+- [ ] Back/audio/rotation behave like a game; detection-only engines show a reason. — MT-32, MT-34
+- [ ] Host gate passes: 19 detector + 3 mapping + 3 registry + 21 app tests and a debug APK.
 - [ ] Installs and launches on API 24 through 34.
 - [ ] Can be selected as the home app; Home returns to it with `singleTask` behaviour.
 - [ ] Lists pinned `game-` shortcuts only while it is the home app.
@@ -430,7 +437,7 @@ Milestone 0 game bar. Measure with the protocol in [TESTING.md](TESTING.md).
 - [ ] Recents works with and without usage access.
 - [ ] `data.win` check reports engine, WAD version, runnable status and blocker.
 - [ ] No game data in the APK or repository; `allowBackup="false"`.
-- [ ] `./gradlew :detect:test` passes 12/12; `./gradlew :app:assembleDebug` succeeds.
+- [ ] `./gradlew :detect:test` passes 19/19; `./gradlew :app:assembleDebug` succeeds.
 
 ### 13.2 Milestone 1
 

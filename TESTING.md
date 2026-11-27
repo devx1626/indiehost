@@ -465,7 +465,7 @@ Before tagging or sideloading a build:
 Open an issue with:
 
 ```
-Build:            0.3.0 (versionCode 3)
+Build:            0.4.0 (versionCode 5)
 Device:           make/model
 Android:          version / API level
 RAM:

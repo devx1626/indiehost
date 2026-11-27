@@ -561,8 +561,8 @@ Room is already implemented in `:library` (see §5.3). To change the schema:
 - Single Gradle build, four modules, version catalog absent (versions are inline).
 - Launcher licence: MIT ([LICENSE](LICENSE)); third-party licences are in
   [LICENSING.md](LICENSING.md).
-- `applicationId = "com.indiehost.launcher"` (placeholder), `versionCode = 3`,
-  `versionName = "0.3.0"`.
+- `applicationId = "com.indiehost.launcher"` (unchanged), `versionCode = 5`,
+  `versionName = "0.4.0"`.
 - Debug is built by CI; release signing is opt-in through four `INDIEHOST_*` environment
   variables, and the keystore stays outside the repository.
 - The Gradle wrapper jar is not committed; see [PREREQUISITES](PREREQUISITES.md).

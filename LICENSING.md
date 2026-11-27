@@ -125,7 +125,7 @@ vendored. The skills are advice, not project policy; [AGENTS.md](AGENTS.md) and
 The UI palette is a generic dark game-client look. It contains no third-party artwork,
 logos or fonts, and it makes no network calls.
 
-- The public version string is `0.3.0`: no third-party product name appears in the APK
+- The public version string is `0.4.0`: no third-party product name appears in the APK
   metadata, UI or artwork.
 - The old internal `SteamTheme`/`Steam` identifiers were renamed to `IndieTheme`/`Indie`
   on 2026-11-27 (CON-07). `STEAM`-style codenames no longer exist in the build.

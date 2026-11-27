@@ -25,33 +25,33 @@ the test phone — a MediaTek Helio A22 with four Cortex-A53 cores and a PowerVR
 Findings, the device test procedure and what is still unmeasured are in
 [MILESTONE-0.md](MILESTONE-0.md).
 
-**Current build: `0.3.0`.** IndieHost is a daily-usable home screen, styled like a
+**Current build: `0.4.0`.** IndieHost is a daily-usable home screen, styled like a
 game client:
 
-- a pinned-game **library** with a "play next" panel, one tap to start;
-- a **recents** row, from usage access when granted and from apps opened here otherwise;
-- an **app drawer** with search, built from `LauncherApps`;
-- the Milestone 0 `data.win` check, kept as a tool.
+- a persistent **library** — pinned Butterscotch games plus folders you scan yourself,
+  stored in Room, with a "play next" panel and one-tap launch;
+- **folder scanning** with `ADD GAMES FOLDER`: SAF read grants survive restarts, re-scans
+  upsert by stable id, and unsupported folders are reported with a reason;
+- **game details**: engine, WAD version, location, explicit pin linking, user-picked cover
+  art downsampled to 512 px, and a Remove that never touches the game folder;
+- **offline RPG Maker MV/MZ** through [ADR-0007](docs/adr/0007-webview-offline-assets.md):
+  `WebViewAssetLoader` serves the SAF folder under `appassets.androidplatform.net`, with no
+  `INTERNET` permission, no localhost server and no copy of the game;
+- **detection-only statuses** for Ren'Py, LÖVE and ScummVM, with the reason shown in the UI;
+- a **recents** row, an **app drawer** with search, and the Milestone 0 `data.win` check.
 
-**Unreleased work in this tree (Milestone 1):** the library is now stored in Room and can
-also be filled by pointing IndieHost at a games folder with `ADD GAMES FOLDER`. Scans use
-stable ids and never delete rows; a GameMaker scan is linked to its Butterscotch pin
-explicitly. Each game can have user-picked cover art, downsampled to 512 px. MV/MZ and the
-remaining engines are detected but show which milestone still owes them a runtime. The M1
-device checklist is in [TESTING.md](TESTING.md) §3; it has **not** been run here because
-`adb` does not work in the build container.
-
-**Unreleased work in this tree (Milestone 2):** scanned MV/MZ games now launch offline in a
-WebView through [ADR-0007](docs/adr/0007-webview-offline-assets.md). `WebViewAssetLoader`
-serves the game's SAF folder under Android's reserved `appassets.androidplatform.net`
-origin — no `INTERNET` permission, no localhost server and no copy of the game. Remote
-requests are blocked, Back asks before leaving, and both `www/` and root `index.html`
-layouts are supported. This route is **code-complete but device-unverified**; encrypted
-`.rpgmvp`/`.rpgmvo` assets are not decrypted, and save export is deferred.
+The MV/MZ route and the M1 flows are **code-complete but device-unverified** in this build:
+MT-21…MT-34 have not been run on hardware. Encrypted `.rpgmvp`/`.rpgmvo` assets are not
+decrypted, save export is deferred, and no compatibility numbers are claimed — see
+[COMPATIBILITY.md](COMPATIBILITY.md). Run `tools/device_checks.sh` from a workstation with
+adb to verify them.
 
 ## Downloads
 
-Signed release APKs are on the [Releases page](https://github.com/devx1626/indiehost/releases).
+The signed `0.4.0` APK is
+[`indiehost-0.4.0.apk`](https://github.com/devx1626/indiehost/releases/download/v0.4.0/indiehost-0.4.0.apk)
+(SHA-256 `2793197bbd6bca752e78a269485b797d3950c6572cee4efdba64fc3bbfe23c78`).
+Older signed builds are on the [Releases page](https://github.com/devx1626/indiehost/releases).
 Unsigned debug APKs from CI are attached to [Actions runs](https://github.com/devx1626/indiehost/actions/workflows/android.yml)
 as the `app-debug` artifact.
 
