@@ -461,7 +461,8 @@ disappears. That is acceptable for a launcher, but it means `drawerOpen` is not 
 | Cover art | `filesDir/covers/<sha256(gameId)>.webp` | App-private, replaced by the next pick, deleted with the row |
 | MV/MZ saves | WebView DOM/localStorage in app-private `app_webview` | Survives restart; no export yet |
 
-`android:allowBackup="false"` keeps all of this out of cloud backup. A full uninstall
+`android:allowBackup="false"` (API ≤30) and `res/xml/data_extraction_rules.xml` (API 31+
+cloud and device transfer) keep all of this out of backup. A full uninstall
 therefore loses metadata and must be restored by re-scanning the same folders; the game
 files themselves are untouched. Butterscotch-owned saves cannot be relocated by us and
 remain Butterscotch's responsibility. FR-20 (saves outside private storage) is **deferred
@@ -479,8 +480,9 @@ M2 design and in `spec.md`.
 | Permissions | `PACKAGE_USAGE_STATS` only (app-op); no `INTERNET`; no runtime permissions |
 | Package visibility | `<queries>` for Butterscotch and `MAIN`/`LAUNCHER` |
 | Game data | Never copied out of Butterscotch; checker cache is local and transient |
-| WebView | JavaScript on, no bridge, file/content access off, off-origin requests/navigation blocked; no `INTERNET` |
-| Backup | Disabled |
+| WebView | JavaScript on, no bridge, file/content access off, `blockNetworkLoads=true`, mixed content never, off-origin requests/navigation blocked; no `INTERNET` |
+| Pin requests | `PinPolicy` requires a valid, shortcut-type `game-` request from Butterscotch; listed shortcuts must also be enabled and pinned |
+| Backup | `allowBackup="false"` plus `dataExtractionRules` excluding prefs, Room and covers from cloud backup and device transfer |
 
 See [SECURITY.md](SECURITY.md) for the threat model and hardening backlog.
 

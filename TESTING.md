@@ -363,6 +363,22 @@ library rows remain intact.
 `PLAY` is disabled or shows the explanation; no attempt is made to start an unverified
 runtime.
 
+### MT-35 — Invalid or foreign pin requests
+
+**Steps:** Ask a non-Butterscotch app to pin a shortcut through IndieHost; cancel a
+Butterscotch pin request before it resolves; pin a `game-` shortcut normally.
+**Expected:** The first two finish without accepting anything and appear in
+`adb logcat -s IndieHostPin` as ignored/could-not-pin; only the valid request is accepted and
+listed. A shortcut disabled or unpinned later disappears from the library.
+
+### MT-36 — WebView hardening did not break offline games
+
+**Steps:** Launch a scanned MV game with `blockNetworkLoads=true` and mixed content never
+allowed, with the device offline.
+**Expected:** The game still loads from `appassets.androidplatform.net` through the SAF
+handler; no network request succeeds; the loading overlay clears after first page finish.
+If local loads break, revisit the hardening flags before any release.
+
 ---
 
 ## 4. Performance protocol
@@ -463,6 +479,7 @@ Before tagging or sideloading a build:
 - [ ] MT-21 through MT-28 pass on the baseline (SAF, merge, covers, revoke, reinstall).
 - [ ] MT-29 through MT-33 pass offline with an MV and an MZ game.
 - [ ] MT-34 passes for all three detection-only engines.
+- [ ] MT-35 and MT-36 pass for pin validity and WebView hardening.
 - [ ] `GameDaoTest` runs on a device when `adb` is available.
 - [ ] Cold start and resume recorded (at least once).
 - [ ] No game data in `git status` or the APK.

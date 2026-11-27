@@ -36,9 +36,9 @@ UI/UX work is complete when:
 
 | Task | Source patterns | Files | Acceptance |
 | --- | --- | --- | --- |
-| Add `PinItemRequest.isValid` check, re-resolve shortcut, filter `isEnabled && isPinned`, surface accept failure | DroidDeck/ARK pin flow | `PinShortcutActivity.kt`, `ButterscotchShortcuts.kt` | Host test for decision logic; manual case for foreign/cancelled request |
-| Add `dataExtractionRules` excluding prefs, Room DB and covers; move covers to `noBackupFilesDir` or exclude explicitly | Android auto-backup docs, DroidDeck private-path model | `AndroidManifest.xml`, new `res/xml/data_extraction_rules.xml`, `CoverStore.kt` | Manifest test asserts rules; no game data in backup |
-| Harden WebView: `blockNetworkLoads`, `MIXED_CONTENT_NEVER_ALLOW`, per-game origin isolation decision, SVG policy, path/byte caps, cache clear on destroy | Android WebViewAssetLoader/WebSettings docs, security report | `GameWebViewActivity.kt`, `WebPaths.kt`, `SafTreeResolver.kt` | Extend `WebPathsTest`; device case confirms local load still works |
+| [x] Add `PinItemRequest.isValid` check, re-resolve shortcut, filter `isEnabled && isPinned`, surface accept failure — `PinPolicy` pure helper + 4 host tests; manual case MT-35 still open | DroidDeck/ARK pin flow | `PinPolicy.kt`, `PinShortcutActivity.kt`, `ButterscotchShortcuts.kt` | Host test for decision logic; manual case for foreign/cancelled request |
+| [x] Add `dataExtractionRules` excluding prefs, Room DB and covers; covers excluded explicitly rather than moved | Android auto-backup docs, DroidDeck private-path model | `AndroidManifest.xml`, `res/xml/data_extraction_rules.xml` | Resource compiles with the manifest; D2D behaviour still needs a device check |
+| [ ] Harden WebView: [x] `blockNetworkLoads`, `MIXED_CONTENT_NEVER_ALLOW`; [ ] per-game origin isolation decision, SVG policy, path/byte caps, cache clear on destroy | Android WebViewAssetLoader/WebSettings docs, security report | `GameWebViewActivity.kt`, `WebPaths.kt`, `SafTreeResolver.kt` | MT-36 must confirm local load still works with `blockNetworkLoads=true` |
 | Add a one-shot, TTL'd in-process launch token instead of trusting intent extras | DroidDeck `LauncherHandoff`, COSMIC one-shot handover | `MainActivity.kt`, `RpgMakerRuntimeAdapter.kt` | Pure TTL/one-shot host test |
 
 ## Phase 2 — Library lifecycle and scan honesty

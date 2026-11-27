@@ -13,6 +13,7 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
@@ -196,6 +197,11 @@ class GameWebViewActivity : Activity() {
             allowFileAccessFromFileURLs = false
             @Suppress("DEPRECATION")
             allowUniversalAccessFromFileURLs = false
+            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            // Defence in depth: the app has no INTERNET permission, and off-origin
+            // requests already get a blocked response. This makes WebView reject
+            // network loads before our client is invoked too.
+            blockNetworkLoads = true
             javaScriptCanOpenWindowsAutomatically = false
             setSupportMultipleWindows(false)
         }
