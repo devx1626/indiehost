@@ -51,6 +51,16 @@
     <string name="yes">yes</string>
     <string name="no">no</string>
 
+    <!-- Folder scan -->
+    <string name="add_folder">ADD GAMES FOLDER</string>
+    <string name="scanning_folders">Scanning folders...</string>
+    <string name="scan_result">Imported %1$d games.</string>
+    <string name="scan_result_skipped">Imported %1$d games; %2$d folders skipped.</string>
+    <string name="scanned_count">%1$d scanned games in the library.</string>
+    <string name="folder_not_remembered">This folder cannot be remembered. Pick another folder.</string>
+    <string name="folder_permission_lost">Access to a games folder was revoked. Pick it again to rescan.</string>
+    <string name="scan_failed">Could not save the scanned games.</string>
+
     <!-- Status messages -->
     <string name="runner_not_installed">Butterscotch is not installed\n%1$s</string>
     <string name="opened_runner">Opened Butterscotch</string>

@@ -63,6 +63,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.indiehost.detect.EngineDetector
+import com.indiehost.library.Game
 import com.indiehost.runtimes.RunnerShortcut
 import java.io.File
 
@@ -84,6 +85,10 @@ internal fun HomeScreen(
     loadingApps: Boolean,
     usageAccess: Boolean,
     status: String,
+    library: List<Game>,
+    scanning: Boolean,
+    scanMessage: String,
+    onAddFolder: (Uri) -> Unit,
     onOpenDrawer: () -> Unit,
     onLaunchGame: (RunnerShortcut) -> Unit,
     onLaunchApp: (LauncherApp) -> Unit,
@@ -107,6 +112,10 @@ internal fun HomeScreen(
             report = result
             checking = false
         }, "data-win-check").start()
+    }
+
+    val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) onAddFolder(uri)
     }
 
     LazyColumn(
@@ -211,6 +220,17 @@ internal fun HomeScreen(
             }
         }
 
+        if (library.isNotEmpty()) {
+            item {
+                Panel(Modifier.padding(horizontal = 20.dp)) {
+                    Text(
+                        stringResource(R.string.scanned_count, library.size),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        }
+
         item {
             SectionLabel(stringResource(R.string.section_tools), Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp))
         }
@@ -228,6 +248,24 @@ internal fun HomeScreen(
                 )
             }
         }
+        item {
+            OutlineButton(
+                if (scanning) stringResource(R.string.scanning_folders) else stringResource(R.string.add_folder),
+                { folderPicker.launch(null) },
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                enabled = !scanning,
+            )
+        }
+        if (scanMessage.isNotEmpty()) {
+            item {
+                Panel(Modifier.padding(horizontal = 20.dp)) {
+                    Text(scanMessage, style = MaterialTheme.typography.bodySmall, color = Steam.Accent)
+                }
+            }
+        }
+
         if (checking || report.isNotEmpty()) {
             item {
                 Panel(Modifier.padding(horizontal = 20.dp)) {

@@ -13,8 +13,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.documentfile.provider.DocumentFile
 import com.indiehost.detect.Engine
 import com.indiehost.library.Game
+import com.indiehost.library.GameRepository
+import com.indiehost.library.RoomGameRepository
 import com.indiehost.runtimes.GameMakerRuntimeAdapter
 import com.indiehost.runtimes.LaunchOutcome
 import com.indiehost.runtimes.RunnerShortcut
@@ -31,8 +34,15 @@ class MainActivity : ComponentActivity() {
 
     private val runtime = GameMakerRuntimeAdapter()
 
+    private lateinit var repository: GameRepository
+    private lateinit var folderStore: GameFolderStore
+
     private var games by mutableStateOf<List<RunnerShortcut>>(emptyList())
+    private var library by mutableStateOf<List<Game>>(emptyList())
     private var canListGames by mutableStateOf(false)
+
+    private var scanning by mutableStateOf(false)
+    private var scanMessage by mutableStateOf("")
 
     private var apps by mutableStateOf<List<LauncherApp>>(emptyList())
     private var recents by mutableStateOf<List<LauncherApp>>(emptyList())
@@ -50,6 +60,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        repository = RoomGameRepository(applicationContext)
+        folderStore = GameFolderStore(this)
+        loadLibrary()
         refreshGames()
         loadApps()
 
@@ -76,6 +89,10 @@ class MainActivity : ComponentActivity() {
                             loadingApps = loadingApps,
                             usageAccess = usageAccess,
                             status = status,
+                            library = library,
+                            scanning = scanning,
+                            scanMessage = scanMessage,
+                            onAddFolder = ::addFolder,
                             onOpenDrawer = { drawerOpen = true },
                             onLaunchGame = ::launchGame,
                             onLaunchApp = ::launchApp,
@@ -101,7 +118,79 @@ class MainActivity : ComponentActivity() {
         // Games are pinned in another app and usage access can be granted from
         // Settings, so both lists can change while we sit in the background.
         refreshGames()
+        loadLibrary()
+        checkFolderPermissions()
         if (appsLoaded) refreshRecents() else loadApps()
+    }
+
+    private fun loadLibrary() {
+        Thread({
+            library = runCatching { repository.all() }.getOrElse { emptyList() }
+        }, "library-load").start()
+    }
+
+    private fun checkFolderPermissions() {
+        if (folderStore.all().any { !folderStore.hasPermission(it) }) {
+            scanMessage = getString(R.string.folder_permission_lost)
+        }
+    }
+
+    private fun addFolder(uri: Uri) {
+        if (scanning) return
+        if (!folderStore.add(uri)) {
+            scanMessage = getString(R.string.folder_not_remembered)
+            return
+        }
+        scanFolders()
+    }
+
+    /**
+     * Scans every remembered tree. Rows the scan does not see are left alone;
+     * only an explicit Remove deletes a game.
+     */
+    private fun scanFolders() {
+        if (scanning) return
+        scanning = true
+        scanMessage = getString(R.string.scanning_folders)
+
+        Thread({
+            val trees = folderStore.all()
+            val existing = runCatching { repository.all() }.getOrElse { emptyList() }
+            val imported = mutableListOf<Game>()
+            val skipped = mutableListOf<String>()
+            var failure: String? = null
+
+            for (tree in trees) {
+                if (!folderStore.hasPermission(tree)) {
+                    failure = getString(R.string.folder_permission_lost)
+                    continue
+                }
+                val document = DocumentFile.fromTreeUri(this, tree)
+                if (document == null) {
+                    skipped += tree.toString()
+                    continue
+                }
+                val result = GameScanner().scan(
+                    SafGameFolder(this, tree, document),
+                    tree.toString(),
+                    existing + imported,
+                )
+                imported += result.games
+                skipped += result.skipped
+                result.error?.let { skipped += it }
+            }
+
+            runCatching { imported.forEach { repository.add(it) } }
+                .onFailure { failure = getString(R.string.scan_failed) }
+
+            library = runCatching { repository.all() }.getOrElse { existing + imported }
+            scanning = false
+            scanMessage = when {
+                failure != null -> failure!!
+                skipped.isEmpty() -> getString(R.string.scan_result, imported.size)
+                else -> getString(R.string.scan_result_skipped, imported.size, skipped.size)
+            }
+        }, "folder-scan").start()
     }
 
     private fun refreshGames() {
