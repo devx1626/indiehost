@@ -13,6 +13,9 @@ supersede an old one with a new ADR instead.
 | [0005](0005-compose-material3.md) | Compose + Material3 with a custom palette | Accepted |
 | [0006](0006-room-in-milestone-1.md) | Room for the M1 library; prefs only for recents | Proposed |
 | [0007](0007-webview-offline-assets.md) | Load RPG Maker games from SAF through WebViewAssetLoader | Accepted |
+| [0008](0008-renpy-detected-not-hosted.md) | Ren'Py is detected but not hosted by IndieHost | Accepted |
+| [0009](0009-love-handoff-not-implemented.md) | LÖVE handoff is a candidate, not built in M3 | Accepted |
+| [0010](0010-scummvm-handoff-not-implemented.md) | ScummVM handoff needs the configured target id | Accepted |
 
 ## Adding an ADR
 
