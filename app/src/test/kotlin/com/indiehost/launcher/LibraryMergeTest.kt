@@ -81,7 +81,7 @@ class LibraryMergeTest {
     }
 
     @Test
-    fun `RenPy LOVE and ScummVM are M3`() {
+    fun `RenPy LOVE and ScummVM say why they are not hosted`() {
         val items = mergeLibrary(
             listOf(
                 game(id = "scan-r", title = "Ren", engine = Engine.RENPY),
@@ -91,7 +91,15 @@ class LibraryMergeTest {
             emptyList(),
         )
 
-        assertTrue(items.all { it.reason == LibraryReason.RUNTIME_M3 })
+        assertEquals(
+            listOf(
+                LibraryReason.RENPY_M3,
+                LibraryReason.LOVE_M3,
+                LibraryReason.SCUMMVM_M3,
+            ),
+            items.map { it.reason },
+        )
+        assertTrue(items.none { it.launchable })
     }
 
     @Test

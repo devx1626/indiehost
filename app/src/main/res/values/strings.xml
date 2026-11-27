@@ -45,6 +45,10 @@
     <string name="pin_needed_short">PIN NEEDED</string>
     <string name="runtime_m2_short">M2</string>
     <string name="runtime_m3_short">M3</string>
+    <string name="renpy_not_hosted">Detected - Ren\'Py ships a per-game Android APK. Install it to play.</string>
+    <string name="love_not_hosted">Detected - LÖVE\'s Android player can open this .love file; handoff is not wired up yet.</string>
+    <string name="scummvm_not_hosted">Detected - open it in ScummVM after adding the folder there.</string>
+    <string name="not_hosted_short">NOT HOSTED</string>
     <string name="blocked_short">BLOCKED</string>
     <string name="close">CLOSE</string>
     <string name="remove">REMOVE</string>

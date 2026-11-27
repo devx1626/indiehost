@@ -272,7 +272,7 @@ class MainActivity : ComponentActivity() {
 
         val adapter = registry.forEngine(game.engine)
         if (adapter == null) {
-            status = getString(R.string.runtime_m3)
+            status = getString(R.string.not_hosted_short)
             return
         }
 

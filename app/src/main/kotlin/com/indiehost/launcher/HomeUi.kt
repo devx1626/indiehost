@@ -631,6 +631,9 @@ private fun librarySubtitle(item: LibraryItem): String = when (item.reason) {
     LibraryReason.NEEDS_PIN -> stringResource(R.string.pin_needed)
     LibraryReason.WEBVIEW_M2 -> stringResource(R.string.runtime_m2)
     LibraryReason.RUNTIME_M3 -> stringResource(R.string.runtime_m3)
+    LibraryReason.RENPY_M3 -> stringResource(R.string.renpy_not_hosted)
+    LibraryReason.LOVE_M3 -> stringResource(R.string.love_not_hosted)
+    LibraryReason.SCUMMVM_M3 -> stringResource(R.string.scummvm_not_hosted)
     LibraryReason.DETECTOR_BLOCKED ->
         item.game?.blocker?.let { stringResource(R.string.detector_blocked, it) }
             ?: stringResource(R.string.runtime_m3)
@@ -641,6 +644,8 @@ private fun statusLabel(reason: LibraryReason?): String = when (reason) {
     LibraryReason.NEEDS_PIN -> stringResource(R.string.pin_needed_short)
     LibraryReason.WEBVIEW_M2 -> stringResource(R.string.runtime_m2_short)
     LibraryReason.RUNTIME_M3 -> stringResource(R.string.runtime_m3_short)
+    LibraryReason.RENPY_M3, LibraryReason.LOVE_M3, LibraryReason.SCUMMVM_M3 ->
+        stringResource(R.string.not_hosted_short)
     LibraryReason.DETECTOR_BLOCKED -> stringResource(R.string.blocked_short)
     null -> ""
 }
