@@ -1,8 +1,10 @@
 package com.indiehost.library
 
 /**
- * Storage seam. A Room-backed implementation replaces [InMemoryGameRepository]
- * in Milestone 1 without touching the runtimes or the detector.
+ * Storage seam. [RoomGameRepository] is the production implementation;
+ * [InMemoryGameRepository] stays for tests and previews.
+ *
+ * All methods block. Call them from a background thread, never the main thread.
  */
 interface GameRepository {
     fun all(): List<Game>
