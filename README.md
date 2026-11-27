@@ -123,6 +123,7 @@ You point the app at your own copy.
 
 ## Licence
 
-Launcher code is the author's. Butterscotch is AGPL-3.0; this project only launches the
-installed app and does not link its native code, so no AGPL obligation attaches to this
-repository. Forking or bundling Butterscotch would change that.
+IndieHost is [MIT licensed](LICENSE). Butterscotch is AGPL-3.0; this project only launches
+the installed app and does not link its native code, so no AGPL obligation attaches to this
+repository. Forking or bundling Butterscotch would change that. Game data is never included;
+see [LICENSING.md](LICENSING.md).

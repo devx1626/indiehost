@@ -62,7 +62,7 @@ must stay free of Android imports so it can be unit-tested on the host.
 app/src/main/kotlin/com/indiehost/launcher/
   MainActivity.kt        state owner, lifecycle, launch/settings actions
   HomeUi.kt              HomeScreen, AppDrawer, library rows/detail, checker UI
-  SteamTheme.kt          palette, typography, MaterialTheme wrapper
+  IndieTheme.kt          palette, typography, MaterialTheme wrapper
   InstalledApps.kt       LauncherApps -> LauncherApp, startMainActivity
   Recents.kt             usage-access + SharedPreferences recents
   PinShortcutActivity.kt CONFIRM_PIN_SHORTCUT receiver
@@ -111,7 +111,7 @@ onCreate
   ├─ loadLibrary()           // background Thread: Room read + cover decode
   ├─ refreshGames()          // synchronous: hasShortcutHostPermission + getShortcuts
   ├─ loadApps()              // background Thread: InstalledApps.load + Recents.pick
-  └─ setContent { SteamTheme { HomeScreen | AppDrawer } }
+  └─ setContent { IndieTheme { HomeScreen | AppDrawer } }
 
 onResume
   ├─ refreshGames()          // pins may have changed in Butterscotch
@@ -535,10 +535,7 @@ Room is already implemented in `:library` (see §5.3). To change the schema:
 | M1/M2 manual cases never ran | `TESTING.md` §3 | SAF, covers, WebView load and Back are compile/test verified, not device verified | Blocked on device |
 | Kotlin incremental cache flake | local Gradle builds | Test compilation can fail to see production top-level functions; use `-Pkotlin.incremental=false` | Local toolchain |
 | Missing `mipmap-xxxhdpi` | `app/src/main/res` | Pre-26 icon upscaled on xxxhdpi | Backlog |
-| Deprecated `PackageManager` calls | `InstalledApps.kt` | Future API removal | Backlog |
 | No ViewModel / coroutines | `MainActivity.kt` | Harder to test; snapshot writes from threads | Backlog |
-| No `LICENSE` file | root | Default copyright; cannot be reused | Before release |
-| `-steam` codename | `SteamTheme.kt` identifiers | Trademark/branding risk (CON-07) | Before release |
 
 ---
 
@@ -562,6 +559,8 @@ Room is already implemented in `:library` (see §5.3). To change the schema:
 ## 12. Build and versioning
 
 - Single Gradle build, four modules, version catalog absent (versions are inline).
+- Launcher licence: MIT ([LICENSE](LICENSE)); third-party licences are in
+  [LICENSING.md](LICENSING.md).
 - `applicationId = "com.indiehost.launcher"` (placeholder), `versionCode = 3`,
   `versionName = "0.3.0"`.
 - Debug is built by CI; release signing is opt-in through four `INDIEHOST_*` environment

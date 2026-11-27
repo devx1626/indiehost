@@ -250,12 +250,12 @@ area.
 | P2 | Export MV/MZ saves outside private storage | FR-20 deferred beyond M2 | `GameWebViewActivity.kt` |
 | P2 | Add `mipmap-xxxhdpi` legacy icons | Pre-26 xxxhdpi devices upscale | `res/mipmap-xxxhdpi` |
 | P2 | Add predictive-back opt-in for target 34 | Future-proof back handling | `AndroidManifest.xml` |
-| P2 | Replace deprecated `PackageManager` icon/label calls | Future API removal | `InstalledApps.kt` |
+| ~~P2~~ | ~~Replace deprecated `PackageManager` icon/label calls~~ | Done: drawer reads `LauncherActivityInfo` label/icon directly | `InstalledApps.kt` |
 | P2 | Introduce a ViewModel + coroutines for loading | Testability, lifecycle safety | `MainActivity.kt` |
 | P3 | Instrumented tests for `LauncherApps`/pin flows | System integration is untested | `app/src/androidTest` |
 | P3 | Application-id rename | Placeholder id must change before broad distribution | manifest + repin |
-| P3 | Add a `LICENSE` file | Default copyright blocks reuse | root |
-| P3 | Rename internal `SteamTheme`/`Steam` identifiers | Version suffix is already clean; code names remain | build + theme |
+| ~~P3~~ | ~~Add a `LICENSE` file~~ | Done: MIT, 2026-11-27 | [LICENSE](LICENSE) |
+| ~~P3~~ | ~~Rename internal palette identifiers~~ | Done: `IndieTheme`/`Indie`, 2026-11-27 | app theme |
 | P3 | Work-profile support | Out of scope until requested | `InstalledApps`/`Recents` |
 
 ---

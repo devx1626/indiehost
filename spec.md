@@ -228,7 +228,7 @@ These are not trade-offs. A change that violates one is rejected.
 | CON-04 | **No emulation.** No Wine, no x86 translation, no Windows container, no proprietary runner redistribution. |
 | CON-05 | **GameMaker support is VM-only.** A build without a `CODE` chunk is reported as blocked, never attempted. |
 | CON-06 | **The launcher works with zero games.** A missing runtime, empty library or denied usage access must leave a usable home screen, not a setup wall. |
-| CON-07 | **No Steam artwork or trademarks in shipped branding.** The palette is inspired by a game-client look. The public version string is `0.3.0`, with no Steam word; `SteamTheme` and `Steam` remain internal source identifiers and are not shipped branding. |
+| CON-07 | **No third-party artwork or trademarks in shipped branding.** The palette is a generic game-client look. The public version string is `0.3.0`; the internal identifiers were renamed to `IndieTheme`/`Indie` on 2026-11-27 and no third-party product name remains in the build. |
 
 ---
 
@@ -488,8 +488,8 @@ Implementation is complete; criteria remain open until observed on the baseline 
 7. **Application id.** `com.indiehost.launcher` is explicitly a placeholder. Renaming
    changes shortcut ownership and installed-app identity; do it before a public release.
 8. **Launcher licence.** There is no `LICENSE` file. Choose one before publishing.
-9. **Internal `Steam*` identifiers.** `SteamTheme` and `Steam` remain in source; renaming
-   them is a follow-up refactor. The public version string is clean (CON-07).
+9. **Internal branding identifiers — resolved.** `SteamTheme`/`Steam` were renamed to
+   `IndieTheme`/`Indie`; the public version string was already clean (CON-07).
 10. **Localisation.** Move Compose copy into `strings.xml`; decide whether M1 or backlog.
 11. **Work profiles.** `LauncherApps` is queried for `Process.myUserHandle()` only. Support
     for managed profiles is out of scope until requested.

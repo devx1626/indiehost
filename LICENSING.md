@@ -10,21 +10,12 @@ commercially, get a lawyer to review it.
 
 ## 1. The launcher's own licence
 
-**There is no `LICENSE` file in this repository.** Under default copyright, the author
-retains all rights: nobody may copy, modify or redistribute the code without permission,
-even though the source is public.
+The launcher source is licensed under **MIT**; see [LICENSE](LICENSE). The maintainer chose
+MIT on 2026-11-27 from the options previously listed here.
 
-Before any public release, choose one:
-
-| Option | Effect | Fit |
-| --- | --- | --- |
-| **MIT** | Permissive, short, widely understood | Good default for a small launcher |
-| **Apache-2.0** | Permissive plus an explicit patent grant | Good if corporate contributors appear |
-| **GPL-3.0** | Copyleft for the launcher itself | Consistent with a "keep it open" stance, but stricter |
-| **AGPL-3.0** | Copyleft including network use | Unnecessary: IndieHost has no server |
-
-Adding a licence is a maintainer decision; record it in an ADR and update this file. Until
-then, treat the repository as **all rights reserved**.
+This licence covers only IndieHost's own code and docs. It does **not** cover Butterscotch
+(§2), game data (§3) or third-party components (§4), each of which keeps its own terms.
+Forks must keep the copyright and permission notice, and must not bundle AGPL components.
 
 ---
 
@@ -129,35 +120,32 @@ vendored. The skills are advice, not project policy; [AGENTS.md](AGENTS.md) and
 
 ---
 
-## 5. Steam look and name
+## 5. Branding and the palette
 
-The UI palette is *inspired by* a game-client look. It contains no Steam artwork, logos or
-fonts, and it does not talk to Steam.
+The UI palette is a generic dark game-client look. It contains no third-party artwork,
+logos or fonts, and it makes no network calls.
 
-However:
-
-- "Steam" is a Valve trademark.
-- The public version string is `0.3.0`: no Steam word appears in the APK metadata, UI or
-  artwork.
-- `SteamTheme`, `Steam` (the palette object) and the `steamColors`/`steamTypography` names
-  remain internal source identifiers. They are not shipped branding and are not visible
-  in the UI.
-
-The version suffix was renamed before the `v0.3.0` release (CON-07). Renaming the internal
-symbols is a follow-up refactor, not a release blocker; keep the palette description generic.
+- The public version string is `0.3.0`: no third-party product name appears in the APK
+  metadata, UI or artwork.
+- The old internal `SteamTheme`/`Steam` identifiers were renamed to `IndieTheme`/`Indie`
+  on 2026-11-27 (CON-07). `STEAM`-style codenames no longer exist in the build.
+- [ADR-0005](docs/adr/0005-compose-material3.md) still describes the original Compose
+  decision in historical terms; the rename is a mechanical follow-up, not a change to that
+  decision.
 
 ---
 
 ## 6. Distribution checklist
 
-- [ ] A `LICENSE` file exists and matches the intended terms.
-- [ ] `README` states the licence.
+- [x] A `LICENSE` file exists and matches the intended terms (MIT).
+- [x] `README` states the licence.
 - [ ] No Butterscotch code, native libraries or assets are bundled.
 - [ ] No game data, saves, screenshots of copyrighted art or extracted covers are included.
 - [ ] `allowBackup="false"` remains set.
 - [ ] No `INTERNET` permission.
-- [ ] The `-steam` codename and `Steam*` symbols are renamed.
-- [ ] Release signing is configured and the application id is final.
+- [x] The `-steam` codename and third-party product symbols are renamed.
+- [ ] Release signing is configured and the application id is final. The id remains
+      `com.indiehost.launcher` by explicit maintainer decision.
 - [ ] Third-party notices are included if required by their licences.
 - [ ] The compatibility claims in README/spec match measured results.
 
@@ -166,7 +154,8 @@ symbols is a follow-up refactor, not a release blocker; keep the palette descrip
 ## 7. Questions and answers
 
 **Can I publish a fork of IndieHost?**
-Not until a `LICENSE` file grants that right. Today the code is all rights reserved.
+Yes, under MIT, provided the copyright and permission notice are kept and no AGPL
+component or game data is bundled.
 
 **Can I bundle Butterscotch to make installation easier?**
 No. That makes the combined work AGPL-3.0 and requires complying with the AGPL for the
@@ -180,6 +169,6 @@ or ask the user to supply their own copy.
 No. It is an Android IPC call to another app's exported shortcut, the same mechanism every
 launcher uses.
 
-**Is the Steam-inspired look a problem?**
-The palette alone is not Steam artwork, but the name and codenames should be changed before
-a public release to avoid trademark confusion.
+**Is the game-client look a problem?**
+No third-party artwork or product name is shipped, and the old internal codenames have been
+renamed. The look is generic.

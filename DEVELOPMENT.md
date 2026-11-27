@@ -65,8 +65,8 @@ built and uploaded as an artifact.
 - **No emulation** (CON-04).
 - **GameMaker VM only**; never attempt a YYC/GMRT build (CON-05).
 - **The launcher works with zero games** (CON-06).
-- **No Steam branding in a public build**; `-steam` and `SteamTheme` are internal codenames
-  (CON-07).
+- **No third-party branding in a public build**; the palette is `IndieTheme`/`Indie` and
+  the old `-steam` codename is gone (CON-07).
 
 ### 3.3 UI copy
 
@@ -246,7 +246,7 @@ Useful manual checks:
 | Regenerate icons | `python3 tools/make_icons.py` |
 | Check a `data.win` | In-app `CHECK DATA.WIN`, or `GameMakerWad.read` |
 | Add an engine | §5 above |
-| Change the palette | `SteamTheme.kt` (and `themes.xml` for the window background) |
+| Change the palette | `IndieTheme.kt` (and `themes.xml` for the window background) |
 | Change the home layout | `HomeUi.kt` |
 | Change app/recents sources | `InstalledApps.kt`, `Recents.kt` |
 
