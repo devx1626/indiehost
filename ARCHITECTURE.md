@@ -114,7 +114,7 @@ onCreate
   ├─ loadLibrary()           // background Thread: Room read + cover decode
   ├─ refreshGames()          // synchronous: hasShortcutHostPermission + getShortcuts
   ├─ loadApps()              // background Thread: InstalledApps.load + Recents.pick
-  └─ setContent { IndieTheme { HomeScreen | AppDrawer } }
+  └─ setContent { IndieTheme { spinner until uiReady, then HomeScreen | AppDrawer } }
 
 onResume
   ├─ refreshGames()          // pins may have changed in Butterscotch
@@ -221,12 +221,12 @@ large game file behind. Results are written to Compose state from the worker; se
 ```
 ADD GAMES FOLDER → OpenDocumentTree
   → GameFolderStore.add(uri)        // takePersistableUriPermission, remember only the URI
-  → Thread "folder-scan"
+  → Thread "folder-scan" with a run id, progress callback and cancellation check
         for each remembered tree
           ├─ hasPermission? else: visible message, keep stored rows
           ├─ DocumentFile.fromTreeUri → SafGameFolder
-          └─ GameScanner.scan(root, treeUri, existing)
-               depth 0..2, max 500 entries per folder
+          └─ GameScanner.scan(root, treeUri, existing, scanId, progress, cancelled)
+               depth 0..2, max 500 entries per folder, one SAF query per folder
                detector hit → stable id "scan-" + SHA-256(treeUri|documentUri)
                unreadable folder → skipped reason, continue
         → repository.add for each import (upsert only; never delete)

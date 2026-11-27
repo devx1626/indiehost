@@ -11,7 +11,7 @@
 - P0/P1 of the earlier UI findings implemented: real drawer search, shared state cards,
   semantic tokens, reserved badge slots, detail focus/confirmation, WebView loading/blocked
   overlay, debug-only Compose previews.
-- Host gate green: 19 detector + 3 mapping + 7 runtime + 31 app tests; debug APK and signed
+- Host gate green: 19 detector + 3 mapping + 7 runtime + 35 app tests; debug APK and signed
   v0.4.0 release built.
 - Device verification still open (MT-01…MT-34 and `GameDaoTest`). No performance claims.
 
@@ -46,17 +46,17 @@ UI/UX work is complete when:
 | Task | Source patterns | Files | Acceptance |
 | --- | --- | --- | --- |
 | [x] Persist scan runs with `scanId`, timestamps and counts; mark rows unavailable via `lastSeenScanId` instead of deleting (Room v2 + additive migration) — host tests assert watermark and MISSING reason; MT-39 still open | AntennaPod, DroidDeck phased scan | `library/`, `GameScanner.kt`, `MainActivity.kt` | Room/host test: removed file keeps row and pin order |
-| Single-query SAF child listing instead of per-document calls | AntennaPod `FastDocumentFile` | `SafTreeResolver.kt`, `SafGameFolder.kt` | Query-count benchmark/test: O(folders), not O(files) |
+| [x] Single-query SAF child listing instead of per-document calls | AntennaPod `FastDocumentFile` | `SafTreeResolver.kt`, `SafGameFolder.kt` | One DocumentsContract query per folder; code reviewed, provider benchmark still needs a device |
 | Duplicate detection with `duplicateOf` and canonical key; flag, never auto-delete | AntennaPod `FeedItemDuplicateGuesser` | `Game.kt`, `GameEntity.kt`, `GameScanner.kt` | Table-driven pure tests |
 | Additive migration skeleton with defaults; replace destructive migration before public release | AntennaPod `DBUpgrader`, COSMIC config versioning | `IndieHostDatabase.kt`, `GameEntity.kt` | Migration test preserves user-owned fields |
 | Per-root regrant UI: "Folder no longer available — reconnect" rather than empty library | Material Files, Android SAF docs | `GameFolderStore.kt`, `HomeUi.kt`, `strings.xml` | Manual case revoke→regrant; no duplicate roots |
-| Progressive/cancellable scan progress on worker threads with generation tokens | Cinnamon, COSMIC, DroidDeck | `MainActivity.kt`, `HomeUi.kt` | Progress/cancel host test; no recomposition storm |
+| [x] Progressive/cancellable scan on the worker thread; `ScanProgress` events update `scanMessage` | Cinnamon, COSMIC, DroidDeck | `GameScanner.kt`, `MainActivity.kt` | Host test asserts progress and immediate stop on cancel |
 
 ## Phase 3 — Navigation and feedback
 
 | Task | Source patterns | Files | Acceptance |
 | --- | --- | --- | --- |
-| Readiness-gated one-shot startup reveal with a failure path that still shows the UI | Cinnamon `main.js`, Bazzite preflight | `MainActivity.kt`, `HomeUi.kt` | Preview of loading/failure states |
+| [x] Readiness-gated startup reveal: spinner until the first Room read completes, then the UI even if the read failed | Cinnamon `main.js`, Bazzite preflight | `MainActivity.kt` | No permanent splash; failure still reveals with status |
 | [x] Tiered search ranking (label prefix > label substring > package) with stable sort; `AppSearchTest` covers it | Cinnamon `MATCH_ADDERS`, ARK `SettingsSearch`, Lawnchair | `AppSearch.kt`, `HomeUi.kt` | Table-driven host tests |
 | Urgency/status state machine for scan, pin, launch and check feedback; PASS/FAIL/SKIP semantics | Cinnamon `messageTray`, Bazzite diagnostics, DroidDeck device script | `HomeUi.kt`, `MainActivity.kt`, `strings.xml` | No silent pass; explicit next action on failure |
 | Capability snapshot (home role, Butterscotch installed, SAF grants, WebView) drives visible actions and disabled explanations | Cinnamon capability gating, COSMIC `toggler_maybe` | `MainActivity.kt`, `HomeUi.kt` | Host test for capability-to-action mapping |
