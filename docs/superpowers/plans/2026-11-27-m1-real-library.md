@@ -74,7 +74,7 @@ git commit -m "docs: settle M1 reinstall and save semantics"
 
 **Interfaces:**
 - Produces: `data class GameEntry(val name: String, val isDirectory: Boolean)`
-- Produces: `interface GameFolder { val name: String; fun entries(): List<GameEntry>; fun child(name: String): GameFolder?; fun open(name: String): InputStream? }`
+- Produces: `interface GameFolder { val name: String; val isDirectory: Boolean; fun entries(): List<GameEntry>; fun child(name: String): GameFolder?; fun open(name: String): InputStream? }`
 - Produces: `class FileGameFolder(val file: File) : GameFolder`
 - Produces: `fun EngineDetector.detect(folder: GameFolder): Detection`; `detect(File)` delegates.
 
