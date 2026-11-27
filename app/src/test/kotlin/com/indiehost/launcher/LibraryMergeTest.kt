@@ -48,7 +48,7 @@ class LibraryMergeTest {
     }
 
     @Test
-    fun `MV and MZ wait for the M2 WebView`() {
+    fun `scanned MV and MZ rows are launchable`() {
         val items = mergeLibrary(
             listOf(
                 game(id = "scan-mv", title = "MV", engine = Engine.RPGMAKER_MV),
@@ -57,8 +57,27 @@ class LibraryMergeTest {
             emptyList(),
         )
 
-        assertEquals(listOf(LibraryReason.WEBVIEW_M2, LibraryReason.WEBVIEW_M2), items.map { it.reason })
-        assertTrue(items.none { it.launchable })
+        assertEquals(listOf(null, null), items.map { it.reason })
+        assertTrue(items.all { it.launchable })
+    }
+
+    @Test
+    fun `an MV row without a scanned folder still waits for WebView`() {
+        val item = mergeLibrary(
+            listOf(
+                Game(
+                    id = "pin-mv",
+                    title = "MV",
+                    folderPath = "",
+                    engine = Engine.RPGMAKER_MV,
+                    source = GameSource.PINNED,
+                ),
+            ),
+            emptyList(),
+        ).single()
+
+        assertFalse(item.launchable)
+        assertEquals(LibraryReason.WEBVIEW_M2, item.reason)
     }
 
     @Test

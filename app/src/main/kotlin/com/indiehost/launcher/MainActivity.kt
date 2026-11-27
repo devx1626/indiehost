@@ -21,7 +21,9 @@ import com.indiehost.library.GameRepository
 import com.indiehost.library.RoomGameRepository
 import com.indiehost.runtimes.GameMakerRuntimeAdapter
 import com.indiehost.runtimes.LaunchOutcome
+import com.indiehost.runtimes.RpgMakerRuntimeAdapter
 import com.indiehost.runtimes.RunnerShortcut
+import com.indiehost.runtimes.RuntimeRegistry
 
 /**
  * The home app.
@@ -34,6 +36,13 @@ import com.indiehost.runtimes.RunnerShortcut
 class MainActivity : ComponentActivity() {
 
     private val runtime = GameMakerRuntimeAdapter()
+    private val registry = RuntimeRegistry(
+        listOf(
+            runtime,
+            RpgMakerRuntimeAdapter(Engine.RPGMAKER_MV),
+            RpgMakerRuntimeAdapter(Engine.RPGMAKER_MZ),
+        ),
+    )
 
     private lateinit var repository: GameRepository
     private lateinit var folderStore: GameFolderStore
@@ -260,18 +269,19 @@ class MainActivity : ComponentActivity() {
             status = blocker
             return
         }
-        if (game.engine == Engine.GAMEMAKER_VM) {
-            val pin = game.linkedShortcutId?.let { id -> games.firstOrNull { it.id == id } }
-            if (pin != null) {
-                launchGame(pin)
-            } else {
-                openRunner(getString(R.string.pin_needed))
-            }
-        } else {
-            status = when (game.engine) {
-                Engine.RPGMAKER_MV, Engine.RPGMAKER_MZ -> getString(R.string.runtime_m2)
-                else -> getString(R.string.runtime_m3)
-            }
+
+        val adapter = registry.forEngine(game.engine)
+        if (adapter == null) {
+            status = getString(R.string.runtime_m3)
+            return
+        }
+
+        val pin = game.linkedShortcutId?.let { id -> games.firstOrNull { it.id == id } }
+        status = when (val outcome = adapter.launch(this, game, pin)) {
+            is LaunchOutcome.Launched -> ""
+            is LaunchOutcome.RuntimeNotInstalled ->
+                getString(R.string.runner_not_installed, outcome.installUrl)
+            is LaunchOutcome.Blocked -> outcome.reason
         }
     }
 

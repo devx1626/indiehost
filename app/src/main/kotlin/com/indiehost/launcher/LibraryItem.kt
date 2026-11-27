@@ -46,7 +46,7 @@ fun mergeLibrary(games: List<Game>, pins: List<LibraryPin>): List<LibraryItem> {
             game.engine == Engine.GAMEMAKER_VM && linked != null && linked in pinIds -> null
             game.engine == Engine.GAMEMAKER_VM -> LibraryReason.NEEDS_PIN
             game.engine == Engine.RPGMAKER_MV || game.engine == Engine.RPGMAKER_MZ ->
-                LibraryReason.WEBVIEW_M2
+                if (game.treeUri.isNullOrBlank()) LibraryReason.WEBVIEW_M2 else null
             game.engine == Engine.RENPY || game.engine == Engine.LOVE ||
                 game.engine == Engine.SCUMMVM -> LibraryReason.RUNTIME_M3
             else -> LibraryReason.RUNTIME_M3

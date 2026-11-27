@@ -39,7 +39,7 @@
     <string name="game_wad">WAD: %1$d</string>
     <string name="game_location">Location: %1$s</string>
     <string name="pin_needed">Pin this game in Butterscotch, then link the pin here.</string>
-    <string name="runtime_m2">Detected - the WebView runtime arrives in M2.</string>
+    <string name="runtime_m2">Needs a scanned folder before it can run.</string>
     <string name="runtime_m3">Detected - runtime undecided (M3).</string>
     <string name="detector_blocked">Blocked: %1$s</string>
     <string name="pin_needed_short">PIN NEEDED</string>
