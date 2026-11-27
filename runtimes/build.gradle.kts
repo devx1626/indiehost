@@ -23,4 +23,6 @@ android {
 dependencies {
     api(project(":library"))
     api(project(":detect"))
+
+    testImplementation("junit:junit:4.13.2")
 }

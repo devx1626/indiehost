@@ -55,7 +55,21 @@ class GameMakerRuntimeAdapter(
         return PreparedGame(dataFile, header.wadVersion, notes)
     }
 
-    override fun launch(activity: Activity, game: Game): LaunchOutcome {
+    override fun launch(
+        activity: Activity,
+        game: Game,
+        shortcut: RunnerShortcut?,
+    ): LaunchOutcome {
+        if (shortcut != null) return launchShortcut(activity, shortcut)
+
+        // The runner-only tile has no game folder; a scanned game must be linked
+        // to a live pin before we are allowed to start anything.
+        if (game.folderPath.isNotBlank()) {
+            return LaunchOutcome.Blocked(
+                "Pin this game in Butterscotch, then link the pin in its detail panel."
+            )
+        }
+
         val intent = activity.packageManager.getLaunchIntentForPackage(BUTTERSCOTCH_PACKAGE)
             ?: return LaunchOutcome.RuntimeNotInstalled(BUTTERSCOTCH_PACKAGE, PLAY_STORE_URL)
         activity.startActivity(intent)

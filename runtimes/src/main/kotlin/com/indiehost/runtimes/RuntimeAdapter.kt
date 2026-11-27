@@ -22,7 +22,11 @@ interface RuntimeAdapter {
      */
     fun prepare(folder: File, game: Game): PreparedGame
 
-    fun launch(activity: Activity, game: Game): LaunchOutcome
+    /**
+     * [shortcut] is the Butterscotch pin a scanned game was explicitly linked to.
+     * Engines hosted by IndieHost ignore it.
+     */
+    fun launch(activity: Activity, game: Game, shortcut: RunnerShortcut? = null): LaunchOutcome
 
     fun supportsSaves(): Boolean
 }
