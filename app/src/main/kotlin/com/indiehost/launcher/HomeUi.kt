@@ -247,7 +247,11 @@ internal fun HomeScreen(
 
         if (status.isNotEmpty()) {
             item {
-                StateCard(title = status, modifier = Modifier.padding(horizontal = 20.dp))
+                StateCard(
+                    title = status,
+                    urgency = FeedbackPolicy.urgency(status),
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
             }
         }
 
@@ -282,6 +286,7 @@ internal fun HomeScreen(
             item {
                 StateCard(
                     title = scanMessage,
+                    urgency = FeedbackPolicy.urgency(scanMessage),
                     actionLabel = stringResource(R.string.retry),
                     onAction = { folderPicker.launch(null) },
                     modifier = Modifier.padding(horizontal = 20.dp),
@@ -295,6 +300,7 @@ internal fun HomeScreen(
                     title = if (checking) stringResource(R.string.reading_datawin) else stringResource(R.string.check_datawin),
                     detail = if (checking) null else report,
                     progress = checking,
+                    urgency = FeedbackPolicy.urgency(report),
                     modifier = Modifier.padding(horizontal = 20.dp),
                 )
             }
@@ -897,6 +903,7 @@ private fun StateCard(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
     progress: Boolean = false,
+    urgency: FeedbackUrgency = FeedbackUrgency.INFO,
     modifier: Modifier = Modifier,
 ) {
     // The only animation in the launcher; disabled by system motion settings.
@@ -915,7 +922,13 @@ private fun StateCard(
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.bodyLarge, color = Indie.TextBright)
+                val tone = when (urgency) {
+                    FeedbackUrgency.QUIET -> Indie.TextMuted
+                    FeedbackUrgency.INFO -> Indie.Accent
+                    FeedbackUrgency.WARN -> Indie.Warning
+                    FeedbackUrgency.BLOCKER -> MaterialTheme.colorScheme.error
+                }
+                Text(title, style = MaterialTheme.typography.bodyLarge, color = tone)
                 if (detail != null) {
                     Spacer(Modifier.height(2.dp))
                     Text(detail, style = MaterialTheme.typography.bodySmall, color = Indie.TextMuted)

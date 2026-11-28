@@ -306,6 +306,18 @@ class MainActivity : ComponentActivity() {
         }.start()
     }
 
+    /** Local capability snapshot used to explain disabled launch actions. */
+    private fun capabilities(game: Game?): LauncherCapabilities {
+        val runnerInstalled = runCatching {
+            packageManager.getLaunchIntentForPackage(GameMakerRuntimeAdapter.BUTTERSCOTCH_PACKAGE) != null
+        }.getOrDefault(false)
+        return LauncherCapabilities(
+            isHome = canListGames,
+            butterscotchInstalled = runnerInstalled,
+            hasGameFolder = folderStore.all().isNotEmpty() || game?.treeUri != null,
+        )
+    }
+
     private fun launchItem(item: LibraryItem) {
         val game = item.game
         if (game == null) {
@@ -321,6 +333,11 @@ class MainActivity : ComponentActivity() {
         val adapter = registry.forEngine(game.engine)
         if (adapter == null) {
             status = getString(R.string.not_hosted_short)
+            return
+        }
+        val missingCapability = CapabilityPolicy.cannotLaunchReason(game.engine, capabilities(game))
+        if (missingCapability != null) {
+            status = missingCapability
             return
         }
 

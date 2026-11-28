@@ -41,6 +41,7 @@ internal object Indie {
     /** Muted text; lifted slightly so it stays ≥4.5:1 on CardRaised too. */
     val TextMuted = Color(0xFF939CA5)
     val Green = Color(0xFFA4D007)
+    val Warning = Color(0xFFE0A458)
 
     /** Ink used on [Accent]; kept here so buttons do not hardcode it. */
     val OnAccent = Color(0xFF0B1219)
