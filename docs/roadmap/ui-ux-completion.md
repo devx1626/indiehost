@@ -60,7 +60,7 @@ UI/UX work is complete when:
 | [x] Tiered search ranking (label prefix > label substring > package) with stable sort; `AppSearchTest` covers it | Cinnamon `MATCH_ADDERS`, ARK `SettingsSearch`, Lawnchair | `AppSearch.kt`, `HomeUi.kt` | Table-driven host tests |
 | [x] Urgency/status policy (`FeedbackPolicy`, `FeedbackQueue`) colours status cards and exposes PASS/FAIL/SKIP semantics | Cinnamon `messageTray`, Bazzite diagnostics, DroidDeck device script | `FeedbackPolicy.kt`, `HomeUi.kt` | Host tests for classification, priority and TTL |
 | [x] Capability snapshot (home role, Butterscotch installed, SAF grants, WebView) blocks launches with an explanation | Cinnamon capability gating, COSMIC `toggler_maybe` | `CapabilityPolicy.kt`, `MainActivity.kt` | Host test for capability-to-action mapping |
-| Bounded, idle-delayed recents with cap and privacy explanation | Cinnamon doc-system, Cinnamon privacy panel | `Recents.kt`, `HomeUi.kt`, `strings.xml` | Pure recents test; clear action visible |
+| [x] Recents stay bounded (8 shown, 12 remembered, 3-day window) and now explain on screen that nothing is uploaded | Cinnamon doc-system, Cinnamon privacy panel | `Recents.kt`, `HomeUi.kt`, `strings.xml` | Existing host tests; privacy caption visible in the row |
 
 ## Phase 4 — Accessibility and visual discipline
 
