@@ -114,6 +114,17 @@ class LibraryMergeTest {
     }
 
     @Test
+    fun `later rows with the same title and path are flagged as duplicates`() {
+        val first = game(id = "scan-1", title = "Same").copy(folderPath = "content://doc/same")
+        val second = game(id = "scan-2", title = "Same").copy(folderPath = "content://doc/same")
+        val items = mergeLibrary(listOf(first, second), emptyList())
+
+        assertFalse(items[0].launchable)
+        assertFalse(items[1].launchable)
+        assertEquals(LibraryReason.DUPLICATE, items[1].reason)
+    }
+
+    @Test
     fun `a detector blocker wins over a linked pin`() {
         val item = mergeLibrary(
             listOf(

@@ -642,6 +642,7 @@ private fun librarySubtitle(item: LibraryItem): String = when (item.reason) {
         item.game?.blocker?.let { stringResource(R.string.detector_blocked, it) }
             ?: stringResource(R.string.runtime_m3)
     LibraryReason.MISSING -> stringResource(R.string.game_missing)
+    LibraryReason.DUPLICATE -> stringResource(R.string.game_duplicate)
 }
 
 @Composable
@@ -653,6 +654,7 @@ private fun statusLabel(reason: LibraryReason?): String = when (reason) {
         stringResource(R.string.not_hosted_short)
     LibraryReason.DETECTOR_BLOCKED -> stringResource(R.string.blocked_short)
     LibraryReason.MISSING -> stringResource(R.string.missing_short)
+    LibraryReason.DUPLICATE -> stringResource(R.string.duplicate_short)
     null -> ""
 }
 

@@ -51,6 +51,8 @@
     <string name="not_hosted_short">NOT HOSTED</string>
     <string name="game_missing">Not found in the last scan. Re-pick the folder to restore it.</string>
     <string name="missing_short">MISSING</string>
+    <string name="game_duplicate">Possible duplicate of another scanned game. Nothing was deleted.</string>
+    <string name="duplicate_short">DUPLICATE</string>
     <string name="blocked_short">BLOCKED</string>
     <string name="close">CLOSE</string>
     <string name="remove">REMOVE</string>

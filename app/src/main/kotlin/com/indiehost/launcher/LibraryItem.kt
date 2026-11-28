@@ -13,6 +13,7 @@ enum class LibraryReason {
     SCUMMVM_M3,
     DETECTOR_BLOCKED,
     MISSING,
+    DUPLICATE,
 }
 
 /**
@@ -42,11 +43,17 @@ data class LibraryPin(val id: String, val title: String)
 fun mergeLibrary(games: List<Game>, pins: List<LibraryPin>): List<LibraryItem> {
     val pinIds = pins.map { it.id }.toSet()
     val linkedIds = games.mapNotNull { it.linkedShortcutId }.toSet()
+    val duplicateIds = games
+        .groupBy { duplicateKey(it) }
+        .values
+        .flatMap { group -> group.drop(1).map { it.id } }
+        .toSet()
 
     val scanned = games.map { game ->
         val linked = game.linkedShortcutId
         val reason = when {
             !game.available -> LibraryReason.MISSING
+            game.id in duplicateIds -> LibraryReason.DUPLICATE
             game.blocker != null -> LibraryReason.DETECTOR_BLOCKED
             game.engine == Engine.GAMEMAKER_VM && linked != null && linked in pinIds -> null
             game.engine == Engine.GAMEMAKER_VM -> LibraryReason.NEEDS_PIN
@@ -83,4 +90,14 @@ fun mergeLibrary(games: List<Game>, pins: List<LibraryPin>): List<LibraryItem> {
         }
 
     return pinOnly + scanned
+}
+
+/**
+ * Cheap duplicate signal: same title and same document path tail. A flagged row
+ * is only marked, never deleted, because the guess can be wrong.
+ */
+private fun duplicateKey(game: Game): String {
+    val title = game.title.trim().lowercase()
+    val path = game.folderPath.substringAfterLast('/', game.folderPath).lowercase()
+    return "$title|$path"
 }
