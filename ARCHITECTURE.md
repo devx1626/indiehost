@@ -72,6 +72,7 @@ app/src/main/kotlin/com/indiehost/launcher/
   LibraryItem.kt         merge of scanned games and pinned shortcuts
   CoverStore.kt          downsample + store user-picked art in filesDir/covers
   AppSearch.kt           pure case/accent-folding drawer search rules
+  CapabilityPolicy.kt / FeedbackPolicy.kt  pure gating and status urgency rules
   Contrast.kt / Motion.kt  pure WCAG ratio and reduced-motion rules
   (debug) LauncherPreviews.kt  device-less state previews, not shipped
   WebPaths.kt            pure URL/path/MIME rules for the offline WebView

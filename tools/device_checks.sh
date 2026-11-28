@@ -58,14 +58,29 @@ die() { echo "device_checks: $*" >&2; exit 2; }
 PASS=0
 FAIL=0
 SKIP=0
+CREATED_FIXTURE=0
+CLEAN_REQUESTED=0
 pass() { PASS=$((PASS + 1)); echo "PASS: $*"; }
 fail() { FAIL=$((FAIL + 1)); echo "FAIL: $*" >&2; }
 skip() { SKIP=$((SKIP + 1)); echo "SKIP: $*"; }
 finish() {
   echo "summary: PASS=$PASS FAIL=$FAIL SKIP=$SKIP"
-  if [ "$FAIL" -gt 0 ]; then exit 1; fi
+  if [ "$FAIL" -gt 0 ]; then
+    if [ "$CREATED_FIXTURE" -eq 1 ] && [ "$CLEAN_REQUESTED" -eq 0 ]; then
+      clean_fixture
+    fi
+    exit 1
+  fi
 }
 trap finish EXIT
+on_signal() {
+  echo "device_checks: interrupted; restoring device state" >&2
+  if [ "$CREATED_FIXTURE" -eq 1 ] && [ "$CLEAN_REQUESTED" -eq 0 ]; then
+    clean_fixture
+  fi
+  exit 2
+}
+trap on_signal INT TERM
 
 ADB_ARGS=()
 adb_cmd() {
@@ -136,6 +151,7 @@ JS
   adb_cmd shell mkdir -p "$DEVICE_DIR/MVGame/www/js"
   adb_cmd push "$tmp/www/index.html" "$DEVICE_DIR/MVGame/www/index.html" >/dev/null
   adb_cmd push "$tmp/www/js/rpg_core.js" "$DEVICE_DIR/MVGame/www/js/rpg_core.js" >/dev/null
+  CREATED_FIXTURE=1
   echo "Synthetic MV fixture pushed to $DEVICE_DIR/MVGame"
   echo "In IndieHost: ADD GAMES FOLDER -> pick IndieHostDeviceCheck -> open MVGame -> PLAY."
   echo "Expected (MT-29): fullscreen load, no browser chrome, offline, no game data copied."
@@ -173,7 +189,9 @@ run_perf() {
 }
 
 clean_fixture() {
-  adb_cmd shell rm -rf "$DEVICE_DIR"
+  adb_cmd shell rm -rf "$DEVICE_DIR" >/dev/null 2>&1 || true
+  CLEAN_REQUESTED=1
+  CREATED_FIXTURE=0
   echo "Removed $DEVICE_DIR (library rows in IndieHost are untouched)."
 }
 

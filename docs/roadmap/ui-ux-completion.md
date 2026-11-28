@@ -11,7 +11,7 @@
 - P0/P1 of the earlier UI findings implemented: real drawer search, shared state cards,
   semantic tokens, reserved badge slots, detail focus/confirmation, WebView loading/blocked
   overlay, debug-only Compose previews.
-- Host gate green: 19 detector + 3 mapping + 7 runtime + 37 app tests; debug APK and signed
+- Host gate green: 19 detector + 3 mapping + 7 runtime + 43 app tests; debug APK and signed
   v0.4.0 release built.
 - Device verification still open (MT-01…MT-34 and `GameDaoTest`). No performance claims.
 
@@ -58,8 +58,8 @@ UI/UX work is complete when:
 | --- | --- | --- | --- |
 | [x] Readiness-gated startup reveal: spinner until the first Room read completes, then the UI even if the read failed | Cinnamon `main.js`, Bazzite preflight | `MainActivity.kt` | No permanent splash; failure still reveals with status |
 | [x] Tiered search ranking (label prefix > label substring > package) with stable sort; `AppSearchTest` covers it | Cinnamon `MATCH_ADDERS`, ARK `SettingsSearch`, Lawnchair | `AppSearch.kt`, `HomeUi.kt` | Table-driven host tests |
-| Urgency/status state machine for scan, pin, launch and check feedback; PASS/FAIL/SKIP semantics | Cinnamon `messageTray`, Bazzite diagnostics, DroidDeck device script | `HomeUi.kt`, `MainActivity.kt`, `strings.xml` | No silent pass; explicit next action on failure |
-| Capability snapshot (home role, Butterscotch installed, SAF grants, WebView) drives visible actions and disabled explanations | Cinnamon capability gating, COSMIC `toggler_maybe` | `MainActivity.kt`, `HomeUi.kt` | Host test for capability-to-action mapping |
+| [x] Urgency/status policy (`FeedbackPolicy`, `FeedbackQueue`) colours status cards and exposes PASS/FAIL/SKIP semantics | Cinnamon `messageTray`, Bazzite diagnostics, DroidDeck device script | `FeedbackPolicy.kt`, `HomeUi.kt` | Host tests for classification, priority and TTL |
+| [x] Capability snapshot (home role, Butterscotch installed, SAF grants, WebView) blocks launches with an explanation | Cinnamon capability gating, COSMIC `toggler_maybe` | `CapabilityPolicy.kt`, `MainActivity.kt` | Host test for capability-to-action mapping |
 | Bounded, idle-delayed recents with cap and privacy explanation | Cinnamon doc-system, Cinnamon privacy panel | `Recents.kt`, `HomeUi.kt`, `strings.xml` | Pure recents test; clear action visible |
 
 ## Phase 4 — Accessibility and visual discipline
@@ -84,11 +84,11 @@ UI/UX work is complete when:
 
 | Task | Source patterns | Files | Acceptance |
 | --- | --- | --- | --- |
-| [x] Device script with PASS/FAIL/SKIP, exit codes 0/1/2, device identity, crash-buffer check; [ ] snapshot/restore traps still to add | DroidDeck `device-smoke.sh` | `tools/device_checks.sh` | Script run on baseline; restore verified |
+| [x] Device script with PASS/FAIL/SKIP, exit codes 0/1/2, device identity, crash-buffer check and fixture cleanup on failure/interrupt | DroidDeck `device-smoke.sh` | `tools/device_checks.sh` | Script syntax and failure path verified locally; baseline run still open |
 | Dated device report template with APK SHA, method, per-run table and "Validation and limits" | DroidDeck test reports | `TESTING.md`, `docs/testing/` | No overclaiming |
 | [x] Machine-checked engine-route table; [ ] device tier rows still need real measurements | Bazzite `test_builder.py`, COSMIC versioning | `COMPATIBILITY.md`, `CompatibilityTest.kt` | Engine additions caught by host test |
 | [x] Release notes checked in with provenance and SHA-256; [ ] CI publish gate still to add | DroidDeck `release.yml` | `docs/releases/0.4.0.md`, CI | Publish refuses missing notes |
-| [x] CI runs all host tests and gates on `:detect` purity and tracked keys; [ ] required-job aggregator/artifacts still to add | DroidDeck CI | `.github/workflows/android.yml` | Green on PR; no sign/push without instruction |
+| [x] CI runs all host tests, gates on `:detect` purity/tracked keys, uploads test reports and aggregates required jobs; [ ] publish gate still to add | DroidDeck CI | `.github/workflows/android.yml` | Green on PR; no sign/push without instruction |
 
 ---
 

@@ -16,7 +16,7 @@ has never run in this environment (`adb` is broken here); do not report it as pa
 | --- | --- | --- | --- |
 | JVM unit tests (`:detect`) | `GameMakerWad` parsing, `EngineDetector` fingerprints, blockers | JUnit 4 | **19 tests**, passing |
 | JVM unit tests (`:library`) | `Game` ↔ `GameEntity` mapping, enum fallback | JUnit 4 | **3 tests**, passing |
-| JVM unit tests (`:app`) | SAF scan/progress, merge/duplicates, covers, WebView paths/origins, search, contrast, motion, previews, compatibility | JUnit 4 | **37 tests**, passing |
+| JVM unit tests (`:app`) | SAF scan/progress, merge/duplicates, covers, WebView paths/origins, search, capabilities, feedback, contrast, motion, previews, compatibility | JUnit 4 | **43 tests**, passing |
 | JVM unit tests (`:runtimes`) | Adapter registry, WebView action constants, pin policy | JUnit 4 | **7 tests**, passing |
 | Instrumented tests | Room DAO round trip | AndroidX Test | 1 test written (`GameDaoTest`), **not run here**; run via `tools/device_checks.sh --dao` |
 | Manual device tests | Home role, pin, scan, covers, launch, recents, drawer, permissions | Human + adb | Required per release; script and synthetic fixture provided; cases not yet run |
@@ -69,6 +69,8 @@ maps unknown engine names to `UNKNOWN`, and keeps optional fields null.
 - `MotionTest` (2): zero/negative animator scale disables decorative motion.
 - `LauncherPreviewsTest` (1, debug): the four key state previews still exist.
 - `CompatibilityTest` (1): every `Engine` value has a documented route.
+- `CapabilityPolicyTest` (3): launch gating for GameMaker and RPG Maker engines.
+- `FeedbackPolicyTest` (3): urgency classification, priority and TTL expiry.
 
 `.runtimes` host tests: `RuntimeRegistryTest.kt` (3) verifies all three registered engines,
 null for an unregistered engine, and shared WebView action/extra constants;
@@ -97,7 +99,7 @@ The fixtures are synthetic; no real game data is used.
 ```
 
 Expected: `:detect:test` reports 19 passed, `:library:testDebugUnitTest` 3,
-`:app:testDebugUnitTest` 37 and `:runtimes:testDebugUnitTest` 7, all with 0 failures. A
+`:app:testDebugUnitTest` 43 and `:runtimes:testDebugUnitTest` 7, all with 0 failures. A
 detector failure blocks any release. `gradle test` does **not** run
 `library/src/androidTest`; that needs a device.
 
@@ -417,6 +419,13 @@ the folder back and re-scan again.
 added time are intact. After the folder returns, the same row becomes launchable again with
 no duplicate.
 
+### MT-41 — Disabled launches explain why
+
+**Steps:** With Butterscotch uninstalled, tap a pinned GameMaker row; with no games folder
+granted, tap a scanned MV row.
+**Expected:** IndieHost does not try to start a missing runtime; a short message explains the
+missing capability (runner or folder) and the row stays non-launchable.
+
 ### MT-40 — Scan progress and cancellation
 
 **Steps:** Scan a large games folder and watch the message; press Home or leave the app
@@ -514,7 +523,7 @@ guessing.
 Before tagging or sideloading a build:
 
 - [ ] `./gradlew :detect:test` — 19/19.
-- [ ] `./gradlew :app:testDebugUnitTest` (37), `:library:testDebugUnitTest` (3) and
+- [ ] `./gradlew :app:testDebugUnitTest` (43), `:library:testDebugUnitTest` (3) and
       `:runtimes:testDebugUnitTest` (7) — green.
 - [ ] `./gradlew :app:assembleDebug` — success.
 - [ ] MT-01 through MT-06 pass on the baseline.
@@ -529,6 +538,7 @@ Before tagging or sideloading a build:
 - [ ] MT-38 passes for per-game origin isolation and SVG policy.
 - [ ] MT-39 passes for missing-row marking and recovery.
 - [ ] MT-40 passes for scan progress and cancellation.
+- [ ] MT-41 passes for capability explanations.
 - [ ] `GameDaoTest` runs on a device when `adb` is available.
 - [ ] Cold start and resume recorded (at least once).
 - [ ] No game data in `git status` or the APK.
