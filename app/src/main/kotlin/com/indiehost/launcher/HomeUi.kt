@@ -163,13 +163,21 @@ internal fun HomeScreen(
         }
         item {
             when {
-                recents.isNotEmpty() -> LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    items(recents, key = { it.packageName }) { app ->
-                        RecentTile(app = app, onClick = { onLaunchApp(app) })
+                recents.isNotEmpty() -> Column {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        items(recents, key = { it.packageName }) { app ->
+                            RecentTile(app = app, onClick = { onLaunchApp(app) })
+                        }
                     }
+                    Text(
+                        stringResource(R.string.recents_privacy),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Indie.TextMuted,
+                        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 2.dp),
+                    )
                 }
 
                 loadingApps -> Row(

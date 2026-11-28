@@ -74,6 +74,7 @@
     <string name="search_apps">Search apps</string>
     <string name="clear_search">CLEAR</string>
     <string name="search_hint">Try a different name, or clear the search.</string>
+    <string name="recents_privacy">Kept on this device for up to 3 days. Nothing is uploaded.</string>
     <string name="retry">RETRY</string>
     <string name="no_apps">No apps found.</string>
     <string name="no_app_matches">No app matches \"%1$s\".</string>
