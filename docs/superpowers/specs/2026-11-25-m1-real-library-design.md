@@ -1,7 +1,7 @@
 # M1 — Real library design
 
 **Date:** 2026-11-25
-**Status:** Awaiting approval
+**Status:** Approved 2026-11-27
 **Requirement:** ROADMAP Milestone 1; spec §4.5, NFR-05/NFR-07/NFR-08/NFR-11
 
 ## Intent and why
@@ -10,7 +10,8 @@ M0's library is borrowed: it is only the list of Butterscotch's pinned `game-` s
 If a game is not pinned, or a pin belongs to another launcher, IndieHost has nothing to
 show. M1 gives IndieHost its own persistent, scannable collection while keeping the
 pinned-shortcut path as a first-class source. The result must survive process death and a
-reinstall, and it must not copy game data into the repository, an APK or a backup.
+launcher updates, and a full uninstall must be recoverable by re-scanning the same folder.
+It must not copy game data into the repository, an APK or a backup.
 
 ## Goals
 
@@ -74,21 +75,21 @@ A fresh reviewer found five places where a wrong guess would change the plan. Tw
 user's approval because they change the spec (marked **pending** below); three are settled
 here as implementation calls.
 
-1. **"Survives a launcher reinstall" (pending).** Room data and persisted SAF grants are
-   deleted by a full uninstall; `allowBackup="false"` prevents cloud restore. The proposal
-   is to read FR-17 and the M1 exit criteria as *process death and app update*, with a
-   re-scan restoring the library after a full uninstall. The alternative — metadata and
-   covers in shared `Documents/IndieHost/` — costs privacy and scoped-storage complexity.
-   Recommended: change the spec wording, keep Room app-private.
+1. **"Survives a launcher reinstall" (settled 2026-11-27).** Room data and persisted SAF
+   grants are deleted by a full uninstall; `allowBackup="false"` prevents cloud restore.
+   FR-17 and the M1 exit criteria now read *process death and launcher update*, with a
+   re-scan restoring the library after a full uninstall. Metadata stays app-private; the
+   shared-storage alternative was rejected because it exposes game paths and complicates
+   scoped storage.
 2. **Scanned game → pinned shortcut (settled).** No automatic title matching: Butterscotch
    owns both the `game-<uuid>` id and the label, and the shortcut Intent is hidden from
    launchers, so a title match could launch the wrong game. Add `linkedShortcutId` to the
    game model; the detail panel lets the user choose a pinned shortcut explicitly. Duplicate
    titles are separate rows, not merged.
-3. **FR-20 hosted-engine saves (pending).** No engine is hosted until M2, so the requirement
-   is vacuous in M1. Proposal: mark it not applicable until M2, document the Butterscotch
-   limitation now, and keep the real save-location design in M2. Raise rather than silently
-   narrow the spec.
+3. **FR-20 hosted-engine saves (settled 2026-11-27).** No engine is hosted until M2, so
+   the requirement is vacuous in M1. FR-20 is marked *deferred to M2*, the Butterscotch
+   limitation is documented now, and the real save-location design stays in M2. This is a
+   recorded deferral, not a silent narrowing.
 4. **Ids and repeated scans (settled).** A scanned id is derived from the SAF tree authority,
    tree document id and the document's relative id path. Multiple trees can be registered;
    a re-scan upserts rows, never auto-deletes them, which preserves covers and links.
@@ -107,6 +108,8 @@ data class GameEntry(val name: String, val isDirectory: Boolean)
 
 interface GameFolder {
     val name: String
+    val isDirectory: Boolean
+    val location: String
     fun entries(): List<GameEntry>
     fun child(name: String): GameFolder?
     fun open(name: String): InputStream?

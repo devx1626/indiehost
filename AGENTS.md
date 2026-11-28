@@ -66,7 +66,7 @@ Android Studio.
 | --- | --- |
 | Home screen / drawer UI | `app/src/main/kotlin/com/indiehost/launcher/HomeUi.kt` |
 | Activity, state, launch/settings actions | `app/src/main/kotlin/com/indiehost/launcher/MainActivity.kt` |
-| Palette and typography | `app/src/main/kotlin/com/indiehost/launcher/SteamTheme.kt` |
+| Palette and typography | `app/src/main/kotlin/com/indiehost/launcher/IndieTheme.kt` |
 | Installed-app list | `app/src/main/kotlin/com/indiehost/launcher/InstalledApps.kt` |
 | Recents | `app/src/main/kotlin/com/indiehost/launcher/Recents.kt` |
 | Pin requests | `app/src/main/kotlin/com/indiehost/launcher/PinShortcutActivity.kt` |

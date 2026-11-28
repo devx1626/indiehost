@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Status:** Living document · **Last updated:** 2026-11-25
+> **Status:** Living document · **Last updated:** 2026-11-27
 > **Related:** [spec.md](spec.md) · [MILESTONE-0](MILESTONE-0.md) · [ARCHITECTURE](ARCHITECTURE.md) · [TESTING](TESTING.md)
 
 Ordered by risk, not visibility. Each milestone has a definition of done; a milestone is
@@ -41,53 +41,64 @@ closed, and `:detect:test` plus the APK build stay green.
 
 ---
 
-## Milestone 1 — Real library — **Planned**
+## Milestone 1 — Real library — **In progress (code complete, device verification pending)**
 
 **Goal:** IndieHost stops borrowing Butterscotch's pins as its only library and owns a
 persistent, scannable game collection.
 
 ### Work
 
-1. **Room**
-   - `GameEntity` (`id`, `title`, `folderPath`, `engine`, `wadVersion`, `coverPath`,
-     `addedAt`).
-   - DAO + database + migration policy (version 1; destructive migration allowed only
+1. **Room** — done
+   - [x] `GameEntity` (`id`, `title`, `folderPath`, `engine`, `wadVersion`, `coverPath`,
+     `addedAt`, `source`, `linkedShortcutId`, `treeUri`, `runnable`, `blocker`).
+   - [x] DAO + database + migration policy (version 1; destructive migration allowed only
      during M1).
-   - `RoomGameRepository : GameRepository`; wire `MainActivity`/a ViewModel to it.
-   - DAO tests (Robolectric or instrumented).
+   - [x] `RoomGameRepository : GameRepository`; wired into `MainActivity` (plain threads,
+     no ViewModel).
+   - [x] Host mapping test; instrumented DAO test written but **not run here**. Run it on
+     a workstation with `tools/device_checks.sh --dao`.
 
-2. **Folder scan**
-   - SAF `OpenDocumentTree` with persisted read permission.
-   - Walk one or two levels, run `EngineDetector` on candidate folders.
-   - Import supported games; show skipped folders with reasons.
-   - Handle revoked permission, missing folder and symlinks safely.
+2. **Folder scan** — done
+   - [x] SAF `OpenDocumentTree` with persisted read permission (`GameFolderStore`).
+   - [x] Walk two levels through the `GameFolder` seam, run `EngineDetector` on candidates.
+   - [x] Stable `scan-` ids; upsert only; skipped folders carry reasons; revoked grants
+     produce a visible message and leave rows untouched.
+   - [x] Missing/disappeared children are skipped, not followed as symlinks.
 
-3. **Library UI**
-   - Grid or rows driven by the repository, not only pinned shortcuts.
-   - Game detail: title, engine, WAD, path, launch, remove.
-   - Empty state that explains both sources: pinned Butterscotch games and scanned
-     folders.
-   - Keep the pinned-shortcut path as a first-class source; do not regress it.
+3. **Library UI** — done
+   - [x] Rows driven by `mergeLibrary(games, pins)`, not only pinned shortcuts.
+   - [x] Detail panel: title, engine, WAD, path, launch, explicit pin link, remove.
+   - [x] Empty state explains both sources; GameMaker without a live pin is not launchable.
+   - [x] Pinned-shortcut path kept as a first-class source.
 
-4. **Cover art**
-   - Pick an image per game; copy into app storage with a stable name.
-   - Downsample before storing; never store a full-resolution screenshot.
-   - Do not extract or redistribute copyrighted art.
+4. **Cover art** — done
+   - [x] `OpenDocument(image/*)` → `CoverStore` → app-private WebP with a hashed name.
+   - [x] Bounds decode + subsample + scale to ≤ 512 px, on worker threads.
+   - [x] Only user-supplied art; no extraction or redistribution of game assets.
 
-5. **Saves**
-   - For engines IndieHost hosts (M2+), save to a shared, documented directory that
-     survives a launcher reinstall.
+5. **Saves — deferred to M2**
+   - M1 hosts no engine, so there is nothing for IndieHost to save. For engines hosted
+     from M2, save to a shared, documented directory.
    - For Butterscotch-hosted games, saves belong to Butterscotch; document the limitation
      and do not pretend to manage them.
 
 ### Exit criteria
 
-- [ ] Games survive process death and a launcher reinstall.
-- [ ] A SAF folder scan imports at least GameMaker and MV/MZ folders.
-- [ ] Cover art survives restart and is downsampled.
-- [ ] Revoking the SAF permission produces a clear message, not a crash.
-- [ ] DAO tests and the existing 12 detector tests pass.
-- [ ] Manual test matrix updated; no regression in the pin flow.
+Implementation is complete; criteria stay open until observed on the baseline device.
+Host evidence: `:detect:test` 19/19, `:library:testDebugUnitTest` 3/3,
+`:app:testDebugUnitTest` 16/16, `:app:assembleDebug` successful.
+
+- [ ] Games survive process death and launcher updates; a full uninstall is restored by
+      re-scanning the same folder (metadata is app-private, not backed up). — MT-27
+- [ ] A SAF folder scan imports at least GameMaker and MV/MZ folders. — MT-21, MT-22
+- [ ] Cover art survives restart and is downsampled. — MT-25
+- [ ] Revoking the SAF permission produces a clear message, not a crash. — MT-26
+- [ ] DAO tests and the detector tests pass. — DAO test written but unrun; detector 19/19
+- [ ] Manual test matrix updated (MT-21…MT-28); no regression in the pin flow. — MT-23
+
+**Blocker:** this container has no usable adb shell uid, so instrumented and manual cases
+could not be executed here. A workstation script and synthetic MV fixture now exist
+(`tools/device_checks.sh`); do not mark M1 done on a compile alone.
 
 ### Risks
 
@@ -98,47 +109,56 @@ persistent, scannable game collection.
 
 ---
 
-## Milestone 2 — RPG Maker MV/MZ in a WebView — **Planned**
+## Milestone 2 — RPG Maker MV/MZ in a WebView — **In progress (code complete, device verification pending)**
 
 **Goal:** prove the "one `RuntimeAdapter` per engine" claim with a runtime that is certain
 to work, and give the launcher a second real engine.
 
 ### Work
 
-1. **Adapter**
-   - `RpgMakerRuntimeAdapter : RuntimeAdapter` for `RPGMAKER_MV` and `RPGMAKER_MZ`.
-   - Introduce the adapter registry (`Map<Engine, RuntimeAdapter>`), since this is the
-     second adapter.
-   - `prepare` validates `index.html` and the core JS; `launch` starts a new
-     `GameWebViewActivity`.
+1. **Adapter** — done
+   - [x] `RpgMakerRuntimeAdapter` for MV and MZ, registered twice in `RuntimeRegistry`.
+   - [x] `RuntimeAdapter.launch(activity, game, shortcut?)` keeps GameMaker's pin handoff;
+     GameMaker and RPG Maker share the registry seam.
+   - [x] Validation of `index.html`/core JS moved into `GameWebViewActivity`, because a SAF
+     tree is not a `File`; `prepare` documents that instead of pretending to pre-flight.
 
-2. **Loading strategy** (decide in an ADR)
-   - **Preferred:** `WebViewAssetLoader` over the SAF tree / copied folder, so there is no
-     `INTERNET` permission and no localhost server.
-   - **Fallback:** copy the game into app storage (simple, but duplicates data).
-   - **Rejected unless necessary:** a localhost HTTP server (adds a socket and a permission
-     story).
+2. **Loading strategy** — done in [ADR-0007](docs/adr/0007-webview-offline-assets.md)
+   - [x] `WebViewAssetLoader` + SAF `PathHandler`; no `INTERNET` permission, no copy, no
+     localhost server.
+   - [ ] Device fallback (copy into app storage) is named but **not** implemented; needed
+     only if WebView refuses intercepted HTTPS without `INTERNET`.
+   - [x] A localhost server remains rejected.
 
-3. **WebView configuration**
-   - JavaScript on, DOM storage on.
-   - File access off, universal access from file URLs off, mixed content never allowed.
-   - No JavaScript bridge unless a concrete feature requires it; if added, expose one
-     narrow method and validate input.
-   - Block remote requests; a game that needs the network fails visibly.
+3. **WebView configuration** — done
+   - [x] JavaScript and DOM storage on; file/content access and universal file access off.
+   - [x] No JavaScript bridge; popups and multiple windows disabled.
+   - [x] Off-origin subresources get a blocked response; off-origin navigation shows a
+     visible message and never reaches the network.
 
-4. **Game lifecycle**
-   - Fullscreen/immersive, keep screen on, audio focus.
-   - Back = pause/exit confirmation, not browser history.
-   - Save data in WebView storage; document where it lives and how to export it.
-   - Handle rotation without restarting the game if feasible.
+4. **Game lifecycle** — done
+   - [x] Fullscreen, keep screen on, audio focus request/abandon on resume/pause.
+   - [x] Back = leave confirmation, never browser history.
+   - [x] `configChanges` avoids a rotation restart.
+   - [ ] Save export (FR-20) is **deferred beyond M2**; WebView DOM storage is app-private
+     and the runtime is not yet device-proven. Scope change recorded in the M2 design.
 
 ### Exit criteria
 
-- [ ] One MV game and one MZ game launch offline from a scanned folder.
-- [ ] No remote request succeeds; no `INTERNET` permission added.
-- [ ] Back/pause/audio behave like a game.
-- [ ] The adapter is selected through the same seam as GameMaker.
-- [ ] Manual tests cover a missing `index.html`, a broken JS file and a revoked SAF grant.
+Host evidence: `:runtimes:testDebugUnitTest` 7/7, `:app:testDebugUnitTest` 31/31,
+`:detect:test` 19/19, `:library:testDebugUnitTest` 3/3, debug APK built.
+
+- [ ] One MV game and one MZ game launch offline from a scanned folder. — MT-29, MT-30
+- [ ] No remote request succeeds; no `INTERNET` permission added. — MT-31; manifest checked
+- [ ] Back/pause/audio behave like a game. — MT-32
+- [ ] The adapter is selected through the same seam as GameMaker. — registry tests
+- [ ] Manual tests cover a missing `index.html`, a broken JS file and a revoked SAF grant. —
+      MT-33, unrun
+
+**Blocker:** no device test path or legal MV/MZ game copy in this environment. The
+workstation script pushes a synthetic MV fixture for MT-29; MZ (MT-30) still needs a legal
+copy. If WebView refuses the intercepted HTTPS URL without `INTERNET`, implement ADR-0007's
+copy fallback.
 
 ### Risks
 
@@ -149,34 +169,33 @@ to work, and give the launcher a second real engine.
 
 ---
 
-## Milestone 3 — Ren'Py, LOVE, ScummVM — **Planned**
+## Milestone 3 — Ren'Py, LÖVE, ScummVM — **Done (detection-only, no runtime added)**
 
 **Goal:** either host the remaining engines or say clearly why not. No silent detection.
 
 ### Work
 
-1. **Decide the runtime model per engine (ADR required).**
-   - Ren'Py: RAPT produces a per-game APK, not a shared runtime. Options: detect an
-     installed per-game APK and launch it; orchestrate a build (likely out of scope); or
-     mark "detected, not hostable".
-   - LOVE: same shape — the official Android build is per-game.
-   - ScummVM: the Android app is generic; research whether it exposes a public intent for a
-     game path. If not, open ScummVM and guide the user.
+1. **Runtime model decided per engine** — done
+   - [x] [ADR-0008](docs/adr/0008-renpy-detected-not-hosted.md): RAPT builds a per-game APK;
+     no shared runtime exists, so IndieHost does not host it.
+   - [x] [ADR-0009](docs/adr/0009-love-handoff-not-implemented.md): a generic player can open
+     `.love` files, but the handoff intent is unverified — no adapter shipped.
+   - [x] [ADR-0010](docs/adr/0010-scummvm-handoff-not-implemented.md): a `scummvm:<target>`
+     intent exists, but the target must first be configured inside ScummVM.
 
-2. **Implement what the decision allows**
-   - Adapter or explicit "not hostable" result with a reason shown in the library.
-   - Detection stays as-is unless a signature proves unreliable.
+2. **What the decisions allow** — done
+   - [x] Each engine gets its own library reason and `NOT HOSTED` badge; Launch disabled.
+   - [x] Detection unchanged; no unresolved runtime was added.
 
-3. **Update the product claim**
-   - The README table and spec §3 must match reality. If an engine is detection-only, say
-     so in the same sentence as the runtime.
+3. **Product claim** — done
+   - [x] README table and spec FR-24 now say "detected only" for these engines.
 
 ### Exit criteria
 
-- [ ] Every engine in `Engine` has a documented route: launch, hand off, or not hostable.
-- [ ] The library shows the reason for a detected-but-unsupported game.
-- [ ] No engine is silently dropped.
-- [ ] ADRs record the decisions and their consequences.
+- [x] Every engine in `Engine` has a documented route: launch, hand off, or not hostable.
+- [x] The library shows the reason for a detected-but-unsupported game. — MT-34
+- [x] No engine is silently dropped. — `LibraryMergeTest` asserts all three reasons
+- [x] ADRs record the decisions and their consequences.
 
 ### Risks
 
@@ -187,16 +206,17 @@ to work, and give the launcher a second real engine.
 
 ---
 
-## Milestone 4 — Compatibility and performance — **Planned**
+## Milestone 4 — Compatibility and performance — **In progress (template only, measurements blocked)**
 
 **Goal:** replace "it runs" with measured claims.
 
 ### Work
 
-1. **Compatibility matrix**
-   - At least five GameMaker titles across WAD versions 8–17.
-   - Columns: device, Android, RAM, engine, game, WAD, fps (walk/battle), audio, notes.
-   - Commit device data only; never game files.
+1. **Compatibility matrix** — template ready, data blocked
+   - [x] [COMPATIBILITY.md](COMPATIBILITY.md) created with the required columns and a
+     "no measured data" banner; detection-only engines are listed as such.
+   - [ ] At least five GameMaker titles across WAD versions 8–17, plus an MV and MZ title.
+   - [x] Commit device data only; never game files.
 
 2. **Performance protocol**
    - Cold start, resume, drawer load, recents refresh, idle PSS.
@@ -210,10 +230,14 @@ to work, and give the launcher a second real engine.
 
 ### Exit criteria
 
-- [ ] Matrix committed with at least five titles.
-- [ ] Cold start, resume and drawer numbers recorded on the baseline.
-- [ ] README/spec claims match the measurements.
-- [ ] Known-bad configurations documented.
+- [ ] Matrix filled with at least five titles — **blocked: no device or legal game copy**.
+- [ ] Cold start, resume and drawer numbers recorded on the baseline — **blocked**.
+- [ ] README/spec claims match the measurements — currently qualified in COMPATIBILITY.md.
+- [ ] Known-bad configurations documented — the section is deliberately empty until tested.
+
+**Blocker:** the container has no usable adb shell uid and no game data. Use
+`tools/device_checks.sh --perf` on the baseline phone; no performance number may be claimed
+until the maintainer fills the template.
 
 ---
 
@@ -224,14 +248,21 @@ area.
 
 | Priority | Item | Why | Where |
 | --- | --- | --- | --- |
+| ~~P0~~ | ~~Drawer search, shared state cards, semantic tokens, badge slots~~ | Done: P0 from [UI/UX research](docs/ui-ux-research.md) | `HomeUi.kt`, `IndieTheme.kt` |
+| ~~P1~~ | ~~Staged status, detail focus, WebView feedback, debug previews~~ | Done: P1 from the same research | `GameWebViewActivity.kt`, `HomeUi.kt`, `TESTING.md` |
+| P0 | Run MT-21…MT-33 and `GameDaoTest` on a device | M1/M2 exit criteria are unobserved | `TESTING.md`, `library/src/androidTest` |
+| P0 | Confirm WebView loads `appassets` without `INTERNET` | Decides whether ADR-0007's copy fallback is needed | `GameWebViewActivity.kt` |
+| P1 | Replace destructive Room migration with explicit migrations | Would drop library rows on a schema change | `IndieHostDatabase.kt` |
+| P1 | Decrypt MV/MZ encrypted assets | Games with `.rpgmvp`/`.rpgmvo` show broken art | `SafAssetPathHandler.kt` |
+| P2 | Export MV/MZ saves outside private storage | FR-20 deferred beyond M2 | `GameWebViewActivity.kt` |
 | P2 | Add `mipmap-xxxhdpi` legacy icons | Pre-26 xxxhdpi devices upscale | `res/mipmap-xxxhdpi` |
 | P2 | Add predictive-back opt-in for target 34 | Future-proof back handling | `AndroidManifest.xml` |
-| P2 | Replace deprecated `PackageManager` icon/label calls | Future API removal | `InstalledApps.kt` |
+| ~~P2~~ | ~~Replace deprecated `PackageManager` icon/label calls~~ | Done: drawer reads `LauncherActivityInfo` label/icon directly | `InstalledApps.kt` |
 | P2 | Introduce a ViewModel + coroutines for loading | Testability, lifecycle safety | `MainActivity.kt` |
 | P3 | Instrumented tests for `LauncherApps`/pin flows | System integration is untested | `app/src/androidTest` |
 | P3 | Application-id rename | Placeholder id must change before broad distribution | manifest + repin |
-| P3 | Add a `LICENSE` file | Default copyright blocks reuse | root |
-| P3 | Rename internal `SteamTheme`/`Steam` identifiers | Version suffix is already clean; code names remain | build + theme |
+| ~~P3~~ | ~~Add a `LICENSE` file~~ | Done: MIT, 2026-11-27 | [LICENSE](LICENSE) |
+| ~~P3~~ | ~~Rename internal palette identifiers~~ | Done: `IndieTheme`/`Indie`, 2026-11-27 | app theme |
 | P3 | Work-profile support | Out of scope until requested | `InstalledApps`/`Recents` |
 
 ---

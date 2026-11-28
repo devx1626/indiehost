@@ -25,6 +25,7 @@
 
     <application
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -49,6 +50,20 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- Offline RPG Maker MV/MZ runtime. Not exported: only the adapter in
+             this same app starts it, by action and with an explicit package. -->
+        <activity
+            android:name=".GameWebViewActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.IndieHost">
+            <intent-filter>
+                <action android:name="com.indiehost.launcher.GAME_WEBVIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>

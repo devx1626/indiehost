@@ -5,8 +5,8 @@ import android.content.pm.LauncherApps
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import com.indiehost.runtimes.ButterscotchShortcuts
-import com.indiehost.runtimes.GameMakerRuntimeAdapter
+import com.indiehost.runtimes.PinCandidate
+import com.indiehost.runtimes.PinPolicy
 
 /**
  * Launchers receive pin requests ("Add Shortcut to Home Screen") here.
@@ -37,30 +37,31 @@ class PinShortcutActivity : Activity() {
 
         val launcherApps = getSystemService(LauncherApps::class.java)
         val request = launcherApps?.getPinItemRequest(intent)
-        if (request == null ||
-            request.requestType != LauncherApps.PinItemRequest.REQUEST_TYPE_SHORTCUT
-        ) {
+        if (request == null) {
             finish()
             return
         }
 
         val shortcut = request.getShortcutInfo()
-        val packageName = shortcut?.`package`
-        val shortcutId = shortcut?.id
-        if (packageName != GameMakerRuntimeAdapter.BUTTERSCOTCH_PACKAGE ||
-            shortcutId?.startsWith(ButterscotchShortcuts.GAME_SHORTCUT_PREFIX) != true
-        ) {
+        val candidate = PinCandidate(
+            packageName = shortcut?.`package`,
+            shortcutId = shortcut?.id,
+            isValid = runCatching { request.isValid }.getOrDefault(false),
+            requestType = request.requestType,
+        )
+        if (!PinPolicy.accept(candidate)) {
             // Finishing without accept() refuses the request. A launcher should
-            // not silently adopt shortcuts it cannot launch as games.
-            Log.w(TAG, "Ignored pin request from $packageName/$shortcutId")
+            // not silently adopt shortcuts it cannot launch as games, and a
+            // cancelled/invalid request must never be accepted either.
+            Log.w(TAG, "Ignored pin request from ${candidate.packageName}/${candidate.shortcutId}")
             finish()
             return
         }
 
         if (runCatching { request.accept() }.getOrDefault(false)) {
-            Log.i(TAG, "Pinned $shortcutId")
+            Log.i(TAG, "Pinned ${candidate.shortcutId}")
         } else {
-            Log.w(TAG, "Could not pin $shortcutId")
+            Log.w(TAG, "Could not pin ${candidate.shortcutId}")
         }
         finish()
     }

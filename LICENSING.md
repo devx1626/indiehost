@@ -1,6 +1,6 @@
 # Licensing
 
-> **Status:** Policy · **Last updated:** 2026-11-25
+> **Status:** Policy · **Last updated:** 2026-11-27
 > **Related:** [spec.md](spec.md) · [SECURITY](SECURITY.md) · [README](README.md)
 
 This is an engineering policy, not legal advice. If a distribution decision matters
@@ -10,21 +10,12 @@ commercially, get a lawyer to review it.
 
 ## 1. The launcher's own licence
 
-**There is no `LICENSE` file in this repository.** Under default copyright, the author
-retains all rights: nobody may copy, modify or redistribute the code without permission,
-even though the source is public.
+The launcher source is licensed under **MIT**; see [LICENSE](LICENSE). The maintainer chose
+MIT on 2026-11-27 from the options previously listed here.
 
-Before any public release, choose one:
-
-| Option | Effect | Fit |
-| --- | --- | --- |
-| **MIT** | Permissive, short, widely understood | Good default for a small launcher |
-| **Apache-2.0** | Permissive plus an explicit patent grant | Good if corporate contributors appear |
-| **GPL-3.0** | Copyleft for the launcher itself | Consistent with a "keep it open" stance, but stricter |
-| **AGPL-3.0** | Copyleft including network use | Unnecessary: IndieHost has no server |
-
-Adding a licence is a maintainer decision; record it in an ADR and update this file. Until
-then, treat the repository as **all rights reserved**.
+This licence covers only IndieHost's own code and docs. It does **not** cover Butterscotch
+(§2), game data (§3) or third-party components (§4), each of which keeps its own terms.
+Forks must keep the copyright and permission notice, and must not bundle AGPL components.
 
 ---
 
@@ -77,6 +68,11 @@ Game data is copyrighted by the game's authors and is **never** part of this pro
 - `android:allowBackup="false"` keeps paths and recents out of cloud backup.
 - The checker copies a chosen file into `cacheDir/import/` and deletes that directory
   before the next check. It is local and transient.
+- Cover art is **only** what the user picks from their own images. It is downsampled to
+  at most 512 px, stored app-private under `filesDir/covers`, and never extracted from a
+  game folder or committed. Do not point the picker at copyrighted art you cannot use.
+- The M2 WebView serves SAF documents as streams into WebView; nothing is copied into app
+  storage, and no game asset is committed or backed up.
 - Issue reports must not attach game files; see [TESTING §7](TESTING.md#7-bug-report-template).
 
 IndieHost does not circumvent DRM or copy protection. If a game cannot be run from a
@@ -89,6 +85,9 @@ user-supplied folder without that, it is out of scope.
 | Component | Licence | Use |
 | --- | --- | --- |
 | AndroidX / Jetpack Compose / Material3 | Apache-2.0 | UI and activity plumbing |
+| AndroidX Room + Room KSP compiler | Apache-2.0 | M1 game-library persistence |
+| AndroidX DocumentFile | Apache-2.0 | SAF tree walking |
+| AndroidX WebKit (`WebViewAssetLoader`) | Apache-2.0 | Offline MV/MZ runtime; no network permission |
 | Kotlin standard library | Apache-2.0 | Language/runtime |
 | Android Gradle Plugin, Gradle | Apache-2.0 | Build |
 | JUnit 4 | EPL-1.0 | Host tests |
@@ -121,44 +120,56 @@ vendored. The skills are advice, not project policy; [AGENTS.md](AGENTS.md) and
 
 ---
 
-## 5. Steam look and name
+## 5. Branding and the palette
 
-The UI palette is *inspired by* a game-client look. It contains no Steam artwork, logos or
-fonts, and it does not talk to Steam.
+The UI palette is a generic dark game-client look. It contains no third-party artwork,
+logos or fonts, and it makes no network calls.
 
-However:
-
-- "Steam" is a Valve trademark.
-- The public version string is `0.3.0`: no Steam word appears in the APK metadata, UI or
-  artwork.
-- `SteamTheme`, `Steam` (the palette object) and the `steamColors`/`steamTypography` names
-  remain internal source identifiers. They are not shipped branding and are not visible
-  in the UI.
-
-The version suffix was renamed before the `v0.3.0` release (CON-07). Renaming the internal
-symbols is a follow-up refactor, not a release blocker; keep the palette description generic.
+- The public version string is `0.4.0`: no third-party product name appears in the APK
+  metadata, UI or artwork.
+- The old internal `SteamTheme`/`Steam` identifiers were renamed to `IndieTheme`/`Indie`
+  on 2026-11-27 (CON-07). `STEAM`-style codenames no longer exist in the build.
+- [ADR-0005](docs/adr/0005-compose-material3.md) still describes the original Compose
+  decision in historical terms; the rename is a mechanical follow-up, not a change to that
+  decision.
 
 ---
 
 ## 6. Distribution checklist
 
-- [ ] A `LICENSE` file exists and matches the intended terms.
-- [ ] `README` states the licence.
+- [x] A `LICENSE` file exists and matches the intended terms (MIT).
+- [x] `README` states the licence.
 - [ ] No Butterscotch code, native libraries or assets are bundled.
 - [ ] No game data, saves, screenshots of copyrighted art or extracted covers are included.
 - [ ] `allowBackup="false"` remains set.
 - [ ] No `INTERNET` permission.
-- [ ] The `-steam` codename and `Steam*` symbols are renamed.
-- [ ] Release signing is configured and the application id is final.
+- [x] The `-steam` codename and third-party product symbols are renamed.
+- [ ] Release signing is configured and the application id is final. The id remains
+      `com.indiehost.launcher` by explicit maintainer decision.
 - [ ] Third-party notices are included if required by their licences.
 - [ ] The compatibility claims in README/spec match measured results.
 
 ---
 
-## 7. Questions and answers
+## 7. Prior-art studies
+
+The repository documents behavioural studies of DroidDeck (GPL-3.0), Cinnamon
+(GPL-2.0-or-later with mixed vendored licences), COSMIC (GPL-3.0/MPL-2.0/CC BY-SA),
+Bazzite (Apache-2.0), Pop!_OS tools, Lawnchair/ARK-Launcher (Apache-2.0), OpenArcade
+(MIT), Material Files and AntennaPod (GPL-3.0), and Android/AOSP documentation. These
+studies are recorded in [docs/research](docs/research/) and
+[docs/ui-ux-research.md](docs/ui-ux-research.md). **No source file, icon, font, colour
+value, theme asset or translation was copied.** IndieHost's implementations are original
+and remain MIT. Any future change that adapts a permissively licensed snippet must carry
+its notice into `LICENSING.md`; GPL/AGPL/MPL/CC-BY-SA material stays pattern-only.
+
+---
+
+## 8. Questions and answers
 
 **Can I publish a fork of IndieHost?**
-Not until a `LICENSE` file grants that right. Today the code is all rights reserved.
+Yes, under MIT, provided the copyright and permission notice are kept and no AGPL
+component or game data is bundled.
 
 **Can I bundle Butterscotch to make installation easier?**
 No. That makes the combined work AGPL-3.0 and requires complying with the AGPL for the
@@ -172,6 +183,6 @@ or ask the user to supply their own copy.
 No. It is an Android IPC call to another app's exported shortcut, the same mechanism every
 launcher uses.
 
-**Is the Steam-inspired look a problem?**
-The palette alone is not Steam artwork, but the name and codenames should be changed before
-a public release to avoid trademark confusion.
+**Is the game-client look a problem?**
+No third-party artwork or product name is shipped, and the old internal codenames have been
+renamed. The look is generic.

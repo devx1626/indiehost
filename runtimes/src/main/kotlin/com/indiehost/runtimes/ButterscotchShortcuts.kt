@@ -94,8 +94,18 @@ class ButterscotchShortcuts(private val context: Context) {
     private fun ShortcutInfo.toRunnerShortcut(apps: LauncherApps): RunnerShortcut? {
         val shortcutId = id ?: return null
         // Only Butterscotch's per-game shortcuts ("game-<uuid>") are games;
-        // anything else it may pin later is not ours to launch.
-        if (!shortcutId.startsWith(GAME_SHORTCUT_PREFIX)) return null
+        // anything else it may pin later is not ours to launch. A shortcut that
+        // was disabled or unpinned while we were in the background must not be
+        // shown as launchable even if the system query returned it.
+        if (!PinPolicy.visible(
+                PinCandidate(
+                    packageName = `package`,
+                    shortcutId = shortcutId,
+                    isEnabled = isEnabled,
+                    isPinned = isPinned,
+                )
+            )
+        ) return null
 
         val label = (shortLabel ?: longLabel)?.toString()?.takeIf { it.isNotBlank() }
             ?: shortcutId.removePrefix(GAME_SHORTCUT_PREFIX)

@@ -5,6 +5,7 @@ import android.graphics.drawable.Drawable
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -25,6 +26,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -42,6 +45,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,20 +53,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import com.indiehost.detect.Engine
 import com.indiehost.detect.EngineDetector
+import com.indiehost.library.Game
 import com.indiehost.runtimes.RunnerShortcut
 import java.io.File
 
@@ -84,8 +95,17 @@ internal fun HomeScreen(
     loadingApps: Boolean,
     usageAccess: Boolean,
     status: String,
+    library: List<Game>,
+    covers: Map<String, ImageBitmap>,
+    scanning: Boolean,
+    scanMessage: String,
+    onAddFolder: (Uri) -> Unit,
+    onLaunchItem: (LibraryItem) -> Unit,
+    onLinkPin: (Game, String?) -> Unit,
+    onPickCover: (Game, Uri) -> Unit,
+    onRemoveCover: (Game) -> Unit,
+    onRemoveGame: (Game) -> Unit,
     onOpenDrawer: () -> Unit,
-    onLaunchGame: (RunnerShortcut) -> Unit,
     onLaunchApp: (LauncherApp) -> Unit,
     onOpenRunner: () -> Unit,
     onChooseHomeApp: () -> Unit,
@@ -109,10 +129,21 @@ internal fun HomeScreen(
         }, "data-win-check").start()
     }
 
+    val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) onAddFolder(uri)
+    }
+
+    val libraryItems = remember(library, games) {
+        mergeLibrary(library, games.map { LibraryPin(it.id, it.title) })
+    }
+    val pinsById = remember(games) { games.associateBy { it.id } }
+    var selectedGameId by remember { mutableStateOf<String?>(null) }
+    val selected = selectedGameId?.let { id -> libraryItems.firstOrNull { it.game?.id == id } }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Steam.Base),
+            .background(Indie.Base),
         contentPadding = PaddingValues(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -120,9 +151,9 @@ internal fun HomeScreen(
 
         item {
             HeroPanel(
-                games = games,
+                item = libraryItems.firstOrNull { it.launchable } ?: libraryItems.firstOrNull(),
                 canListGames = canListGames,
-                onLaunchGame = onLaunchGame,
+                onLaunch = onLaunchItem,
                 onChooseHomeApp = onChooseHomeApp,
             )
         }
@@ -132,20 +163,28 @@ internal fun HomeScreen(
         }
         item {
             when {
-                recents.isNotEmpty() -> LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    items(recents, key = { it.packageName }) { app ->
-                        RecentTile(app = app, onClick = { onLaunchApp(app) })
+                recents.isNotEmpty() -> Column {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        items(recents, key = { it.packageName }) { app ->
+                            RecentTile(app = app, onClick = { onLaunchApp(app) })
+                        }
                     }
+                    Text(
+                        stringResource(R.string.recents_privacy),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Indie.TextMuted,
+                        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 2.dp),
+                    )
                 }
 
                 loadingApps -> Row(
                     Modifier.padding(horizontal = 20.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    CircularProgressIndicator(Modifier.size(16.dp), color = Steam.Accent, strokeWidth = 2.dp)
+                    CircularProgressIndicator(Modifier.size(16.dp), color = Indie.Accent, strokeWidth = 2.dp)
                     Spacer(Modifier.width(10.dp))
                     Text(stringResource(R.string.loading_apps), style = MaterialTheme.typography.bodySmall)
                 }
@@ -156,7 +195,7 @@ internal fun HomeScreen(
                         style = MaterialTheme.typography.bodySmall,
                     )
                     TextButton(onClick = onAllowUsage) {
-                        Text(stringResource(R.string.allow_usage), color = Steam.Accent, style = labelStyle())
+                        Text(stringResource(R.string.allow_usage), color = Indie.Accent, style = labelStyle())
                     }
                 }
 
@@ -173,7 +212,7 @@ internal fun HomeScreen(
         }
 
         when {
-            !canListGames -> item {
+            libraryItems.isEmpty() && !canListGames -> item {
                 Panel(Modifier.padding(horizontal = 20.dp)) {
                     Text(
                         stringResource(R.string.not_home),
@@ -184,20 +223,31 @@ internal fun HomeScreen(
                 }
             }
 
-            games.isEmpty() -> item {
-                Panel(Modifier.padding(horizontal = 20.dp)) {
-                    Text(
-                        stringResource(R.string.no_games),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
+            libraryItems.isEmpty() -> item {
+                StateCard(
+                    title = stringResource(R.string.library_empty),
+                    detail = stringResource(R.string.no_games),
+                    actionLabel = stringResource(R.string.add_folder),
+                    onAction = { folderPicker.launch(null) },
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
             }
 
-            else -> items(games, key = { it.id }) { shortcut ->
+            else -> items(libraryItems, key = { it.key }) { item ->
+                val pin = item.shortcutId?.let { pinsById[it] }
                 GameRow(
-                    title = shortcut.title,
-                    icon = shortcut.icon,
-                    onClick = { onLaunchGame(shortcut) },
+                    item = item,
+                    icon = pin?.icon,
+                    cover = item.game?.id?.let { covers[it] },
+                    subtitle = librarySubtitle(item),
+                    onClick = {
+                        if (item.game != null) {
+                            selectedGameId = item.game.id
+                        } else {
+                            onLaunchItem(item)
+                        }
+                    },
+                    onPlay = { onLaunchItem(item) },
                     modifier = Modifier.padding(horizontal = 20.dp),
                 )
             }
@@ -205,9 +255,11 @@ internal fun HomeScreen(
 
         if (status.isNotEmpty()) {
             item {
-                Panel(Modifier.padding(horizontal = 20.dp)) {
-                    Text(status, style = MaterialTheme.typography.bodySmall, color = Steam.Accent)
-                }
+                StateCard(
+                    title = status,
+                    urgency = FeedbackPolicy.urgency(status),
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
             }
         }
 
@@ -228,25 +280,68 @@ internal fun HomeScreen(
                 )
             }
         }
-        if (checking || report.isNotEmpty()) {
+        item {
+            OutlineButton(
+                if (scanning) stringResource(R.string.scanning_folders) else stringResource(R.string.add_folder),
+                { folderPicker.launch(null) },
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                enabled = !scanning,
+            )
+        }
+        if (scanMessage.isNotEmpty()) {
             item {
-                Panel(Modifier.padding(horizontal = 20.dp)) {
-                    if (checking) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(
-                                Modifier.size(14.dp),
-                                color = Steam.Accent,
-                                strokeWidth = 2.dp,
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(stringResource(R.string.reading_datawin), style = MaterialTheme.typography.bodySmall)
-                        }
-                    } else {
-                        Text(report, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
+                StateCard(
+                    title = scanMessage,
+                    urgency = FeedbackPolicy.urgency(scanMessage),
+                    actionLabel = stringResource(R.string.retry),
+                    onAction = { folderPicker.launch(null) },
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
             }
         }
+
+        if (checking || report.isNotEmpty()) {
+            item {
+                StateCard(
+                    title = if (checking) stringResource(R.string.reading_datawin) else stringResource(R.string.check_datawin),
+                    detail = if (checking) null else report,
+                    progress = checking,
+                    urgency = FeedbackPolicy.urgency(report),
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
+            }
+        }
+    }
+
+    if (selected != null) {
+        val game = selected.game
+        val availablePins = if (game != null) {
+            games.filter { pin ->
+                library.none { it.linkedShortcutId == pin.id && it.id != game.id }
+            }
+        } else {
+            emptyList()
+        }
+        GameDetailDialog(
+            item = selected,
+            cover = game?.id?.let { covers[it] },
+            linkedPinTitle = selected.shortcutId?.let { pinsById[it]?.title },
+            availablePins = availablePins,
+            onDismiss = { selectedGameId = null },
+            onLaunch = {
+                onLaunchItem(selected)
+                selectedGameId = null
+            },
+            onLink = { pinId -> game?.let { onLinkPin(it, pinId) } },
+            onPickCover = { uri -> game?.let { onPickCover(it, uri) } },
+            onRemoveCover = { game?.let(onRemoveCover) },
+            onRemove = {
+                game?.let(onRemoveGame)
+                selectedGameId = null
+            },
+        )
     }
 }
 
@@ -289,7 +384,7 @@ private fun ClientBar(onOpenDrawer: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(Steam.Base)
+            .background(Indie.Base)
             .padding(start = 20.dp, end = 8.dp, top = 14.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -301,18 +396,18 @@ private fun ClientBar(onOpenDrawer: () -> Unit) {
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp,
-                color = Steam.TextBright,
+                color = Indie.TextBright,
             )
-            Text(stringResource(R.string.home), style = labelStyle(10.sp), color = Steam.TextMuted)
+            Text(stringResource(R.string.home), style = labelStyle(10.sp), color = Indie.TextMuted)
         }
         TextButton(onClick = onOpenDrawer) {
-            Text(stringResource(R.string.all_apps), style = labelStyle(), color = Steam.Text)
+            Text(stringResource(R.string.all_apps), style = labelStyle(), color = Indie.Text)
         }
     }
 }
 
 /**
- * The brand mark: a cyan ring around a play triangle with two steam curls
+ * The brand mark: a cyan ring around a play triangle with two rising curls
  * above it. Same shape as the launcher icon, drawn small enough to sit in a
  * text row.
  */
@@ -322,7 +417,7 @@ internal fun BrandMark(modifier: Modifier = Modifier) {
         val w = size.width
         val stroke = w * 0.11f
         drawCircle(
-            color = Steam.Accent,
+            color = Indie.Accent,
             radius = w * 0.38f,
             center = Offset(w * 0.5f, w * 0.55f),
             style = Stroke(width = stroke),
@@ -333,15 +428,15 @@ internal fun BrandMark(modifier: Modifier = Modifier) {
             lineTo(w * 0.43f, w * 0.73f)
             close()
         }
-        drawPath(play, color = Steam.TextBright)
-        // Two puffs of steam rising off the top of the mark.
+        drawPath(play, color = Indie.TextBright)
+        // Two soft curls rising off the top of the mark.
         drawCircle(
-            color = Steam.Accent.copy(alpha = 0.55f),
+            color = Indie.Accent.copy(alpha = 0.55f),
             radius = w * 0.085f,
             center = Offset(w * 0.74f, w * 0.17f),
         )
         drawCircle(
-            color = Steam.Accent.copy(alpha = 0.3f),
+            color = Indie.Accent.copy(alpha = 0.3f),
             radius = w * 0.06f,
             center = Offset(w * 0.88f, w * 0.07f),
         )
@@ -355,25 +450,23 @@ internal fun BrandMark(modifier: Modifier = Modifier) {
  */
 @Composable
 private fun HeroPanel(
-    games: List<RunnerShortcut>,
+    item: LibraryItem?,
     canListGames: Boolean,
-    onLaunchGame: (RunnerShortcut) -> Unit,
+    onLaunch: (LibraryItem) -> Unit,
     onChooseHomeApp: () -> Unit,
 ) {
-    val game = games.firstOrNull()
-
     Box(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
             .height(168.dp)
             .clip(PanelShape)
-            .background(Steam.HeroGradient)
-            .border(1.dp, Steam.Edge, PanelShape),
+            .background(Indie.HeroGradient)
+            .border(1.dp, Indie.Edge, PanelShape),
     ) {
         // Oversized ghost initial, the way a store page bleeds its logo.
         Text(
-            text = (game?.title ?: "IH").take(1).uppercase(),
+            text = (item?.title ?: "IH").take(1).uppercase(),
             fontSize = 150.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White.copy(alpha = 0.05f),
@@ -388,14 +481,14 @@ private fun HeroPanel(
         ) {
             Column {
                 Text(
-                    if (game != null) stringResource(R.string.play_next) else stringResource(R.string.get_started),
+                    if (item != null) stringResource(R.string.play_next) else stringResource(R.string.get_started),
                     style = labelStyle(10.sp),
-                    color = Steam.Accent,
+                    color = Indie.Accent,
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
                     when {
-                        game != null -> game.title
+                        item != null -> item.title
                         canListGames -> stringResource(R.string.library_empty)
                         else -> stringResource(R.string.make_home)
                     },
@@ -406,18 +499,20 @@ private fun HeroPanel(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     when {
-                        game != null -> stringResource(R.string.hero_runner)
+                        item != null -> librarySubtitle(item)
                         canListGames -> stringResource(R.string.hint_pin)
                         else -> stringResource(R.string.hint_home_access)
                     },
                     style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
 
-            if (game != null) {
+            if (item != null && item.launchable) {
                 AccentButton(
                     stringResource(R.string.play),
-                    { onLaunchGame(game) },
+                    { onLaunch(item) },
                     Modifier.width(112.dp),
                 )
             } else if (!canListGames) {
@@ -443,23 +538,28 @@ private fun RecentTile(app: LauncherApp, onClick: () -> Unit) {
     ) {
         AppIcon(app, size = 52.dp, corner = 4.dp)
         Spacer(Modifier.height(6.dp))
-        Text(
-            app.label,
-            fontSize = 11.sp,
-            color = Steam.Text,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-        )
+        Box(Modifier.height(30.dp), contentAlignment = Alignment.TopCenter) {
+            Text(
+                app.label,
+                fontSize = 11.sp,
+                color = Indie.Text,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 
-/** A library entry: art block, title, runtime and the blue play pill. */
+/** A library entry: art block, title, status and either Play or the reason it cannot. */
 @Composable
 private fun GameRow(
-    title: String,
+    item: LibraryItem,
     icon: Drawable?,
+    cover: ImageBitmap?,
+    subtitle: String,
     onClick: () -> Unit,
+    onPlay: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Shortcut icons are small; convert once per icon, not on every recomposition.
@@ -468,8 +568,8 @@ private fun GameRow(
         modifier
             .fillMaxWidth()
             .clip(PanelShape)
-            .background(Steam.Card)
-            .border(1.dp, Steam.Edge, PanelShape)
+            .background(Indie.Card)
+            .border(1.dp, Indie.Edge, PanelShape)
             .clickable(onClick = onClick)
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -485,35 +585,262 @@ private fun GameRow(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            if (image != null) {
-                Image(
+            when {
+                cover != null -> Image(
+                    bitmap = cover,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+
+                image != null -> Image(
                     bitmap = image,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )
-            } else {
-                Text(
-                    title.take(1).uppercase(),
+
+                else -> Text(
+                    item.title.take(1).uppercase(),
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Steam.TextBright.copy(alpha = 0.85f),
+                    color = Indie.TextBright.copy(alpha = 0.85f),
+                    modifier = Modifier.clearAndSetSemantics {},
                 )
             }
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                title,
+                item.title,
                 style = MaterialTheme.typography.bodyLarge,
-                color = Steam.TextBright,
+                color = Indie.TextBright,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(stringResource(R.string.game_installed), style = MaterialTheme.typography.bodySmall)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
         Spacer(Modifier.width(8.dp))
-        AccentButton(stringResource(R.string.play), onClick, Modifier.width(80.dp))
+        // Fixed slot: a status badge appearing must not reflow the row.
+        Box(Modifier.width(84.dp), contentAlignment = Alignment.CenterEnd) {
+            if (item.launchable) {
+                AccentButton(stringResource(R.string.play), onPlay, Modifier.width(80.dp))
+            } else {
+                Text(
+                    statusLabel(item.reason),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp,
+                    color = Indie.Accent,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun librarySubtitle(item: LibraryItem): String = when (item.reason) {
+    null -> item.game?.engine?.displayName ?: stringResource(R.string.game_installed)
+    LibraryReason.NEEDS_PIN -> stringResource(R.string.pin_needed)
+    LibraryReason.WEBVIEW_M2 -> stringResource(R.string.runtime_m2)
+    LibraryReason.RUNTIME_M3 -> stringResource(R.string.runtime_m3)
+    LibraryReason.RENPY_M3 -> stringResource(R.string.renpy_not_hosted)
+    LibraryReason.LOVE_M3 -> stringResource(R.string.love_not_hosted)
+    LibraryReason.SCUMMVM_M3 -> stringResource(R.string.scummvm_not_hosted)
+    LibraryReason.DETECTOR_BLOCKED ->
+        item.game?.blocker?.let { stringResource(R.string.detector_blocked, it) }
+            ?: stringResource(R.string.runtime_m3)
+    LibraryReason.MISSING -> stringResource(R.string.game_missing)
+    LibraryReason.DUPLICATE -> stringResource(R.string.game_duplicate)
+}
+
+@Composable
+private fun statusLabel(reason: LibraryReason?): String = when (reason) {
+    LibraryReason.NEEDS_PIN -> stringResource(R.string.pin_needed_short)
+    LibraryReason.WEBVIEW_M2 -> stringResource(R.string.runtime_m2_short)
+    LibraryReason.RUNTIME_M3 -> stringResource(R.string.runtime_m3_short)
+    LibraryReason.RENPY_M3, LibraryReason.LOVE_M3, LibraryReason.SCUMMVM_M3 ->
+        stringResource(R.string.not_hosted_short)
+    LibraryReason.DETECTOR_BLOCKED -> stringResource(R.string.blocked_short)
+    LibraryReason.MISSING -> stringResource(R.string.missing_short)
+    LibraryReason.DUPLICATE -> stringResource(R.string.duplicate_short)
+    null -> ""
+}
+
+@Composable
+private fun GameDetailDialog(
+    item: LibraryItem,
+    cover: ImageBitmap?,
+    linkedPinTitle: String?,
+    availablePins: List<RunnerShortcut>,
+    onDismiss: () -> Unit,
+    onLaunch: () -> Unit,
+    onLink: (String?) -> Unit,
+    onPickCover: (Uri) -> Unit,
+    onRemoveCover: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) onPickCover(uri)
+    }
+    var confirmRemove by remember { mutableStateOf(false) }
+    val primaryFocus = remember { FocusRequester() }
+    LaunchedEffect(item.key) {
+        if (item.launchable) runCatching { primaryFocus.requestFocus() }
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(PanelShape)
+                .background(Indie.Panel)
+                .border(1.dp, Indie.Edge, PanelShape)
+                .verticalScroll(rememberScrollState())
+                .padding(18.dp),
+        ) {
+            if (cover != null) {
+                Image(
+                    bitmap = cover,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    contentScale = ContentScale.Crop,
+                )
+                Spacer(Modifier.height(10.dp))
+            }
+
+            Text(item.title, style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(10.dp))
+
+            item.game?.let { game ->
+                Text(
+                    stringResource(R.string.game_engine, game.engine.displayName),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                game.wadVersion?.let {
+                    Text(
+                        stringResource(R.string.game_wad, it),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                if (game.folderPath.isNotBlank()) {
+                    Text(
+                        stringResource(R.string.game_location, game.folderPath),
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlineButton(
+                        stringResource(
+                            if (game.coverPath == null) R.string.choose_cover else R.string.replace_cover,
+                        ),
+                        { coverPicker.launch(arrayOf("image/*")) },
+                        Modifier.weight(1f),
+                    )
+                    if (game.coverPath != null) {
+                        OutlineButton(
+                            stringResource(R.string.remove_cover),
+                            onRemoveCover,
+                            Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+
+            item.reason?.let {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    librarySubtitle(item),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Indie.Accent,
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+            if (item.launchable) {
+                AccentButton(
+                    stringResource(R.string.play),
+                    onLaunch,
+                    Modifier.fillMaxWidth().focusRequester(primaryFocus),
+                )
+                Spacer(Modifier.height(10.dp))
+            }
+
+            if (item.game?.engine == Engine.GAMEMAKER_VM) {
+                Text(stringResource(R.string.link_pin_hint), style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(4.dp))
+                when {
+                    linkedPinTitle != null -> {
+                        Text(
+                            stringResource(R.string.pin_linked, linkedPinTitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Indie.Accent,
+                        )
+                        TextButton({ onLink(null) }) {
+                            Text(stringResource(R.string.unlink), color = Indie.Accent, style = labelStyle())
+                        }
+                    }
+
+                    availablePins.isEmpty() -> Text(
+                        stringResource(R.string.no_pins_to_link),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+
+                    else -> availablePins.forEach { pin ->
+                        TextButton({ onLink(pin.id) }) {
+                            Text(
+                                pin.title,
+                                color = Indie.Accent,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+            }
+
+            if (confirmRemove) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(R.string.remove_confirm),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Indie.TextMuted,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlineButton(
+                        stringResource(R.string.confirm),
+                        { confirmRemove = false; onRemove() },
+                        Modifier.weight(1f),
+                    )
+                    OutlineButton(
+                        stringResource(R.string.cancel),
+                        { confirmRemove = false },
+                        Modifier.weight(1f),
+                    )
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlineButton(
+                    stringResource(R.string.remove),
+                    { confirmRemove = true },
+                    Modifier.weight(1f),
+                )
+                OutlineButton(stringResource(R.string.close), onDismiss, Modifier.weight(1f))
+            }
+        }
     }
 }
 
@@ -524,8 +851,10 @@ private fun AccentButton(text: String, onClick: () -> Unit, modifier: Modifier =
         modifier = modifier.height(48.dp),
         shape = PillShape,
         colors = ButtonDefaults.buttonColors(
-            containerColor = Steam.Accent,
-            contentColor = Color(0xFF0B1219),
+            containerColor = Indie.Accent,
+            contentColor = Indie.OnAccent,
+            disabledContainerColor = Indie.disabled(Indie.Accent),
+            disabledContentColor = Indie.OnAccent,
         ),
         contentPadding = PaddingValues(horizontal = 10.dp),
     ) {
@@ -545,8 +874,11 @@ private fun OutlineButton(
         modifier = modifier.height(48.dp),
         enabled = enabled,
         shape = PillShape,
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = Steam.Text),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Steam.Edge),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = Indie.Text,
+            disabledContentColor = Indie.disabled(),
+        ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Indie.Edge),
         contentPadding = PaddingValues(horizontal = 8.dp),
     ) {
         Text(text, fontSize = 11.sp, letterSpacing = 0.8.sp, maxLines = 1)
@@ -560,16 +892,69 @@ private fun Panel(modifier: Modifier = Modifier, content: @Composable ColumnScop
         modifier
             .fillMaxWidth()
             .clip(PanelShape)
-            .background(Steam.Card)
-            .border(1.dp, Steam.Edge, PanelShape)
+            .background(Indie.Card)
+            .border(1.dp, Indie.Edge, PanelShape)
             .padding(14.dp),
         content = content,
     )
 }
 
+/**
+ * One shape for every "nothing here / still working / something failed" state:
+ * a short title, an optional reason, and one next action. Reused by the drawer,
+ * the library, the scan/check tools and the WebView failure path.
+ */
+@Composable
+private fun StateCard(
+    title: String,
+    detail: String? = null,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+    progress: Boolean = false,
+    urgency: FeedbackUrgency = FeedbackUrgency.INFO,
+    modifier: Modifier = Modifier,
+) {
+    // The only animation in the launcher; disabled by system motion settings.
+    val motion = rememberMotionEnabled()
+    val cardModifier = if (motion) modifier.animateContentSize() else modifier
+    Panel(cardModifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (progress) {
+                CircularProgressIndicator(
+                    Modifier.size(20.dp),
+                    color = Indie.Accent,
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                BrandMark(Modifier.size(24.dp).clearAndSetSemantics {})
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                val tone = when (urgency) {
+                    FeedbackUrgency.QUIET -> Indie.TextMuted
+                    FeedbackUrgency.INFO -> Indie.Accent
+                    FeedbackUrgency.WARN -> Indie.Warning
+                    FeedbackUrgency.BLOCKER -> MaterialTheme.colorScheme.error
+                }
+                Text(title, style = MaterialTheme.typography.bodyLarge, color = tone)
+                if (detail != null) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(detail, style = MaterialTheme.typography.bodySmall, color = Indie.TextMuted)
+                }
+                if (actionLabel != null && onAction != null) {
+                    Spacer(Modifier.height(6.dp))
+                    TextButton(onClick = onAction) {
+                        Text(actionLabel, style = labelStyle(), color = Indie.Accent)
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
-    Text(text, style = labelStyle(11.sp), color = Steam.TextMuted, modifier = modifier)
+    Text(text, style = labelStyle(11.sp), color = Indie.TextMuted, modifier = modifier)
 }
 
 @Composable
@@ -588,23 +973,26 @@ internal fun AppDrawer(
     onClose: () -> Unit,
     onLaunch: (LauncherApp) -> Unit,
     onAppInfo: (LauncherApp) -> Unit,
+    initialQuery: String = "",
 ) {
-    var query by remember { mutableStateOf("") }
+    var query by remember { mutableStateOf(initialQuery) }
+    val searchFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { searchFocus.requestFocus() } }
+
     val visible = remember(apps, query) {
-        val needle = query.trim().lowercase()
-        if (needle.isEmpty()) apps
-        else apps.filter { it.label.lowercase().contains(needle) || it.packageName.contains(needle) }
+        apps.filter { AppSearch.matches(it.label, it.packageName, query) }
+            .sortedBy { AppSearch.rank(it.label, it.packageName, query) }
     }
 
     Column(
         Modifier
             .fillMaxSize()
-            .background(Steam.Base),
+            .background(Indie.Base),
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .background(Steam.Panel)
+                .background(Indie.Panel)
                 .padding(start = 20.dp, end = 8.dp, top = 14.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -615,45 +1003,57 @@ internal fun AppDrawer(
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.6.sp,
-                color = Steam.TextBright,
+                color = Indie.TextBright,
                 modifier = Modifier.weight(1f),
             )
             TextButton(onClick = onClose) {
-                Text(stringResource(R.string.home), style = labelStyle(), color = Steam.Accent)
+                Text(stringResource(R.string.home), style = labelStyle(), color = Indie.Accent)
             }
         }
 
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
-            placeholder = { Text(stringResource(R.string.search_apps), color = Steam.TextMuted) },
+            placeholder = { Text(stringResource(R.string.search_apps), color = Indie.TextMuted) },
             singleLine = true,
             shape = PillShape,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Steam.Accent,
-                unfocusedBorderColor = Steam.Edge,
-                focusedTextColor = Steam.TextBright,
-                unfocusedTextColor = Steam.Text,
-                cursorColor = Steam.Accent,
-                focusedContainerColor = Steam.Panel,
-                unfocusedContainerColor = Steam.Panel,
+                focusedBorderColor = Indie.Accent,
+                unfocusedBorderColor = Indie.Edge,
+                focusedTextColor = Indie.TextBright,
+                unfocusedTextColor = Indie.Text,
+                cursorColor = Indie.Accent,
+                focusedContainerColor = Indie.Panel,
+                unfocusedContainerColor = Indie.Panel,
             ),
+            trailingIcon = if (query.isEmpty()) null else {
+                {
+                    TextButton(onClick = { query = "" }) {
+                        Text(stringResource(R.string.clear_search), style = labelStyle(), color = Indie.Accent)
+                    }
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp)
+                .focusRequester(searchFocus),
         )
 
         when {
-            loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Steam.Accent)
-            }
+            loading -> StateCard(
+                title = stringResource(R.string.loading_apps),
+                progress = true,
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
 
-            visible.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    if (apps.isEmpty()) stringResource(R.string.no_apps) else stringResource(R.string.no_app_matches, query),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
+            visible.isEmpty() -> StateCard(
+                title = if (apps.isEmpty()) stringResource(R.string.no_apps)
+                        else stringResource(R.string.no_app_matches, query),
+                detail = if (apps.isEmpty()) null else stringResource(R.string.search_hint),
+                actionLabel = if (apps.isEmpty() || query.isEmpty()) null else stringResource(R.string.clear_search),
+                onAction = { query = "" },
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
 
             else -> LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 84.dp),
@@ -695,7 +1095,7 @@ private fun AppTile(
         Text(
             app.label,
             fontSize = 11.sp,
-            color = Steam.Text,
+            color = Indie.Text,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
@@ -717,13 +1117,13 @@ private fun AppIcon(app: LauncherApp, size: androidx.compose.ui.unit.Dp, corner:
         Box(
             Modifier
                 .size(size)
-                .background(Steam.CardRaised, RoundedCornerShape(corner)),
+                .background(Indie.CardRaised, RoundedCornerShape(corner)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 app.label.take(1).uppercase(),
                 style = MaterialTheme.typography.titleMedium,
-                color = Steam.Accent,
+                color = Indie.Accent,
             )
         }
     }

@@ -11,12 +11,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * Steam-flavoured palette: the near-black blue of the client chrome, the lighter
- * blue of a library panel, and the pale cyan it uses for links and buttons.
+ * Game-client palette: the near-black blue of the chrome, the lighter blue of a
+ * library panel, and the pale cyan it uses for links and buttons.
  *
- * This is only a look. Nothing here talks to Steam, and no Steam artwork is used.
+ * This is only a look. It contains no third-party artwork, logos or fonts.
  */
-internal object Steam {
+internal object Indie {
     /** Client chrome / page background. */
     val Base = Color(0xFF171A21)
 
@@ -30,7 +30,7 @@ internal object Steam {
     /** 1dp card outline. */
     val Edge = Color(0xFF2A3F5A)
 
-    /** Steam's link / highlight blue. */
+    /** Bright link / highlight blue. */
     val Accent = Color(0xFF66C0F4)
 
     /** Button blue, darker so white-on-blue stays readable. */
@@ -38,58 +38,66 @@ internal object Steam {
 
     val Text = Color(0xFFC6D4DF)
     val TextBright = Color(0xFFF2F7FB)
-    val TextMuted = Color(0xFF8F98A0)
+    /** Muted text; lifted slightly so it stays ≥4.5:1 on CardRaised too. */
+    val TextMuted = Color(0xFF939CA5)
     val Green = Color(0xFFA4D007)
+    val Warning = Color(0xFFE0A458)
+
+    /** Ink used on [Accent]; kept here so buttons do not hardcode it. */
+    val OnAccent = Color(0xFF0B1219)
+
+    /** Disabled content derived from the palette instead of a magic alpha. */
+    fun disabled(color: Color = Text): Color = color.copy(alpha = 0.5f)
 
     val HeroGradient = Brush.linearGradient(
         listOf(Color(0xFF2A475E), Color(0xFF1B2838), Color(0xFF171A21)),
     )
 }
 
-private val steamColors = darkColorScheme(
-    primary = Steam.Accent,
+private val indieColors = darkColorScheme(
+    primary = Indie.Accent,
     onPrimary = Color(0xFF0B1219),
-    secondary = Steam.AccentDeep,
-    onSecondary = Steam.TextBright,
-    background = Steam.Base,
-    onBackground = Steam.Text,
-    surface = Steam.Panel,
-    onSurface = Steam.Text,
-    surfaceVariant = Steam.CardRaised,
-    onSurfaceVariant = Steam.TextMuted,
-    outline = Steam.Edge,
+    secondary = Indie.AccentDeep,
+    onSecondary = Indie.TextBright,
+    background = Indie.Base,
+    onBackground = Indie.Text,
+    surface = Indie.Panel,
+    onSurface = Indie.Text,
+    surfaceVariant = Indie.CardRaised,
+    onSurfaceVariant = Indie.TextMuted,
+    outline = Indie.Edge,
     error = Color(0xFFE06C6C),
 )
 
-private val steamTypography = Typography().run {
+private val indieTypography = Typography().run {
     copy(
         headlineSmall = TextStyle(
             fontSize = 22.sp,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 0.4.sp,
-            color = Steam.TextBright,
+            color = Indie.TextBright,
         ),
         titleLarge = TextStyle(
             fontSize = 19.sp,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 0.2.sp,
-            color = Steam.TextBright,
+            color = Indie.TextBright,
         ),
         titleMedium = TextStyle(
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
-            color = Steam.TextBright,
+            color = Indie.TextBright,
         ),
-        bodyLarge = TextStyle(fontSize = 15.sp, color = Steam.Text),
-        bodyMedium = TextStyle(fontSize = 14.sp, color = Steam.Text),
-        bodySmall = TextStyle(fontSize = 12.sp, color = Steam.TextMuted),
-        labelMedium = TextStyle(fontSize = 12.sp, color = Steam.Text),
+        bodyLarge = TextStyle(fontSize = 15.sp, color = Indie.Text),
+        bodyMedium = TextStyle(fontSize = 14.sp, color = Indie.Text),
+        bodySmall = TextStyle(fontSize = 12.sp, color = Indie.TextMuted),
+        labelMedium = TextStyle(fontSize = 12.sp, color = Indie.Text),
     )
 }
 
 @Composable
-internal fun SteamTheme(content: @Composable () -> Unit) {
+internal fun IndieTheme(content: @Composable () -> Unit) {
     // Deliberately dark-only: the launcher is meant to feel like one client, and
     // a light variant would fight the pinned game artwork and icons.
-    MaterialTheme(colorScheme = steamColors, typography = steamTypography, content = content)
+    MaterialTheme(colorScheme = indieColors, typography = indieTypography, content = content)
 }

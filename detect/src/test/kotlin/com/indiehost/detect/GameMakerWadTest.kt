@@ -62,6 +62,27 @@ class GameMakerWadTest {
         assertNull(GameMakerWad.read(truncated))
     }
 
+    @Test
+    fun `reads a WAD 16 header from a stream`() {
+        val bytes = wad(version = 16, withCode = true)
+        val header = GameMakerWad.read(bytes.inputStream(), bytes.size.toLong())!!
+
+        assertEquals(16, header.wadVersion)
+        assertTrue(header.hasCodeChunk)
+    }
+
+    @Test
+    fun `a stream without CODE reports no CODE`() {
+        val bytes = wad(version = 16, withCode = false)
+        assertFalse(GameMakerWad.read(bytes.inputStream(), bytes.size.toLong())!!.hasCodeChunk)
+    }
+
+    @Test
+    fun `a truncated stream is not a data file`() {
+        val bytes = wad(version = 16, withCode = true).copyOf(10)
+        assertNull(GameMakerWad.read(bytes.inputStream(), bytes.size.toLong()))
+    }
+
     // --- synthetic data file ------------------------------------------------
 
     /**

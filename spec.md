@@ -1,7 +1,7 @@
 # IndieHost Specification
 
 > **Status:** Living document · **Version:** 1.0 · **Last updated:** 2026-11-25
-> **Applies to:** `0.3.0` (versionCode 3)
+> **Applies to:** `0.4.0` (versionCode 5)
 > **Related:** [README](README.md) · [MILESTONE-0](MILESTONE-0.md) · [ARCHITECTURE](ARCHITECTURE.md) · [ROADMAP](ROADMAP.md) · [TESTING](TESTING.md) · [LICENSING](LICENSING.md) · [SECURITY](SECURITY.md)
 
 This document is normative. If the code and this document disagree, the code is wrong
@@ -40,15 +40,17 @@ recents and an app drawer, styled like a game client rather than a stock launche
 
 ## 2. Scope
 
-### 2.1 Current release — `0.3.0`
+### 2.1 Current release — `0.4.0`
 
 Shipped and expected to work:
 
 - Home-app role with a Compose home screen.
-- Library built from Butterscotch's pinned `game-` shortcuts.
-- One-tap game launch through `LauncherApps.startShortcut`.
+- Persistent library combining pinned `game-` shortcuts and SAF-scanned folders.
+- One-tap GameMaker launch through `LauncherApps.startShortcut` via an explicitly linked pin.
+- Offline RPG Maker MV/MZ launch in an in-app WebView (device-unverified in this build).
 - Recents from usage access when granted, plus locally remembered launches.
 - App drawer with search and long-press app info.
+- User-picked cover art, downsampled to 512 px.
 - The Milestone 0 `data.win` checker (engine, WAD version, blocker).
 - Pin-request acceptance so Butterscotch games can be pinned to IndieHost.
 
@@ -146,36 +148,59 @@ Status values: **Implemented**, **Partial**, **Planned**, **Not started**.
 | --- | --- | --- | --- |
 | FR-14 | "CHECK DATA.WIN" lets the user pick a file, copies it to the cache on a worker thread, and reports engine, runnable status, WAD version and blocker. | Implemented | `HomeScreen`, `EngineDetector` |
 | FR-15 | "BUTTERSCOTCH" opens the runner app, or explains how to install it when missing. | Implemented | `GameMakerRuntimeAdapter.launch` |
-| FR-16 | IndieHost accepts `CONFIRM_PIN_SHORTCUT` requests from Butterscotch for `game-` shortcuts so a pin made while it is the home app is recorded against it. Other pin requests are declined. | Implemented | `PinShortcutActivity` |
+| FR-16 | IndieHost accepts `CONFIRM_PIN_SHORTCUT` requests from Butterscotch for `game-` shortcuts so a pin made while it is the home app is recorded against it. The request must still be valid; disabled or unpinned shortcuts are not shown. Other pin requests are declined. | Implemented | `PinPolicy`, `PinShortcutActivity`, `ButterscotchShortcuts` |
 
 ### 4.5 Milestone 1 — real library
 
 | ID | Requirement | Status |
 | --- | --- | --- |
-| FR-17 | Games are persisted across process death and reinstall of the launcher using Room, not an in-memory map. | Planned (M1) |
-| FR-18 | The user can point IndieHost at a games folder (SAF tree) and scan it for supported engines. | Planned (M1) |
-| FR-19 | Each game has user-visible title, engine, WAD version (when applicable) and optional cover art. | Planned (M1) |
-| FR-20 | For engines IndieHost hosts itself, saves live outside the app's private storage and survive a launcher reinstall. Butterscotch-owned saves remain Butterscotch's responsibility and are documented as such. | Planned (M1) |
+| FR-17 | Games are persisted across process death and launcher updates using Room, not an in-memory map. A full uninstall is restored by re-scanning the same folder; metadata is app-private and is not backed up. | Implemented (M1) |
+| FR-18 | The user can point IndieHost at a games folder (SAF tree) and scan it for supported engines. The read grant is persisted, the walk covers two levels, and a re-scan upserts by stable id without deleting rows or reporting skipped folders. | Implemented (M1) |
+| FR-19 | Each game has user-visible title, engine, WAD version (when applicable) and optional user-picked cover art, downsampled to at most 512 px and stored app-private. | Implemented (M1) |
+| FR-20 | No hosted engine in M1. In M2 the RPG Maker runtime is code-complete but device-unverified; WebView DOM/localStorage stays app-private and save export is deferred until the runtime is proven on a phone. Butterscotch-owned saves remain Butterscotch's responsibility. | Deferred beyond M2 (scope change recorded in the M2 design) |
+
+M1 implementation notes: `RoomGameRepository` is the persistence seam; `GameScanner`
+imports through the pure `GameFolder` seam with run ids, progress and cancellation; a row
+not seen by the latest scan of its tree is marked unavailable but never deleted, and
+possible duplicates are flagged rather than removed; `LibraryItem` merges scans and pins
+with an explicit link and never matches by title. Code is verified by host tests and a debug build,
+but the manual M1 cases (SAF grants, covers, reinstall) have not run on a device; see
+[TESTING.md](TESTING.md) §3.
 
 ### 4.6 Milestone 2 — RPG Maker WebView
 
 | ID | Requirement | Status |
 | --- | --- | --- |
-| FR-21 | An MV/MZ folder detected by `EngineDetector` can be launched inside IndieHost in a WebView, fully offline. | Planned (M2) |
-| FR-22 | The WebView blocks remote content by default; a game that requires a network request fails visibly rather than silently reaching the internet. | Planned (M2) |
-| FR-23 | Back, pause/resume and audio focus behave like a game, not like a browser page. | Planned (M2) |
+| FR-21 | An MV/MZ folder detected by `EngineDetector` can be launched inside IndieHost in a WebView, fully offline. | Implemented (M2, device-unverified) |
+| FR-22 | The WebView blocks remote content by default; a game that requires a network request fails visibly rather than silently reaching the internet. | Implemented (M2, device-unverified) |
+| FR-23 | Back, pause/resume and audio focus behave like a game, not like a browser page. | Implemented (M2, device-unverified) |
+
+M2 implementation notes: `RuntimeRegistry` selects `GameMakerRuntimeAdapter` or
+`RpgMakerRuntimeAdapter`; `GameWebViewActivity` serves SAF documents through
+`WebViewAssetLoader` on `appassets.androidplatform.net` with a port derived from the game id
+so games cannot read each other's DOM storage, with no `INTERNET` permission and no copy.
+SVG is served as octet-stream until a sanitising policy exists. Off-origin requests are
+blocked with a visible message, Back asks for
+confirmation, and `configChanges` avoids a rotation restart. Loading is **not** verified on
+a phone, and encrypted `.rpgmvp`/`.rpgmvo` assets are not decrypted; see
+[ADR-0007](docs/adr/0007-webview-offline-assets.md) and [TESTING.md](TESTING.md) §2.1.
+`tools/device_checks.sh` provides the workstation commands and a synthetic MV fixture.
 
 ### 4.7 Milestone 3 — remaining engines
 
 | ID | Requirement | Status |
 | --- | --- | --- |
-| FR-24 | Ren'Py, LOVE and ScummVM folders are either launched by a documented route or marked "detected, not hostable" with a reason shown in the UI. No engine may be silently ignored. | Planned (M3) |
+| FR-24 | Ren'Py, LOVE and ScummVM folders are either launched by a documented route or marked "detected, not hostable" with a reason shown in the UI. No engine may be silently ignored. | Implemented (M3, no runtime added) |
+
+M3 implementation notes: each engine has its own reason — Ren'Py per-game APK (ADR-0008),
+LÖVE handoff candidate (ADR-0009), ScummVM configured target (ADR-0010). No adapter was
+added for an unresolved runtime model; the library shows `NOT HOSTED` and Launch disabled.
 
 ### 4.8 Milestone 4 — compatibility
 
 | ID | Requirement | Status |
 | --- | --- | --- |
-| FR-25 | A compatibility matrix records device, Android version, RAM, engine, game, WAD, measured fps, audio quality and notes. | Planned (M4) |
+| FR-25 | A compatibility matrix records device, Android version, RAM, engine, game, WAD, measured fps, audio quality and notes. | Partial (M4): [COMPATIBILITY.md](COMPATIBILITY.md) template exists; no measurements recorded |
 
 ---
 
@@ -210,7 +235,7 @@ These are not trade-offs. A change that violates one is rejected.
 | CON-04 | **No emulation.** No Wine, no x86 translation, no Windows container, no proprietary runner redistribution. |
 | CON-05 | **GameMaker support is VM-only.** A build without a `CODE` chunk is reported as blocked, never attempted. |
 | CON-06 | **The launcher works with zero games.** A missing runtime, empty library or denied usage access must leave a usable home screen, not a setup wall. |
-| CON-07 | **No Steam artwork or trademarks in shipped branding.** The palette is inspired by a game-client look. The public version string is `0.3.0`, with no Steam word; `SteamTheme` and `Steam` remain internal source identifiers and are not shipped branding. |
+| CON-07 | **No third-party artwork or trademarks in shipped branding.** The palette is a generic game-client look. The public version string is `0.4.0`; the internal identifiers were renamed to `IndieTheme`/`Indie` on 2026-11-27 and no third-party product name remains in the build. |
 
 ---
 
@@ -295,10 +320,10 @@ The full description is in [ARCHITECTURE.md](ARCHITECTURE.md). In short:
 
 | Module | Responsibility |
 | --- | --- |
-| `:app` | Compose home screen and drawer, activity wiring, system data sources |
-| `:library` | `Game` model and the `GameRepository` storage seam (Room in M1) |
-| `:detect` | Pure Kotlin engine fingerprinting and GameMaker WAD parsing |
-| `:runtimes` | `RuntimeAdapter` contract and the GameMaker/Butterscotch implementation |
+| `:app` | Compose home screen, drawer and detail panel, SAF scan, covers, offline WebView activity |
+| `:library` | `Game` model, `GameRepository` seam and Room persistence |
+| `:detect` | Pure Kotlin `GameFolder` seam, engine fingerprinting and GameMaker WAD parsing |
+| `:runtimes` | `RuntimeAdapter` contract, adapter registry, GameMaker and RPG Maker adapters |
 
 Dependency direction: `:app` → `:runtimes` → `:library` → `:detect`. `:detect` has no
 Android dependencies and is tested on the host.
@@ -323,6 +348,8 @@ sealed interface LaunchOutcome {
 
 `GameRepository` is the persistence seam; `EngineDetector.Detection` is the detector's
 result. `ButterscotchShortcuts` is the only code that talks to the runner's shortcuts.
+`RuntimeRegistry.forEngine(Engine)` is the single place that maps an engine to its adapter;
+no engine is silently routed to a default.
 
 ---
 
@@ -330,17 +357,19 @@ result. `ButterscotchShortcuts` is the only code that talks to the runner's shor
 
 | Type | Fields | Persistence |
 | --- | --- | --- |
-| `Game` | `id`, `title`, `folderPath`, `engine`, `wadVersion?` | In memory today; Room in M1 |
+| `Game` | `id`, `title`, `folderPath`, `engine`, `wadVersion?`, `coverPath?`, `addedAt`, `source`, `linkedShortcutId?`, `treeUri?`, `runnable`, `blocker?`, `lastSeenScanId?`, `available` | Room, version 2 schema; app-private |
 | `RunnerShortcut` | `id`, `title`, `info` (internal `ShortcutInfo`), `packageName` | Owned by the system/Butterscotch |
 | `LauncherApp` | `packageName`, `activityName`, `label`, `icon` | Rebuilt from `LauncherApps` |
 | `Detection` | `engine`, `runnable`, `wadVersion?`, `blocker?`, `notes` | Computed, not stored |
 | `PreparedGame` | `dataFile?`, `wadVersion?`, `notes` | Computed, not stored |
 | `LaunchOutcome` | `Launched`, `RuntimeNotInstalled`, `Blocked` | Transient |
 
-Locally persisted data is limited to the recents list in
-`SharedPreferences("indiehost.recents")` under `launches`, capped at 12 package names.
-The `data.win` checker copies the chosen file to `cacheDir/import/data.win` and deletes
-the directory before each check.
+Locally persisted data is the recents list in `SharedPreferences("indiehost.recents")` under
+`launches` (capped at 12 package names), SAF tree URIs plus read grants in
+`SharedPreferences("indiehost.folders")`, Room rows in `databases/indiehost.db`, and
+user-picked covers in `filesDir/covers`. The `data.win` checker copies the chosen file to
+`cacheDir/import/data.win` and deletes the directory before each check.
+`allowBackup="false"` keeps all of it out of cloud backup.
 
 ---
 
@@ -397,8 +426,13 @@ Milestone 0 game bar. Measure with the protocol in [TESTING.md](TESTING.md).
 
 ## 13. Acceptance criteria
 
-### 13.1 `0.3.0`
+### 13.1 `0.4.0`
 
+- [ ] All 0.3.0 behaviour below still works after the library/WebView changes.
+- [ ] Scanned folders and covers survive process death and launcher updates. — MT-21…MT-27
+- [ ] MV/MZ games launch offline without `INTERNET` and no remote request succeeds. — MT-29…MT-31
+- [ ] Back/audio/rotation behave like a game; detection-only engines show a reason. — MT-32, MT-34
+- [ ] Host gate passes: 19 detector + 3 mapping + 7 runtime + 43 app tests and a debug APK.
 - [ ] Installs and launches on API 24 through 34.
 - [ ] Can be selected as the home app; Home returns to it with `singleTask` behaviour.
 - [ ] Lists pinned `game-` shortcuts only while it is the home app.
@@ -407,56 +441,69 @@ Milestone 0 game bar. Measure with the protocol in [TESTING.md](TESTING.md).
 - [ ] Recents works with and without usage access.
 - [ ] `data.win` check reports engine, WAD version, runnable status and blocker.
 - [ ] No game data in the APK or repository; `allowBackup="false"`.
-- [ ] `./gradlew :detect:test` passes 12/12; `./gradlew :app:assembleDebug` succeeds.
+- [ ] `./gradlew :detect:test` passes 19/19; `./gradlew :app:assembleDebug` succeeds.
 
 ### 13.2 Milestone 1
 
-- [ ] Room persists games across process death and launcher reinstall.
-- [ ] A SAF-selected folder can be scanned and imported.
-- [ ] Cover art can be attached and survives restart.
-- [ ] Hosted-engine saves survive a launcher reinstall; the Butterscotch limitation is
-      documented in the UI or help text.
-- [ ] DAO and detector tests pass; manual matrix updated.
+Implementation is complete; criteria remain open until observed on the baseline device.
+
+- [ ] Room persists games across process death and launcher reinstall. — MT-27
+- [ ] A SAF-selected folder can be scanned and imported. — MT-21, MT-22
+- [ ] Cover art can be attached and survives restart. — MT-25
+- [ ] Not applicable in M1: no hosted engine exists. Butterscotch-owned saves stay in
+      Butterscotch and are documented in the UI or help text. — FR-20, MT-24
+- [ ] DAO and detector tests pass; manual matrix updated. — detector 19/19, mapping 3/3,
+      scanner/merge/cover 16/16; `GameDaoTest` unrun; MT-21…MT-28 unrun
 
 ### 13.3 Milestone 2
 
-- [ ] An MV and an MZ game launch offline in a WebView.
-- [ ] Back/pause/audio behave; no remote request succeeds.
-- [ ] The adapter is selected through the same `RuntimeAdapter` seam as GameMaker.
+Implementation is complete; criteria remain open until observed on the baseline device.
+
+- [ ] An MV and an MZ game launch offline in a WebView. — MT-29, MT-33; no device here
+- [ ] Back/pause/audio behave; no remote request succeeds. — MT-30…MT-32; no device here
+- [ ] The adapter is selected through the same `RuntimeAdapter` seam as GameMaker. —
+      registry tests 3/3; adapter selection is host-verified
 
 ### 13.4 Milestone 3
 
-- [ ] Each remaining engine is either launchable or explicitly "detected, not hostable"
-      with a reason.
-- [ ] The decision is recorded in an ADR.
+- [x] Each remaining engine is explicitly "detected, not hostable" with a reason shown in
+      the library.
+- [x] The decision is recorded in an ADR (0008, 0009, 0010). No unresolved runtime was
+      added.
 
 ### 13.5 Milestone 4
 
 - [ ] At least five GameMaker titles are measured on the baseline device with fps, audio
-      and notes.
-- [ ] The matrix is committed (device data only; no game files).
+      and notes. — template ready, no device here
+- [ ] The matrix is committed (device data only; no game files). — template committed,
+      filled matrix blocked
 
 ---
 
 ## 14. Open questions
 
-1. **Ren'Py/LOVE runtime model.** Per-game APK vs shared runtime vs "detect and hand off".
-   Needs an ADR before M3.
-2. **ScummVM launch route.** Does the Android app expose a public intent for a game path?
-3. **MV WebView loading.** `WebViewAssetLoader` over a SAF tree vs copying into app
-   storage vs a localhost server. The first avoids duplication and the `INTERNET`
-   permission; the second is simpler but doubles disk use.
-4. **Save location.** Which shared directory is both scoped-storage-safe and survives
-   uninstall? `Documents/IndieHost/<game>` vs app-specific external storage.
-5. **Room schema and migration policy.** Version 1 schema, destructive migration allowed
-   during M1 only.
-6. **Application id.** `com.indiehost.launcher` is explicitly a placeholder. Renaming
+1. **Ren'Py/LOVE runtime model — resolved in ADR-0008/0009.** Both ship per-game builds;
+   LÖVE also has a generic player, but its handoff intent is unverified.
+2. **ScummVM launch route — resolved in ADR-0010.** A `scummvm:<target>` intent exists, but
+   requires a game already configured inside ScummVM.
+3. **MV WebView loading — resolved by ADR-0007.** `WebViewAssetLoader` over a SAF tree was
+   chosen; copying into app storage is the fallback and a localhost server is rejected.
+4. **Offline HTTPS without `INTERNET`.** Confirm on device that WebView calls
+   `shouldInterceptRequest` for `appassets.androidplatform.net` with no network permission;
+   if it does not, ADR-0007's copy-into-app-storage fallback is required.
+5. **Save location and export (FR-20, deferred beyond M2).** WebView DOM storage is
+   app-private. Which shared directory is both scoped-storage-safe and survives uninstall?
+   `Documents/IndieHost/<game>` vs app-specific external storage. The M2 design defers this
+   until the WebView runtime is proven on a device.
+6. **Room schema and migration policy.** Version 1 with destructive migration is in place
+   while M1 is unreleased; replace it with explicit migrations before release.
+7. **Application id.** `com.indiehost.launcher` is explicitly a placeholder. Renaming
    changes shortcut ownership and installed-app identity; do it before a public release.
-7. **Launcher licence.** There is no `LICENSE` file. Choose one before publishing.
-8. **Internal `Steam*` identifiers.** `SteamTheme` and `Steam` remain in source; renaming
-   them is a follow-up refactor. The public version string is clean (CON-07).
-9. **Localisation.** Move Compose copy into `strings.xml`; decide whether M1 or backlog.
-10. **Work profiles.** `LauncherApps` is queried for `Process.myUserHandle()` only. Support
+8. **Launcher licence.** There is no `LICENSE` file. Choose one before publishing.
+9. **Internal branding identifiers — resolved.** `SteamTheme`/`Steam` were renamed to
+   `IndieTheme`/`Indie`; the public version string was already clean (CON-07).
+10. **Localisation.** Move Compose copy into `strings.xml`; decide whether M1 or backlog.
+11. **Work profiles.** `LauncherApps` is queried for `Process.myUserHandle()` only. Support
     for managed profiles is out of scope until requested.
 
 ---

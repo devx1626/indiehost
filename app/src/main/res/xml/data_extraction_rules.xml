@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  allowBackup="false" covers API 30 and below, but on some API 31+ devices it
+  does not stop device-to-device transfer. Exclude every app-private category
+  that holds user data explicitly for both cloud backup and device transfer.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="indiehost.folders.xml" />
+        <exclude domain="sharedpref" path="indiehost.recents.xml" />
+        <exclude domain="database" />
+        <exclude domain="file" path="covers" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="indiehost.folders.xml" />
+        <exclude domain="sharedpref" path="indiehost.recents.xml" />
+        <exclude domain="database" />
+        <exclude domain="file" path="covers" />
+    </device-transfer>
+</data-extraction-rules>

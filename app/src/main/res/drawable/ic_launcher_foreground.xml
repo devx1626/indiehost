@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     IndieHost's mark: a cyan ring around a play triangle, with two curls of
-    steam rising off it. Drawn on the 108dp adaptive-icon grid and kept inside
+    soft curls rising off it. Drawn on the 108dp adaptive-icon grid and kept inside
     the 66dp safe zone, so no mask (circle, squircle, teardrop) can clip it.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -22,7 +22,7 @@
         android:pathData="M49,45 L69,56 L49,67 Z"
         android:fillColor="#F2F7FB" />
 
-    <!-- Steam. -->
+    <!-- Game-client inspired. -->
     <path
         android:pathData="M70,36 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"
         android:fillColor="#66C0F4"

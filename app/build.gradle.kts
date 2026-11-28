@@ -32,8 +32,8 @@ android {
         applicationId = "com.indiehost.launcher"
         minSdk = 24
         targetSdk = 34
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 5
+        versionName = "0.4.0"
     }
 
     buildFeatures {
@@ -74,4 +74,8 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.activity:activity-compose:1.9.2")
+    implementation("androidx.documentfile:documentfile:1.0.1")
+    implementation("androidx.webkit:webkit:1.12.0")
+
+    testImplementation("junit:junit:4.13.2")
 }
