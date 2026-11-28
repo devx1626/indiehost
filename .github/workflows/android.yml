@@ -41,9 +41,21 @@ jobs:
           gradle-version: "8.7"
           cache-provider: basic
 
-      # The detector is pure Kotlin/JVM; these are the 12 host tests.
+      # Every host-testable module; device cases stay in TESTING.md.
       - name: Host tests
-        run: gradle :detect:test --console=plain
+        run: gradle test --console=plain
+
+      - name: Purity and hygiene gates
+        run: |
+          set -e
+          if grep -R "^import android\." detect/src/main/kotlin; then
+            echo "::error:::detect must stay pure Kotlin/JVM"
+            exit 1
+          fi
+          if git ls-files | grep -iE '\.(jks|keystore|p12|pfx|pk8|pem|key)$'; then
+            echo "::error::a key or keystore is tracked"
+            exit 1
+          fi
 
       - name: Debug APK
         run: gradle :app:assembleDebug --console=plain

@@ -11,7 +11,7 @@
 - P0/P1 of the earlier UI findings implemented: real drawer search, shared state cards,
   semantic tokens, reserved badge slots, detail focus/confirmation, WebView loading/blocked
   overlay, debug-only Compose previews.
-- Host gate green: 19 detector + 3 mapping + 7 runtime + 35 app tests; debug APK and signed
+- Host gate green: 19 detector + 3 mapping + 7 runtime + 37 app tests; debug APK and signed
   v0.4.0 release built.
 - Device verification still open (MT-01…MT-34 and `GameDaoTest`). No performance claims.
 
@@ -84,11 +84,11 @@ UI/UX work is complete when:
 
 | Task | Source patterns | Files | Acceptance |
 | --- | --- | --- | --- |
-| Device script with PASS/FAIL/SKIP, exit codes, snapshot/restore traps, device identity, crash-buffer check | DroidDeck `device-smoke.sh` | `tools/device_checks.sh` | Script run on baseline; restore verified |
+| [x] Device script with PASS/FAIL/SKIP, exit codes 0/1/2, device identity, crash-buffer check; [ ] snapshot/restore traps still to add | DroidDeck `device-smoke.sh` | `tools/device_checks.sh` | Script run on baseline; restore verified |
 | Dated device report template with APK SHA, method, per-run table and "Validation and limits" | DroidDeck test reports | `TESTING.md`, `docs/testing/` | No overclaiming |
-| Machine-checked compatibility matrix with supported/degraded/unsupported tiers | Bazzite `test_builder.py`, COSMIC versioning | `COMPATIBILITY.md`, host test | Matrix edits caught by tests |
-| Release notes checked in before release with provenance and SHA256SUMS | DroidDeck `release.yml` | `docs/releases/`, CI | Publish refuses missing notes |
-| CI gate: required-job aggregator, no key in tree, version sanity, `:detect` purity, always-upload diagnostics | DroidDeck CI | `.github/workflows/android.yml` | Green on PR; no sign/push without instruction |
+| [x] Machine-checked engine-route table; [ ] device tier rows still need real measurements | Bazzite `test_builder.py`, COSMIC versioning | `COMPATIBILITY.md`, `CompatibilityTest.kt` | Engine additions caught by host test |
+| [x] Release notes checked in with provenance and SHA-256; [ ] CI publish gate still to add | DroidDeck `release.yml` | `docs/releases/0.4.0.md`, CI | Publish refuses missing notes |
+| [x] CI runs all host tests and gates on `:detect` purity and tracked keys; [ ] required-job aggregator/artifacts still to add | DroidDeck CI | `.github/workflows/android.yml` | Green on PR; no sign/push without instruction |
 
 ---
 

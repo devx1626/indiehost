@@ -8,6 +8,19 @@ This file is the single table for device claims. Copy the header, fill one row p
 game/device pair, and commit **device data only**. Never commit game files, save files,
 cover art extracted from games, or screenshots of copyrighted art.
 
+## Engine routes
+
+| Engine | Route | Evidence |
+| --- | --- | --- |
+| GameMaker VM (WAD 8–17) | Butterscotch shortcut handoff | MT-05, MT-23 |
+| RPG Maker MV | Offline WebView | MT-29 |
+| RPG Maker MZ | Offline WebView | MT-30 |
+| Ren'Py | Detected, not hosted | ADR-0008, MT-34 |
+| LÖVE | Detected, not hosted | ADR-0009, MT-34 |
+| ScummVM | Detected, not hosted | ADR-0010, MT-34 |
+
+`CompatibilityTest` asserts this table still covers every `Engine` value.
+
 ## Table
 
 | Device | Android | RAM | Engine | Game | WAD / version | Walk fps | Battle fps | Audio | Boot time | Notes |

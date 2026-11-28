@@ -16,7 +16,7 @@ has never run in this environment (`adb` is broken here); do not report it as pa
 | --- | --- | --- | --- |
 | JVM unit tests (`:detect`) | `GameMakerWad` parsing, `EngineDetector` fingerprints, blockers | JUnit 4 | **19 tests**, passing |
 | JVM unit tests (`:library`) | `Game` ↔ `GameEntity` mapping, enum fallback | JUnit 4 | **3 tests**, passing |
-| JVM unit tests (`:app`) | SAF scanner, merge rules, covers, WebView paths, search, contrast, motion, previews | JUnit 4 | **35 tests**, passing |
+| JVM unit tests (`:app`) | SAF scan/progress, merge/duplicates, covers, WebView paths/origins, search, contrast, motion, previews, compatibility | JUnit 4 | **37 tests**, passing |
 | JVM unit tests (`:runtimes`) | Adapter registry, WebView action constants, pin policy | JUnit 4 | **7 tests**, passing |
 | Instrumented tests | Room DAO round trip | AndroidX Test | 1 test written (`GameDaoTest`), **not run here**; run via `tools/device_checks.sh --dao` |
 | Manual device tests | Home role, pin, scan, covers, launch, recents, drawer, permissions | Human + adb | Required per release; script and synthetic fixture provided; cases not yet run |
@@ -68,6 +68,7 @@ maps unknown engine names to `UNKNOWN`, and keeps optional fields null.
 - `ContrastTest` (3): every text token against all four surfaces, plus accent/button ink.
 - `MotionTest` (2): zero/negative animator scale disables decorative motion.
 - `LauncherPreviewsTest` (1, debug): the four key state previews still exist.
+- `CompatibilityTest` (1): every `Engine` value has a documented route.
 
 `.runtimes` host tests: `RuntimeRegistryTest.kt` (3) verifies all three registered engines,
 null for an unregistered engine, and shared WebView action/extra constants;
@@ -96,7 +97,7 @@ The fixtures are synthetic; no real game data is used.
 ```
 
 Expected: `:detect:test` reports 19 passed, `:library:testDebugUnitTest` 3,
-`:app:testDebugUnitTest` 35 and `:runtimes:testDebugUnitTest` 7, all with 0 failures. A
+`:app:testDebugUnitTest` 37 and `:runtimes:testDebugUnitTest` 7, all with 0 failures. A
 detector failure blocks any release. `gradle test` does **not** run
 `library/src/androidTest`; that needs a device.
 
@@ -121,6 +122,12 @@ not installed (`_ZNSt6__ndk113__hash_memoryEPKvm`), the SDK's `adb` is x86-64, a
 `pm`/`am` run as app uid `u0a188`, not the Android shell uid, so they cannot install a test
 APK. The container is root-on-device but `adbd` is stopped and `ro.adb.secure=1` with no
 authorised keys. No instrumented or manual case has run here.
+
+The script follows an explicit device-check contract: `PASS`/`FAIL`/`SKIP` counters,
+`0` = all checks passed, `1` = a check failed, `2` = usage/device problem; `SKIP` means "not
+applicable on this device", never a silent pass. It prints device identity and kernel/page
+size, clears the crash buffer before launch and checks it afterwards, and removes only its
+own synthetic fixture on `--clean`.
 
 On your own machine, with the phone connected and USB debugging authorised:
 
@@ -507,7 +514,7 @@ guessing.
 Before tagging or sideloading a build:
 
 - [ ] `./gradlew :detect:test` — 19/19.
-- [ ] `./gradlew :app:testDebugUnitTest` (35), `:library:testDebugUnitTest` (3) and
+- [ ] `./gradlew :app:testDebugUnitTest` (37), `:library:testDebugUnitTest` (3) and
       `:runtimes:testDebugUnitTest` (7) — green.
 - [ ] `./gradlew :app:assembleDebug` — success.
 - [ ] MT-01 through MT-06 pass on the baseline.

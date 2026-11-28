@@ -75,6 +75,7 @@ as the `app-debug` artifact.
 | [docs/research/repository-survey-2026-11-27.md](docs/research/repository-survey-2026-11-27.md) | Full ten-domain prior-art survey (UI, library, scan, security, testing, CI) |
 | [docs/research/future-emulation-boundary.md](docs/research/future-emulation-boundary.md) | Why PC-game emulation stays research-only under current hard rules |
 | [docs/roadmap/ui-ux-completion.md](docs/roadmap/ui-ux-completion.md) | Phased roadmap to finish UI/UX |
+| [docs/releases/0.4.0.md](docs/releases/0.4.0.md) | Checked-in release notes for the published build |
 
 ## How a game is started
 

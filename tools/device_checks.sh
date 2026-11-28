@@ -53,7 +53,19 @@ file, save or screenshot is ever copied to or from the device by this script.
 EOF
 }
 
-die() { echo "device_checks: $*" >&2; exit 1; }
+die() { echo "device_checks: $*" >&2; exit 2; }
+
+PASS=0
+FAIL=0
+SKIP=0
+pass() { PASS=$((PASS + 1)); echo "PASS: $*"; }
+fail() { FAIL=$((FAIL + 1)); echo "FAIL: $*" >&2; }
+skip() { SKIP=$((SKIP + 1)); echo "SKIP: $*"; }
+finish() {
+  echo "summary: PASS=$PASS FAIL=$FAIL SKIP=$SKIP"
+  if [ "$FAIL" -gt 0 ]; then exit 1; fi
+}
+trap finish EXIT
 
 ADB_ARGS=()
 adb_cmd() {
@@ -78,7 +90,9 @@ require_adb() {
     [ "$count" -eq 1 ] || die "$count devices found; set ANDROID_SERIAL=<serial>"
     ADB_ARGS=(-s "$(printf '%s\n' "$devices" | head -1)")
   fi
-  echo "device: $(adb_cmd getprop ro.product.model) / Android $(adb_cmd getprop ro.build.version.release)"
+  echo "device: $(adb_cmd getprop ro.product.model) / Android $(adb_cmd getprop ro.build.version.release) (API $(adb_cmd getprop ro.build.version.sdk))"
+  echo "kernel: $(adb_cmd shell uname -r 2>/dev/null | tr -d '\r')"
+  echo "page size: $(adb_cmd shell getconf PAGE_SIZE 2>/dev/null | tr -d '\r')"
 }
 
 install_apks() {
@@ -129,7 +143,21 @@ JS
 }
 
 launch_app() {
-  adb_cmd shell am start -n com.indiehost.launcher/.MainActivity
+  adb_cmd logcat -b crash -c >/dev/null 2>&1 || true
+  if adb_cmd shell am start -n com.indiehost.launcher/.MainActivity >/dev/null 2>&1; then
+    pass "launch intent accepted"
+  else
+    fail "launch intent rejected"
+    return
+  fi
+  sleep 6
+  local crashes
+  crashes="$({ adb_cmd logcat -b crash -d 2>/dev/null || true; } | grep -c 'com.indiehost.launcher' || true)"
+  if [ "$crashes" -eq 0 ]; then
+    pass "no crash-buffer entries for the launcher"
+  else
+    fail "$crashes crash-buffer entries for the launcher"
+  fi
 }
 
 run_perf() {

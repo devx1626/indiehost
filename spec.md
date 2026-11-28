@@ -160,9 +160,10 @@ Status values: **Implemented**, **Partial**, **Planned**, **Not started**.
 | FR-20 | No hosted engine in M1. In M2 the RPG Maker runtime is code-complete but device-unverified; WebView DOM/localStorage stays app-private and save export is deferred until the runtime is proven on a phone. Butterscotch-owned saves remain Butterscotch's responsibility. | Deferred beyond M2 (scope change recorded in the M2 design) |
 
 M1 implementation notes: `RoomGameRepository` is the persistence seam; `GameScanner`
-imports through the pure `GameFolder` seam; a row not seen by the latest scan of its tree is
-marked unavailable but never deleted; `LibraryItem` merges scans and pins with an explicit
-link and never matches by title. Code is verified by host tests and a debug build,
+imports through the pure `GameFolder` seam with run ids, progress and cancellation; a row
+not seen by the latest scan of its tree is marked unavailable but never deleted, and
+possible duplicates are flagged rather than removed; `LibraryItem` merges scans and pins
+with an explicit link and never matches by title. Code is verified by host tests and a debug build,
 but the manual M1 cases (SAF grants, covers, reinstall) have not run on a device; see
 [TESTING.md](TESTING.md) §3.
 
@@ -431,7 +432,7 @@ Milestone 0 game bar. Measure with the protocol in [TESTING.md](TESTING.md).
 - [ ] Scanned folders and covers survive process death and launcher updates. — MT-21…MT-27
 - [ ] MV/MZ games launch offline without `INTERNET` and no remote request succeeds. — MT-29…MT-31
 - [ ] Back/audio/rotation behave like a game; detection-only engines show a reason. — MT-32, MT-34
-- [ ] Host gate passes: 19 detector + 3 mapping + 7 runtime + 35 app tests and a debug APK.
+- [ ] Host gate passes: 19 detector + 3 mapping + 7 runtime + 37 app tests and a debug APK.
 - [ ] Installs and launches on API 24 through 34.
 - [ ] Can be selected as the home app; Home returns to it with `singleTask` behaviour.
 - [ ] Lists pinned `game-` shortcuts only while it is the home app.
